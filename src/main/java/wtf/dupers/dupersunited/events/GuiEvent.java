@@ -78,7 +78,7 @@ public class GuiEvent {
                                                 MainCommand.sendMessage("Desynced screen.", true);
                                             }
                                     )
-                                    .dimensions(x + 115, y, 80, 20)
+                                    .dimensions(x, y + 225, 80, 20)
                                     .tooltip(Tooltip.of(Text.literal("Tells server GUI closed but keeps it open client-side.")))
                                     .build()
                     );
