@@ -3,6 +3,7 @@ package wtf.dupers.dupersunited.events;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.FabricatePackets;
@@ -66,13 +67,15 @@ public class GuiEvent {
                             ButtonWidget.builder(
                                             Text.literal("Desync").styled(s -> s.withColor(MAUVE)),
                                             btn -> {
-                                                if (client.getNetworkHandler() != null && client.player != null) {
-                                                    client.getNetworkHandler().sendPacket(
-                                                            new net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket(
-                                                                    client.player.currentScreenHandler.syncId
-                                                            )
-                                                    );
+                                                if (client.player == null || client.getNetworkHandler() == null) return;
+                                                if (client.player.currentScreenHandler == client.player.playerScreenHandler) {
+                                                    MainCommand.sendMessage("No screen open to desync.", true);
+                                                    return;
                                                 }
+                                                client.getNetworkHandler().sendPacket(
+                                                        new CloseHandledScreenC2SPacket(client.player.currentScreenHandler.syncId)
+                                                );
+                                                MainCommand.sendMessage("Desynced screen.", true);
                                             }
                                     )
                                     .dimensions(x + 115, y, 80, 20)
