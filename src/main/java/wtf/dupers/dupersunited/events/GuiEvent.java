@@ -61,6 +61,26 @@ public class GuiEvent {
                     );
                 }
 
+                if (mod.desyncSetting.getValue()) {
+                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
+                            ButtonWidget.builder(
+                                            Text.literal("Desync").styled(s -> s.withColor(MAUVE)),
+                                            btn -> {
+                                                if (client.getNetworkHandler() != null && client.player != null) {
+                                                    client.getNetworkHandler().sendPacket(
+                                                            new net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket(
+                                                                    client.player.currentScreenHandler.syncId
+                                                            )
+                                                    );
+                                                }
+                                            }
+                                    )
+                                    .dimensions(x + 115, y, 80, 20)
+                                    .tooltip(Tooltip.of(Text.literal("Tells server GUI closed but keeps it open client-side.")))
+                                    .build()
+                    );
+                }
+
                 if (mod.clearGuiSetting.getValue()) {
                     ((ScreenAccessor) screen).dupersunited$addDrawableChild(
                             ButtonWidget.builder(
