@@ -19,6 +19,7 @@
         "glitcha.TextVisitFactoryMixin",
         "misc.ChatHudMixin",
         "misc.ClientTickMixin",
+        "misc.KeyboardMixin",
         "misc.MinecraftClientMixin",
         "misc.MouseMixin",
         "misc.PlayerListHudMixin",

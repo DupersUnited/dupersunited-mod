@@ -6,7 +6,6 @@ import wtf.dupers.dupersunited.features.PayAllManager;
 import wtf.dupers.dupersunited.features.PluginScanner;
 import wtf.dupers.dupersunited.features.auth.AuthManager;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
-import wtf.dupers.dupersunited.keybinds.ClickGuiKeybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.text.Text;
@@ -39,7 +38,6 @@ public class TickEvent {
 
             AuthManager.onTick();
             ChatMacroManager.onTick();
-            ClickGuiKeybind.onTick();
             ClickSlotManager.onTick();
             KeybindManager.onTick();
             PayAllManager.onTick();
