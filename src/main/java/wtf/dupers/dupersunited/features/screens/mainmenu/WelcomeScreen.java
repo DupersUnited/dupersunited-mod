@@ -35,7 +35,7 @@ public class WelcomeScreen extends Screen {
         context.drawCenteredTextWithShadow(this.textRenderer,
                 Text.literal("Thank you for using the ").withColor(ColorUtil.PALE_NAVY)
                         .append(Text.literal("DupersUnited").withColor(ColorUtil.MAUVE).formatted(Formatting.BOLD))
-                        .append(Text.literal(" Addon!").withColor(ColorUtil.PALE_NAVY)),
+                        .append(Text.literal(" Mod!").withColor(ColorUtil.PALE_NAVY)),
                 centerX, centerY - 20, -1);
 
         context.drawCenteredTextWithShadow(this.textRenderer,
@@ -45,17 +45,17 @@ public class WelcomeScreen extends Screen {
         context.drawCenteredTextWithShadow(this.textRenderer,
                 Text.literal("press ").withColor(ColorUtil.SUBTEXT)
                         .append(Text.literal("K").withColor(ColorUtil.SAPPHIRE).formatted(Formatting.BOLD))
-                        .append(Text.literal(" in-game to access the ClickGUI.").withColor(ColorUtil.SUBTEXT)),
+                        .append(Text.literal(" to access the Click GUI.").withColor(ColorUtil.SUBTEXT)),
                 centerX, centerY + 18, -1);
 
-        context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("v1.0.0 Public Edition").withColor(ColorUtil.FADED_INDIGO).formatted(Formatting.ITALIC),
-                centerX, centerY + 45, -1);
+        context.drawTextWithShadow(this.textRenderer,
+                Text.literal("v1.0.0").withColor(ColorUtil.FADED_INDIGO).formatted(Formatting.ITALIC),
+                5, 5, -1);
 
         context.drawCenteredTextWithShadow(this.textRenderer,
                 Text.literal("Press ").withColor(ColorUtil.FADED_NAVY)
                         .append(Text.literal("ESC").withColor(ColorUtil.RED))
-                        .append(Text.literal(" to continue to the Main Menu").withColor(ColorUtil.FADED_NAVY)),
+                        .append(Text.literal(" to enter the Main Menu").withColor(ColorUtil.FADED_NAVY)),
                 centerX, this.height - 30, -1);
 
         super.render(context, mouseX, mouseY, delta);
