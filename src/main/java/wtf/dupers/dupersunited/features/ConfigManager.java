@@ -9,7 +9,6 @@ import wtf.dupers.dupersunited.features.screens.hud.HudElement;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import wtf.dupers.dupersunited.api.module.Module;
-import wtf.dupers.dupersunited.api.module.settings.*;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.joml.Vector2i;
 
