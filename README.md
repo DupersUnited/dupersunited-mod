@@ -33,13 +33,13 @@ build/libs/
 
 ### Linking proxies to accounts
 Once you first install the mod, and exit the welcome screen, you'll see a button in the top right saying "DupersUnited",
-<img width="1357" height="709" alt="Screenshot 2026-04-29 210225" src="https://github.com/user-attachments/assets/47728a5d-8f2f-44a2-bd7c-d9e79cacbae5" />
-after clicking on the "DupersUnited" button, it will open this screen. You can also access this screen via the Multiplayer menu <img width="1353" height="708" alt="Screenshot 2026-04-29 211927" src="https://github.com/user-attachments/assets/934bfd66-9589-44c5-8a5f-7667f7b8b967" />
-<img width="1919" height="1012" alt="Screenshot 2026-04-29 210332" src="https://github.com/user-attachments/assets/2acf762f-a814-4944-aac9-70f9c7215a53" />
+<img width="1357" height="709" alt="image" src="https://github.com/user-attachments/assets/efc30b9c-ed27-4abc-8b38-a83fb3a32d86" />
+after clicking on the "DupersUnited" button, it will open this screen. You can also access this screen via the Multiplayer menu <img width="1353" height="708" alt="image" src="https://github.com/user-attachments/assets/8f6fe394-8279-42ac-a912-a111e5ab4ace" />
+<img width="1919" height="1012" alt="image" src="https://github.com/user-attachments/assets/0194edf3-07ff-4662-813d-973e1844a453" />
 Now to link an account to a proxy, you'll first have to create a proxy, click on the "Proxy Manager" button and create one, once you do that go back to the config screen and click on the "Accounts" button.
-<img width="1918" height="224" alt="Screenshot 2026-04-29 211029" src="https://github.com/user-attachments/assets/636aa19f-b1de-42a9-8e9e-df70d6cbfd6e" />
+<img width="1918" height="224" alt="image" src="https://github.com/user-attachments/assets/5438b65c-3207-44c8-8010-313443253600" />
 click on the "Proxy" button next to the account you want to link
-<img width="1919" height="168" alt="Screenshot 2026-04-29 211105" src="https://github.com/user-attachments/assets/9c7d3e13-3a3a-43e1-bbaf-44397f4f5d56" />
+<img width="1919" height="168" alt="image" src="https://github.com/user-attachments/assets/8e44485c-e205-440d-b22b-156b5b5a5580" />
 then go back to "Proxy Manager" and make sure Proxies are **ENABLED** for it to work, now everytime you launch with the account or swap to it using our account menu it will automatically swap you to that proxy.
 
 # What do all the buttons in the Multiplayer screen do?
@@ -47,7 +47,7 @@ then go back to "Proxy Manager" and make sure Proxies are **ENABLED** for it to 
 ### Server Alerts
 
 Server Alerts lists known servers who use exploits to track users & servers who **ETHICALLY** monetize their servers (Non P2W/Gambling), use [ExploitPreventer](https://github.com/NikOverflow/ExploitPreventer) or [OpSec](https://github.com/aurickk/OpSec) to be fully safe from those exploits. All Server Alerts does is puts a warning screen before logging into a server that uses an exploit
-<img width="923" height="289" alt="Screenshot 2026-04-29 213938" src="https://github.com/user-attachments/assets/27163370-c4ed-406a-a79f-275713cf3575" />
+<img width="923" height="289" alt="image" src="https://github.com/user-attachments/assets/b43daa2a-efd0-4298-8683-7cee12490fff" />
 
 ### RP Bypass
 Bypasses required resource pack on a servers
@@ -56,7 +56,7 @@ Spoofs your brand to a Vanilla Client
 ## In-Game
 By default you will have inventory buttons, open your inventory or any container to see them
 
-<img width="1919" height="1002" alt="Screenshot 2026-04-29 202928" src="https://github.com/user-attachments/assets/82c772ed-ec61-44fc-9629-5638ffa1c85b" />
+<img width="1919" height="1002" alt="image" src="https://github.com/user-attachments/assets/4f3f4717-f7ff-4cb8-9173-f58cc986c7b5" />
 
 ### What does each inventory button do?
 - "Close Without Packet" closes your current GUI without sending a packet to the server. (To restore press your V key)
@@ -72,7 +72,8 @@ By default you will have inventory buttons, open your inventory or any container
 
 To access the other modules in the mod, press your "K" key while ingame.
 
-<img width="1919" height="1008" alt="Screenshot 2026-04-29 204532" src="https://github.com/user-attachments/assets/01394a08-36f7-4cb9-b858-0a0e4ea21e62" />
+<img width="1919" height="1008" alt="image" src="https://github.com/user-attachments/assets/4bec7de7-a015-4d9e-a177-e87e71b5d778" />
 
 To access the commands run "/du help"
-<img width="566" height="338" alt="Screenshot 2026-04-29 205014" src="https://github.com/user-attachments/assets/d338eee3-fb0e-4051-89a7-2657a82e3817" />
+<img width="566" height="338" alt="image" src="https://github.com/user-attachments/assets/341289f1-2e6a-48a1-9b50-ed0cd537976a" />
+
