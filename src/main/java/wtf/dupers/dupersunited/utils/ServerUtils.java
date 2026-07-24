@@ -11,7 +11,7 @@ import java.util.List;
 
 
 public class ServerUtils {
-    public static List<String> getScoreboardLines() {
+    /*public static List<String> getScoreboardLines() {
         MinecraftClient mc = MinecraftClient.getInstance();
 
         if (mc.world == null) return List.of();
@@ -35,14 +35,16 @@ public class ServerUtils {
     }
     public static String stripFormatting(String s) {
         return s.replaceAll("§.", "");
-    }
+    }*/
 
     public static boolean isDonut() {
-        var scoreboard = MinecraftClient.getInstance().world.getScoreboard();
-        var objective = scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.SIDEBAR);
-        if (objective != null) {
-            return objective.getDisplayName().getString().contains("§lD§lo§ln§lu§lt§l S§lM§lP");
+        MinecraftClient mc = MinecraftClient.getInstance();
+
+        var serverInfo = mc.getCurrentServerEntry();
+        if (serverInfo == null || serverInfo.address == null) {
+            return false;
         }
-        return false;
+
+        return serverInfo.address.toLowerCase().contains("donutsmp.net");
     }
 }
