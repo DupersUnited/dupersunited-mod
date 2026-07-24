@@ -5,6 +5,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class LinkProxyScreen extends Screen {
@@ -12,8 +13,13 @@ public class LinkProxyScreen extends Screen {
     private final Screen parent;
     private final String accountName;
 
-    private static final int ENTRY_HEIGHT = 28;
+    private static final int ENTRY_HEIGHT = 25;
     private static final int LIST_TOP = 50;
+    private static final int LIST_BOTTOM_MARGIN = 10;
+
+    private final List<ButtonWidget> proxyButtons = new ArrayList<>();
+    private double scrollOffset = 0;
+    private int maxScroll = 0;
 
     public LinkProxyScreen(Screen parent, String accountName) {
         super(Text.literal("Link Proxy to " + accountName));
@@ -32,6 +38,7 @@ public class LinkProxyScreen extends Screen {
             client.setScreen(parent);
         }).dimensions(this.width - 110, 8, 100, 20).build());
 
+        proxyButtons.clear();
         List<ProxyProfiles> profiles = ProxyConfigManager.profiles;
         int y = LIST_TOP;
         for (ProxyProfiles profile : profiles) {
@@ -39,16 +46,49 @@ public class LinkProxyScreen extends Screen {
             boolean isLinked = p.name.equals(AccountProxyLinks.getLinkedProxy(accountName));
             String label = (isLinked ? "§a " : "") + p.name + " §7(" + p.address + ")";
 
-            this.addDrawableChild(ButtonWidget.builder(Text.literal(label), btn -> {
+            ButtonWidget button = ButtonWidget.builder(Text.literal(label), btn -> {
                 AccountProxyLinks.link(accountName, p.name);
                 client.setScreen(parent);
-            }).dimensions(this.width / 2 - 150, y, 300, 20).build());
+            }).dimensions(this.width / 2 - 150, y, 300, 20).build();
 
-            y += 25;
+            this.addDrawableChild(button);
+            proxyButtons.add(button);
+
+            y += ENTRY_HEIGHT;
         }
 
-        if (profiles.isEmpty()) {
+        int listBottom = this.height - LIST_BOTTOM_MARGIN;
+        int contentHeight = profiles.size() * ENTRY_HEIGHT;
+        int visibleHeight = listBottom - LIST_TOP;
+        maxScroll = Math.max(0, contentHeight - visibleHeight);
+
+        updateButtonPositions();
+    }
+
+    private void updateButtonPositions() {
+        int listBottom = this.height - LIST_BOTTOM_MARGIN;
+        int y = LIST_TOP - (int) scrollOffset;
+
+        for (ButtonWidget button : proxyButtons) {
+            button.setY(y);
+
+            boolean visible = y + button.getHeight() > LIST_TOP && y < listBottom;
+            button.visible = visible;
+            button.active = visible;
+
+            y += ENTRY_HEIGHT;
         }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (maxScroll > 0) {
+            scrollOffset -= verticalAmount * ENTRY_HEIGHT;
+            scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll));
+            updateButtonPositions();
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override
