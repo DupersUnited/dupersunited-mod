@@ -51,7 +51,7 @@ public class WelcomeScreen extends Screen {
                 centerX, centerY + 18, -1);
 
         context.drawTextWithShadow(this.textRenderer,
-                Text.literal("v" + FabricLoader.getInstance().getModContainer(MainClient.MOD_ID).get().getMetadata().getVersion().getFriendlyString()).withColor(ColorUtil.FADED_INDIGO).formatted(Formatting.ITALIC),
+                Text.literal("v" + FabricLoader.getInstance().getModContainer(MainClient.MOD_ID).orElseThrow().getMetadata().getVersion().getFriendlyString()).withColor(ColorUtil.FADED_INDIGO).formatted(Formatting.ITALIC),
                 5, 5, -1);
 
         context.drawCenteredTextWithShadow(this.textRenderer,
