@@ -45,8 +45,7 @@ tasks {
     processResources {
         val properties = mapOf(
             "version" to project.version,
-            "minecraft_version" to libs.versions.minecraft.get(),
-            "loader_version" to libs.versions.fabric.loader.get()
+            "minecraft_version" to libs.versions.minecraft.get()
         )
 
         filteringCharset = "UTF-8"

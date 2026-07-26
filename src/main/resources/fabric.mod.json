@@ -51,7 +51,7 @@
         "dupersunited.mixins.json"
     ],
     "depends": {
-        "fabricloader": ">=${loader_version}",
+        "fabricloader": ">=0.17.3",
         "fabric-api": "*",
         "minecraft": "${minecraft_version}"
     }
