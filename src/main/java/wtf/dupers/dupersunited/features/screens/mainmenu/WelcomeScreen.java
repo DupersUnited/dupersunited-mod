@@ -1,6 +1,8 @@
 package wtf.dupers.dupersunited.features.screens.mainmenu;
 
+import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.utils.ColorUtil;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -49,7 +51,7 @@ public class WelcomeScreen extends Screen {
                 centerX, centerY + 18, -1);
 
         context.drawTextWithShadow(this.textRenderer,
-                Text.literal("v1.0.0").withColor(ColorUtil.FADED_INDIGO).formatted(Formatting.ITALIC),
+                Text.literal("v" + FabricLoader.getInstance().getModContainer(MainClient.MOD_ID).get().getMetadata().getVersion().getFriendlyString()).withColor(ColorUtil.FADED_INDIGO).formatted(Formatting.ITALIC),
                 5, 5, -1);
 
         context.drawCenteredTextWithShadow(this.textRenderer,

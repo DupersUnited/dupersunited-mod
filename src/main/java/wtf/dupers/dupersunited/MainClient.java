@@ -45,6 +45,7 @@ import static wtf.dupers.dupersunited.features.ssidLogin.SessionManager.*;
 public class MainClient implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("DupersUnited");
+    public static final String MOD_ID = "dupersunited";
     public static ModuleManager MODULE_MANAGER;
     public static boolean addonsPresent = false;
     private static Map<String, Command> COMMANDS;
