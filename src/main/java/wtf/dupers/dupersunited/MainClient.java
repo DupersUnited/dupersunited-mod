@@ -114,6 +114,10 @@ public class MainClient implements ModInitializer {
             new WaitCommand()
         );
 
+        if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            registry.registerCommand(new MixinAuditCommand());
+        }
+
         registry.registerKeybinds(
             new GhostBlockKeybind(),
             JoinServerInviteKeybind.INSTANCE,
