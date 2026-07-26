@@ -9,6 +9,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
+import wtf.dupers.dupersunited.mixin.accessor.KeyBindingAccessor;
 
 public class ClickGuiKeybind {
 
@@ -28,7 +29,7 @@ public class ClickGuiKeybind {
 
     public static void onKey(int key, int action) {
         if (action != GLFW.GLFW_PRESS) return;
-        if (key != keyBinding.getDefaultKey().getCode()) return;
+        if (key != ((KeyBindingAccessor) keyBinding).dupersunited$getBoundKey().getCode()) return;
         if (mc.currentScreen instanceof ClickGui) return;
         if (mc.currentScreen instanceof KeybindScreen) return;
         if (isTextFieldFocused()) return;
