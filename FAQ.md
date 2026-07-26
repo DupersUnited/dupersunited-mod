@@ -28,6 +28,40 @@ After downloading it, place the Fabric API .jar file into your .minecraft/mods f
 
 Finally, place the [DupersUnited](https://github.com/DupersUnited/dupersunited-mod/releases/) mod .jar file into the same mods folder. You can then launch Minecraft using the Fabric installation, and the DupersUnited mod should load automatically.
 
+## How does the Account Manager work?
+
+The Account Manager automatically finds accounts saved in **MultiMC**, **Prism Launcher**, and the **Meteor** account folder, then adds them to the mod.
+
+## What is a proxy?
+A proxy is a server that acts as an intermediary between your device and the internet. It routes your traffic while hiding your IP address.
+
+### How do I use proxies in the mod?
+
+We recommend you use [LiquidProxy](https://liquidproxy.net/) or [Webshare](https://www.webshare.io/), Both of these are **paid services**.
+
+### How do I add a proxy?
+
+On the main screen, click DupersUnited.
+
+1. Open Proxy Manager.
+2. Enter your proxy details.
+3. Save the proxy.
+
+Your proxy is now available to use in the mod.
+
+### How do I link to a proxy?
+
+On the main screen, click DupersUnited.
+
+1. Open Accounts.
+2. Click Proxy.
+3. Select the proxy you want to assign to that account.
+
+<img width="426" height="240" alt="how to proxy" src="https://github.com/user-attachments/assets/a26a751d-4616-47ed-acee-acaaae370a09" />
+
+If you're confused, look at the gif above or go check out [this](https://github.com/DupersUnited/dupersunited-mod#linking-proxies-to-accounts).
+
+
 ## What do these errors mean?
 
 ### Outdated Fabric Loader
