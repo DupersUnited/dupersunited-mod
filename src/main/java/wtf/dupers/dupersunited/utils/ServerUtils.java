@@ -8,6 +8,7 @@ import net.minecraft.scoreboard.Team;
 import net.minecraft.text.Text;
 
 import java.util.List;
+import java.util.Locale;
 
 
 public class ServerUtils {
@@ -45,6 +46,6 @@ public class ServerUtils {
             return false;
         }
 
-        return serverInfo.address.toLowerCase().contains("donutsmp.net");
+        return serverInfo.address.toLowerCase(Locale.ROOT).contains("donutsmp.net");
     }
 }
