@@ -11,6 +11,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -36,6 +37,7 @@ public class CapeManager {
 
     private static final long PLAYER_CACHE_MS = 60_000L;
     private static final long FAILED_PROFILE_CACHE_MS = 10_000L;
+    private static final int MAX_CAPE_BYTES = 2 * 1024 * 1024;
 
     @Nullable
     public static Identifier getProfile(UUID uuid) {
@@ -152,12 +154,29 @@ public class CapeManager {
                         .timeout(Duration.ofSeconds(10))
                         .GET()
                         .build();
-                HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    return;
+                HttpResponse<InputStream> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                NativeImage image;
+
+                try (InputStream body = response.body()) {
+                    if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                        return;
+                    }
+
+                    long declaredLength = response.headers().firstValueAsLong("Content-Length").orElse(-1L);
+                    if (declaredLength > MAX_CAPE_BYTES) {
+                        MainClient.LOGGER.warn("Cape texture exceeded the size limit: {}", url);
+                        return;
+                    }
+
+                    byte[] imageBytes = body.readNBytes(MAX_CAPE_BYTES + 1);
+                    if (imageBytes.length > MAX_CAPE_BYTES) {
+                        MainClient.LOGGER.warn("Cape texture exceeded the size limit: {}", url);
+                        return;
+                    }
+
+                    image = NativeImage.read(new ByteArrayInputStream(imageBytes));
                 }
 
-                NativeImage image = NativeImage.read(new ByteArrayInputStream(response.body()));
                 Identifier identifier = Identifier.of(
                         "dupersunited",
                         "cape/" + UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8)).toString().replace("-", "")
