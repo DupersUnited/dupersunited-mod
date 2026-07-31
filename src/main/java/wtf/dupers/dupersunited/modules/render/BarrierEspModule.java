@@ -5,6 +5,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.WorldChunk;
 import org.lwjgl.glfw.GLFW;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
@@ -22,7 +25,7 @@ public class BarrierEspModule extends Module {
         Blocks.BARRIER.getDefaultState()
     );
 
-    private final IntSetting range = register(new IntSetting("Range", 32, 8, 48));
+    private final IntSetting range = register(new IntSetting("Range", 128, 8, 128));
     private int tickCounter;
 
     public BarrierEspModule() {
@@ -46,21 +49,40 @@ public class BarrierEspModule extends Module {
         int radius = range.getValue();
         int radiusSquared = radius * radius;
 
-        for (BlockPos pos : BlockPos.iterateOutwards(center, radius, radius, radius)) {
-            if (center.getSquaredDistance(pos) > radiusSquared) continue;
-            if (!client.world.getBlockState(pos).isOf(Blocks.BARRIER)) continue;
+        int minChunkX = ChunkSectionPos.getSectionCoord(center.getX() - radius);
+        int maxChunkX = ChunkSectionPos.getSectionCoord(center.getX() + radius);
+        int minChunkZ = ChunkSectionPos.getSectionCoord(center.getZ() - radius);
+        int maxChunkZ = ChunkSectionPos.getSectionCoord(center.getZ() + radius);
 
-            client.world.addParticleClient(
-                BARRIER_MARKER,
-                true,
-                false,
-                pos.getX() + 0.5,
-                pos.getY() + 0.5,
-                pos.getZ() + 0.5,
-                0.0,
-                0.0,
-                0.0
-            );
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                WorldChunk chunk = client.world.getChunkManager().getChunk(
+                    chunkX,
+                    chunkZ,
+                    ChunkStatus.FULL,
+                    false
+                );
+                if (chunk == null) continue;
+
+                chunk.forEachBlockMatchingPredicate(
+                    state -> state.isOf(Blocks.BARRIER),
+                    (pos, state) -> {
+                        if (center.getSquaredDistance(pos) > radiusSquared) return;
+
+                        client.world.addParticleClient(
+                            BARRIER_MARKER,
+                            true,
+                            false,
+                            pos.getX() + 0.5,
+                            pos.getY() + 0.5,
+                            pos.getZ() + 0.5,
+                            0.0,
+                            0.0,
+                            0.0
+                        );
+                    }
+                );
+            }
         }
     }
 }
