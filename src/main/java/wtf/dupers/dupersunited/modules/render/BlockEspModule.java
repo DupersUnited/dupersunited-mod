@@ -11,15 +11,19 @@ import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.features.screens.BlockEspScreen;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
+import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.ButtonSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
@@ -28,9 +32,10 @@ import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.WorldChunk;
 import org.lwjgl.glfw.GLFW;
 
-import java.awt.*;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -54,12 +59,17 @@ public class BlockEspModule extends Module {
     private int lastRange = -1;
 
     private static final int SCAN_INTERVAL = 60;
+    private static final int MARKER_INTERVAL = 60;
     private static final int MAX_RENDER = 50000;
+    private static final int MAX_MARKERS = 4096;
+    private static final Map<Block, BlockStateParticleEffect> MARKERS = createMarkers();
 
     private final IntSetting range = register(new IntSetting("Range", 64, 16, 512));
     private final IntSetting red = register(new IntSetting("Red", 0, 0, 255));
     private final IntSetting green = register(new IntSetting("Green", 255, 0, 255));
     private final IntSetting blue = register(new IntSetting("Blue", 255, 0, 255));
+    private final BooleanSetting markerIcons = register(new BooleanSetting("Invisible Icons", false));
+    private volatile int markerTicks;
 
     private final ButtonSetting selectBlocks = register(
             new ButtonSetting("SelectBlocks", this::openScreen)
@@ -114,7 +124,10 @@ public class BlockEspModule extends Module {
     }
 
     @Override
-    public void onEnable() { invalidateCache(); }
+    public void onEnable() {
+        markerTicks = 0;
+        invalidateCache();
+    }
 
     @Override
     public void onDisable() { renderShapes.clear(); }
@@ -145,6 +158,8 @@ public class BlockEspModule extends Module {
             lastScanCenter = playerPos.toImmutable();
             scheduleRescan(mc.world, playerPos.toImmutable(), currentRange);
         }
+
+        if (markerIcons.getValue() && markerTicks++ % MARKER_INTERVAL == 0) spawnMarkers(mc);
     }
 
     public void invalidateCache() {
@@ -163,16 +178,13 @@ public class BlockEspModule extends Module {
 
                 renderShapes.clear();
                 renderShapes.addAll(found);
+                markerTicks = 0;
             } finally {
                 scanning = false;
             }
         });
     }
 
-    /**
-     * You don't have to know how this works, you just have to know that it works
-     * @author Crosby
-     */
     private void rescan(World world, BlockPos center, int r, Set<Block> snapshot, List<RenderShape> found) {
         int cr = Math.ceilDiv(r, 16);
         int ox = ChunkSectionPos.getSectionCoord(center.getX());
@@ -208,7 +220,8 @@ public class BlockEspModule extends Module {
                                         VoxelShape shape = state.getOutlineShape(world, pos);
                                         found.add(new RenderShape(
                                             shape != VoxelShapes.fullCube() ? shape.asCuboid() : shape,
-                                            pos
+                                            pos,
+                                            state.getBlock()
                                         ));
                                         if (found.size() >= MAX_RENDER) return;
                                     }
@@ -219,6 +232,54 @@ public class BlockEspModule extends Module {
                 }
             }
         }
+    }
+
+    private void spawnMarkers(MinecraftClient mc) {
+        int count = 0;
+        for (RenderShape renderShape : renderShapes) {
+            BlockStateParticleEffect marker = MARKERS.get(renderShape.block());
+            if (marker == null) continue;
+            BlockPos pos = renderShape.pos();
+            mc.world.addParticleClient(
+                marker, true, false,
+                pos.getX() + 0.5,
+                pos.getY() + 0.5,
+                pos.getZ() + 0.5,
+                0.0, 0.0, 0.0
+            );
+            if (++count >= MAX_MARKERS) return;
+        }
+    }
+
+    public static boolean hasMarker(Block block) {
+        return MARKERS.containsKey(block);
+    }
+
+    private static Map<Block, BlockStateParticleEffect> createMarkers() {
+        Map<Block, BlockStateParticleEffect> markers = new IdentityHashMap<>();
+        for (Block block : List.of(
+            Blocks.BARRIER,
+            Blocks.LIGHT,
+            Blocks.STRUCTURE_VOID,
+            Blocks.STRUCTURE_BLOCK,
+            Blocks.JIGSAW,
+            Blocks.COMMAND_BLOCK,
+            Blocks.CHAIN_COMMAND_BLOCK,
+            Blocks.REPEATING_COMMAND_BLOCK,
+            Blocks.NETHER_PORTAL,
+            Blocks.END_PORTAL,
+            Blocks.END_GATEWAY,
+            Blocks.SPAWNER,
+            Blocks.TRIAL_SPAWNER,
+            Blocks.VAULT,
+            Blocks.MOVING_PISTON,
+            Blocks.PISTON_HEAD,
+            Blocks.BEDROCK,
+            Blocks.REINFORCED_DEEPSLATE
+        )) {
+            markers.put(block, new BlockStateParticleEffect(ParticleTypes.BLOCK_MARKER, block.getDefaultState()));
+        }
+        return markers;
     }
 
     public void onRender(MatrixStack matrices, VertexConsumerProvider consumers, Vec3d cameraPos) {
@@ -238,5 +299,5 @@ public class BlockEspModule extends Module {
         }
     }
 
-    private record RenderShape(VoxelShape shape, BlockPos pos) {}
+    private record RenderShape(VoxelShape shape, BlockPos pos, Block block) {}
 }
