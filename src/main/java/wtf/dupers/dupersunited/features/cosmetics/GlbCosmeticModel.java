@@ -1,7 +1,10 @@
 package wtf.dupers.dupersunited.features.cosmetics;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import wtf.dupers.dupersunited.MainClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayers;
@@ -15,7 +18,6 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import wtf.dupers.dupersunited.MainClient;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -25,68 +27,290 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class GlbCosmeticModel {
-    private static final GlbCosmeticModel EMPTY=new GlbCosmeticModel("empty",List.of(),null);
+    private static final int GLB_MAGIC = 0x46546C67;
+    private static final int UNSIGNED_BYTE = 5121;
+    private static final int UNSIGNED_SHORT = 5123;
+    private static final int UNSIGNED_INT = 5125;
+    private static final String MODEL_PATH = "/assets/dupersunited/models/cosmetics/";
+    private static final GlbCosmeticModel EMPTY = new GlbCosmeticModel("empty", List.of(), null);
+
     private final String name;
     private final List<Primitive> primitives;
     private final byte[] texture;
     private Identifier textureId;
 
-    private GlbCosmeticModel(String name,List<Primitive> primitives,byte[] texture){this.name=name;this.primitives=primitives;this.texture=texture;}
-
-    public static GlbCosmeticModel load(String name){
-        try(InputStream in=GlbCosmeticModel.class.getResourceAsStream("/assets/dupersunited/models/cosmetics/"+name)){
-            if(in==null)throw new IllegalStateException("Missing "+name);
-            byte[] bytes=in.readAllBytes();ByteBuffer glb=ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-            if(glb.getInt()!=0x46546C67)throw new IllegalArgumentException("Invalid GLB");glb.getInt();glb.getInt();
-            int jsonLength=glb.getInt();glb.getInt();byte[] jsonBytes=new byte[jsonLength];glb.get(jsonBytes);
-            JsonObject json=JsonParser.parseString(new String(jsonBytes,StandardCharsets.UTF_8).trim()).getAsJsonObject();
-            int binLength=glb.getInt();glb.getInt();byte[] binary=new byte[binLength];glb.get(binary);
-            return parse(name,json,ByteBuffer.wrap(binary).order(ByteOrder.LITTLE_ENDIAN));
-        }catch(Exception e){MainClient.LOGGER.error("Failed to load cosmetic GLB {}",name,e);return EMPTY;}
+    private GlbCosmeticModel(String name, List<Primitive> primitives, byte[] texture) {
+        this.name = name;
+        this.primitives = primitives;
+        this.texture = texture;
     }
 
-    private static GlbCosmeticModel parse(String name,JsonObject json,ByteBuffer binary){
-        List<Primitive> out=new ArrayList<>();JsonObject scene=json.getAsJsonArray("scenes").get(json.has("scene")?json.get("scene").getAsInt():0).getAsJsonObject();for(var root:scene.getAsJsonArray("nodes"))loadNode(json,binary,root.getAsInt(),new Matrix4f(),out);normalize(out);
-        byte[] image=null;if(json.has("images")){JsonObject im=json.getAsJsonArray("images").get(0).getAsJsonObject();JsonObject view=json.getAsJsonArray("bufferViews").get(im.get("bufferView").getAsInt()).getAsJsonObject();int start=view.has("byteOffset")?view.get("byteOffset").getAsInt():0,length=view.get("byteLength").getAsInt();image=new byte[length];ByteBuffer copy=binary.duplicate();copy.position(start);copy.get(image);}
-        return new GlbCosmeticModel(name,List.copyOf(out),image);
-    }
+    public static GlbCosmeticModel load(String name) {
+        try (InputStream input = GlbCosmeticModel.class.getResourceAsStream(MODEL_PATH + name)) {
+            if (input == null) {
+                throw new IllegalStateException("Missing " + name);
+            }
 
-    private static void loadNode(JsonObject json,ByteBuffer binary,int index,Matrix4f parent,List<Primitive> out){JsonObject node=json.getAsJsonArray("nodes").get(index).getAsJsonObject();Matrix4f world=new Matrix4f(parent).mul(transform(node));if(node.has("mesh"))loadMesh(json,binary,node.get("mesh").getAsInt(),world,out);if(node.has("children"))for(var child:node.getAsJsonArray("children"))loadNode(json,binary,child.getAsInt(),world,out);}
-
-    private static void loadMesh(JsonObject json,ByteBuffer binary,int meshIndex,Matrix4f transform,List<Primitive> out){
-        for(var primitiveElement:json.getAsJsonArray("meshes").get(meshIndex).getAsJsonObject().getAsJsonArray("primitives")){
-            JsonObject primitive=primitiveElement.getAsJsonObject(),attributes=primitive.getAsJsonObject("attributes");
-            float[] positions=floats(json,binary,attributes.get("POSITION").getAsInt(),3);
-            float[] normals=attributes.has("NORMAL")?floats(json,binary,attributes.get("NORMAL").getAsInt(),3):new float[positions.length];
-            float[] uv=attributes.has("TEXCOORD_0")?floats(json,binary,attributes.get("TEXCOORD_0").getAsInt(),2):new float[positions.length/3*2];
-            transform(positions,normals,transform);int[] indices=indices(json,binary,primitive.get("indices").getAsInt());out.add(new Primitive(positions,normals,uv,indices));
+            ByteBuffer glb = ByteBuffer.wrap(input.readAllBytes()).order(ByteOrder.LITTLE_ENDIAN);
+            readHeader(glb);
+            JsonObject json = JsonParser.parseString(
+                    new String(readChunk(glb), StandardCharsets.UTF_8).trim()
+            ).getAsJsonObject();
+            ByteBuffer binary = ByteBuffer.wrap(readChunk(glb)).order(ByteOrder.LITTLE_ENDIAN);
+            return parse(name, json, binary);
+        } catch (Exception exception) {
+            MainClient.LOGGER.error("Failed to load cosmetic GLB {}", name, exception);
+            return EMPTY;
         }
     }
 
-    private static Matrix4f transform(JsonObject node){if(node.has("matrix")){float[] m=new float[16];for(int i=0;i<16;i++)m[i]=node.getAsJsonArray("matrix").get(i).getAsFloat();return new Matrix4f().set(m);}Vector3f t=new Vector3f(),s=new Vector3f(1);Quaternionf r=new Quaternionf();if(node.has("translation")){var a=node.getAsJsonArray("translation");t.set(a.get(0).getAsFloat(),a.get(1).getAsFloat(),a.get(2).getAsFloat());}if(node.has("scale")){var a=node.getAsJsonArray("scale");s.set(a.get(0).getAsFloat(),a.get(1).getAsFloat(),a.get(2).getAsFloat());}if(node.has("rotation")){var a=node.getAsJsonArray("rotation");r.set(a.get(0).getAsFloat(),a.get(1).getAsFloat(),a.get(2).getAsFloat(),a.get(3).getAsFloat());}return new Matrix4f().translationRotateScale(t,r,s);}
-
-    private static void transform(float[] positions,float[] normals,Matrix4f matrix){Matrix3f normalMatrix=new Matrix3f(matrix).invert().transpose();Vector3f v=new Vector3f();for(int i=0;i<positions.length;i+=3){matrix.transformPosition(v.set(positions[i],positions[i+1],positions[i+2]));positions[i]=v.x;positions[i+1]=v.y;positions[i+2]=v.z;normalMatrix.transform(v.set(normals[i],normals[i+1],normals[i+2])).normalize();normals[i]=v.x;normals[i+1]=v.y;normals[i+2]=v.z;}}
-
-    private static void normalize(List<Primitive> primitives){float minX=Float.POSITIVE_INFINITY,minY=Float.POSITIVE_INFINITY,minZ=Float.POSITIVE_INFINITY,maxX=Float.NEGATIVE_INFINITY,maxZ=Float.NEGATIVE_INFINITY;for(Primitive p:primitives)for(int i=0;i<p.positions.length;i+=3){minX=Math.min(minX,p.positions[i]);minY=Math.min(minY,p.positions[i+1]);minZ=Math.min(minZ,p.positions[i+2]);maxX=Math.max(maxX,p.positions[i]);maxZ=Math.max(maxZ,p.positions[i+2]);}float cx=(minX+maxX)/2,cz=(minZ+maxZ)/2;for(Primitive p:primitives)for(int i=0;i<p.positions.length;i+=3){p.positions[i]-=cx;p.positions[i+1]-=minY;p.positions[i+2]-=cz;}}
-
-    private static float[] floats(JsonObject json,ByteBuffer binary,int accessorIndex,int components){
-        JsonObject accessor=json.getAsJsonArray("accessors").get(accessorIndex).getAsJsonObject(),view=json.getAsJsonArray("bufferViews").get(accessor.get("bufferView").getAsInt()).getAsJsonObject();
-        int count=accessor.get("count").getAsInt(),start=(view.has("byteOffset")?view.get("byteOffset").getAsInt():0)+(accessor.has("byteOffset")?accessor.get("byteOffset").getAsInt():0),stride=view.has("byteStride")?view.get("byteStride").getAsInt():components*4;float[] out=new float[count*components];
-        for(int i=0;i<count;i++)for(int c=0;c<components;c++)out[i*components+c]=binary.getFloat(start+i*stride+c*4);return out;
+    private static void readHeader(ByteBuffer glb) {
+        if (glb.getInt() != GLB_MAGIC) {
+            throw new IllegalArgumentException("Invalid GLB");
+        }
+        glb.getInt();
+        glb.getInt();
     }
 
-    private static int[] indices(JsonObject json,ByteBuffer binary,int accessorIndex){
-        JsonObject accessor=json.getAsJsonArray("accessors").get(accessorIndex).getAsJsonObject(),view=json.getAsJsonArray("bufferViews").get(accessor.get("bufferView").getAsInt()).getAsJsonObject();int count=accessor.get("count").getAsInt(),type=accessor.get("componentType").getAsInt(),start=(view.has("byteOffset")?view.get("byteOffset").getAsInt():0)+(accessor.has("byteOffset")?accessor.get("byteOffset").getAsInt():0);int[] out=new int[count];for(int i=0;i<count;i++)out[i]=switch(type){case 5121->binary.get(start+i)&255;case 5123->binary.getShort(start+i*2)&65535;case 5125->binary.getInt(start+i*4);default->throw new IllegalArgumentException("Index type "+type);};return out;
+    private static byte[] readChunk(ByteBuffer glb) {
+        int length = glb.getInt();
+        glb.getInt();
+        byte[] chunk = new byte[length];
+        glb.get(chunk);
+        return chunk;
     }
 
-    public void render(MatrixStack matrices,OrderedRenderCommandQueue queue,int light){
-        if(primitives.isEmpty())return;prepareTexture();queue.submitCustom(matrices,RenderLayers.entityCutoutNoCull(textureId),(entry,vertices)->primitives.forEach(p->p.render(entry,vertices,light)));
+    private static GlbCosmeticModel parse(String name, JsonObject json, ByteBuffer binary) {
+        List<Primitive> primitives = new ArrayList<>();
+        int sceneIndex = json.has("scene") ? json.get("scene").getAsInt() : 0;
+        JsonObject scene = objectAt(json, "scenes", sceneIndex);
+
+        for (JsonElement root : scene.getAsJsonArray("nodes")) {
+            loadNode(json, binary, root.getAsInt(), new Matrix4f(), primitives);
+        }
+
+        normalize(primitives);
+        return new GlbCosmeticModel(name, List.copyOf(primitives), readTexture(json, binary));
     }
 
-    private void prepareTexture(){if(textureId!=null)return;textureId=Identifier.of("dupersunited","cosmetics/"+name.replace('.','_'));try{NativeImage image=texture==null?new NativeImage(1,1,false):NativeImage.read(texture);if(texture==null)image.setColorArgb(0,0,0xFFFFFFFF);MinecraftClient.getInstance().getTextureManager().registerTexture(textureId,new NativeImageBackedTexture(()->"DupersUnited cosmetic "+name,image));}catch(Exception e){throw new IllegalStateException(e);}}
+    private static void loadNode(JsonObject json, ByteBuffer binary, int index,
+                                 Matrix4f parent, List<Primitive> primitives) {
+        JsonObject node = objectAt(json, "nodes", index);
+        Matrix4f world = new Matrix4f(parent).mul(nodeTransform(node));
 
-    private record Primitive(float[] positions,float[] normals,float[] uv,int[] indices){
-        private void render(MatrixStack.Entry entry,VertexConsumer vertices,int light){for(int i=0;i<indices.length;i+=3){vertex(entry,vertices,light,indices[i]);vertex(entry,vertices,light,indices[i+1]);vertex(entry,vertices,light,indices[i+2]);vertex(entry,vertices,light,indices[i+2]);}}
-        private void vertex(MatrixStack.Entry entry,VertexConsumer vertices,int light,int index){int p=index*3,t=index*2;vertices.vertex(entry,positions[p],positions[p+1],positions[p+2]).color(0xFFFFFFFF).texture(uv[t],uv[t+1]).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry,normals[p],normals[p+1],normals[p+2]);}
+        if (node.has("mesh")) {
+            loadMesh(json, binary, node.get("mesh").getAsInt(), world, primitives);
+        }
+        if (node.has("children")) {
+            for (JsonElement child : node.getAsJsonArray("children")) {
+                loadNode(json, binary, child.getAsInt(), world, primitives);
+            }
+        }
+    }
+
+    private static void loadMesh(JsonObject json, ByteBuffer binary, int meshIndex,
+                                 Matrix4f transform, List<Primitive> primitives) {
+        JsonArray meshPrimitives = objectAt(json, "meshes", meshIndex).getAsJsonArray("primitives");
+        for (JsonElement element : meshPrimitives) {
+            JsonObject primitive = element.getAsJsonObject();
+            JsonObject attributes = primitive.getAsJsonObject("attributes");
+            float[] positions = readFloats(json, binary, attributes.get("POSITION").getAsInt(), 3);
+            float[] normals = attributes.has("NORMAL")
+                    ? readFloats(json, binary, attributes.get("NORMAL").getAsInt(), 3)
+                    : new float[positions.length];
+            float[] textureCoordinates = attributes.has("TEXCOORD_0")
+                    ? readFloats(json, binary, attributes.get("TEXCOORD_0").getAsInt(), 2)
+                    : new float[positions.length / 3 * 2];
+
+            applyTransform(positions, normals, transform);
+            int[] indices = readIndices(json, binary, primitive.get("indices").getAsInt());
+            primitives.add(new Primitive(positions, normals, textureCoordinates, indices));
+        }
+    }
+
+    private static Matrix4f nodeTransform(JsonObject node) {
+        if (node.has("matrix")) {
+            JsonArray values = node.getAsJsonArray("matrix");
+            float[] matrix = new float[16];
+            for (int index = 0; index < matrix.length; index++) {
+                matrix[index] = values.get(index).getAsFloat();
+            }
+            return new Matrix4f().set(matrix);
+        }
+
+        Vector3f translation = new Vector3f();
+        Vector3f scale = new Vector3f(1);
+        Quaternionf rotation = new Quaternionf();
+
+        if (node.has("translation")) {
+            JsonArray values = node.getAsJsonArray("translation");
+            translation.set(values.get(0).getAsFloat(), values.get(1).getAsFloat(),
+                    values.get(2).getAsFloat());
+        }
+        if (node.has("scale")) {
+            JsonArray values = node.getAsJsonArray("scale");
+            scale.set(values.get(0).getAsFloat(), values.get(1).getAsFloat(),
+                    values.get(2).getAsFloat());
+        }
+        if (node.has("rotation")) {
+            JsonArray values = node.getAsJsonArray("rotation");
+            rotation.set(values.get(0).getAsFloat(), values.get(1).getAsFloat(),
+                    values.get(2).getAsFloat(), values.get(3).getAsFloat());
+        }
+        return new Matrix4f().translationRotateScale(translation, rotation, scale);
+    }
+
+    private static void applyTransform(float[] positions, float[] normals, Matrix4f matrix) {
+        Matrix3f normalMatrix = new Matrix3f(matrix).invert().transpose();
+        Vector3f vector = new Vector3f();
+
+        for (int index = 0; index < positions.length; index += 3) {
+            matrix.transformPosition(vector.set(
+                    positions[index], positions[index + 1], positions[index + 2]));
+            positions[index] = vector.x;
+            positions[index + 1] = vector.y;
+            positions[index + 2] = vector.z;
+
+            normalMatrix.transform(vector.set(
+                    normals[index], normals[index + 1], normals[index + 2])).normalize();
+            normals[index] = vector.x;
+            normals[index + 1] = vector.y;
+            normals[index + 2] = vector.z;
+        }
+    }
+
+    private static void normalize(List<Primitive> primitives) {
+        float minX = Float.POSITIVE_INFINITY;
+        float minY = Float.POSITIVE_INFINITY;
+        float minZ = Float.POSITIVE_INFINITY;
+        float maxX = Float.NEGATIVE_INFINITY;
+        float maxZ = Float.NEGATIVE_INFINITY;
+
+        for (Primitive primitive : primitives) {
+            for (int index = 0; index < primitive.positions.length; index += 3) {
+                minX = Math.min(minX, primitive.positions[index]);
+                minY = Math.min(minY, primitive.positions[index + 1]);
+                minZ = Math.min(minZ, primitive.positions[index + 2]);
+                maxX = Math.max(maxX, primitive.positions[index]);
+                maxZ = Math.max(maxZ, primitive.positions[index + 2]);
+            }
+        }
+
+        float centerX = (minX + maxX) / 2;
+        float centerZ = (minZ + maxZ) / 2;
+        for (Primitive primitive : primitives) {
+            for (int index = 0; index < primitive.positions.length; index += 3) {
+                primitive.positions[index] -= centerX;
+                primitive.positions[index + 1] -= minY;
+                primitive.positions[index + 2] -= centerZ;
+            }
+        }
+    }
+
+    private static float[] readFloats(JsonObject json, ByteBuffer binary,
+                                     int accessorIndex, int components) {
+        JsonObject accessor = objectAt(json, "accessors", accessorIndex);
+        JsonObject view = objectAt(json, "bufferViews", accessor.get("bufferView").getAsInt());
+        int count = accessor.get("count").getAsInt();
+        int start = byteOffset(view) + byteOffset(accessor);
+        int stride = view.has("byteStride") ? view.get("byteStride").getAsInt() : components * Float.BYTES;
+        float[] values = new float[count * components];
+
+        for (int index = 0; index < count; index++) {
+            for (int component = 0; component < components; component++) {
+                values[index * components + component] = binary.getFloat(
+                        start + index * stride + component * Float.BYTES);
+            }
+        }
+        return values;
+    }
+
+    private static int[] readIndices(JsonObject json, ByteBuffer binary, int accessorIndex) {
+        JsonObject accessor = objectAt(json, "accessors", accessorIndex);
+        JsonObject view = objectAt(json, "bufferViews", accessor.get("bufferView").getAsInt());
+        int count = accessor.get("count").getAsInt();
+        int type = accessor.get("componentType").getAsInt();
+        int start = byteOffset(view) + byteOffset(accessor);
+        int[] indices = new int[count];
+
+        for (int index = 0; index < count; index++) {
+            indices[index] = switch (type) {
+                case UNSIGNED_BYTE -> binary.get(start + index) & 0xFF;
+                case UNSIGNED_SHORT -> binary.getShort(start + index * Short.BYTES) & 0xFFFF;
+                case UNSIGNED_INT -> binary.getInt(start + index * Integer.BYTES);
+                default -> throw new IllegalArgumentException("Index type " + type);
+            };
+        }
+        return indices;
+    }
+
+    private static byte[] readTexture(JsonObject json, ByteBuffer binary) {
+        if (!json.has("images")) return null;
+
+        JsonObject image = objectAt(json, "images", 0);
+        JsonObject view = objectAt(json, "bufferViews", image.get("bufferView").getAsInt());
+        byte[] bytes = new byte[view.get("byteLength").getAsInt()];
+        ByteBuffer copy = binary.duplicate();
+        copy.position(byteOffset(view));
+        copy.get(bytes);
+        return bytes;
+    }
+
+    private static JsonObject objectAt(JsonObject json, String array, int index) {
+        return json.getAsJsonArray(array).get(index).getAsJsonObject();
+    }
+
+    private static int byteOffset(JsonObject object) {
+        return object.has("byteOffset") ? object.get("byteOffset").getAsInt() : 0;
+    }
+
+    public void render(MatrixStack matrices, OrderedRenderCommandQueue queue, int light) {
+        if (primitives.isEmpty()) return;
+
+        prepareTexture();
+        queue.submitCustom(matrices, RenderLayers.entityCutoutNoCull(textureId), (entry, vertices) -> {
+            for (Primitive primitive : primitives) {
+                primitive.render(entry, vertices, light);
+            }
+        });
+    }
+
+    private void prepareTexture() {
+        if (textureId != null) return;
+
+        textureId = Identifier.of("dupersunited", "cosmetics/" + name.replace('.', '_'));
+        try {
+            NativeImage image = texture == null ? new NativeImage(1, 1, false) : NativeImage.read(texture);
+            if (texture == null) {
+                image.setColorArgb(0, 0, 0xFFFFFFFF);
+            }
+            NativeImageBackedTexture nativeTexture = new NativeImageBackedTexture(
+                    () -> "DupersUnited cosmetic " + name, image);
+            MinecraftClient.getInstance().getTextureManager().registerTexture(textureId, nativeTexture);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private record Primitive(float[] positions, float[] normals, float[] textureCoordinates, int[] indices) {
+        private void render(MatrixStack.Entry entry, VertexConsumer vertices, int light) {
+            for (int index = 0; index < indices.length; index += 3) {
+                writeVertex(entry, vertices, light, indices[index]);
+                writeVertex(entry, vertices, light, indices[index + 1]);
+                writeVertex(entry, vertices, light, indices[index + 2]);
+                writeVertex(entry, vertices, light, indices[index + 2]);
+            }
+        }
+
+        private void writeVertex(MatrixStack.Entry entry, VertexConsumer vertices, int light, int index) {
+            int position = index * 3;
+            int texture = index * 2;
+            vertices.vertex(entry, positions[position], positions[position + 1], positions[position + 2])
+                    .color(0xFFFFFFFF)
+                    .texture(textureCoordinates[texture], textureCoordinates[texture + 1])
+                    .overlay(OverlayTexture.DEFAULT_UV)
+                    .light(light)
+                    .normal(entry, normals[position], normals[position + 1], normals[position + 2]);
+        }
     }
 }

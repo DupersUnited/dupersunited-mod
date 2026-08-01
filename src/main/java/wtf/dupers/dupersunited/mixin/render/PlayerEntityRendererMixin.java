@@ -12,9 +12,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import wtf.dupers.dupersunited.features.cosmetics.CosmeticsFeatureRenderer;
 
 @Mixin(PlayerEntityRenderer.class)
-public abstract class PlayerEntityRendererMixin extends LivingEntityRenderer<net.minecraft.client.network.AbstractClientPlayerEntity, PlayerEntityRenderState, PlayerEntityModel> {
-    protected PlayerEntityRendererMixin(EntityRendererFactory.Context context, PlayerEntityModel model, float shadowRadius) { super(context,model,shadowRadius); }
+public abstract class PlayerEntityRendererMixin extends LivingEntityRenderer<
+        net.minecraft.client.network.AbstractClientPlayerEntity,
+        PlayerEntityRenderState,
+        PlayerEntityModel
+> {
+    protected PlayerEntityRendererMixin(
+            EntityRendererFactory.Context context,
+            PlayerEntityModel model,
+            float shadowRadius
+    ) {
+        super(context, model, shadowRadius);
+    }
 
-    @Inject(method="<init>",at=@At("TAIL"))
-    private void addCosmetics(EntityRendererFactory.Context context,boolean slim,CallbackInfo ci){ addFeature(new CosmeticsFeatureRenderer(this)); }
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void addCosmetics(EntityRendererFactory.Context context, boolean slim, CallbackInfo ci) {
+        addFeature(new CosmeticsFeatureRenderer(this));
+    }
 }
