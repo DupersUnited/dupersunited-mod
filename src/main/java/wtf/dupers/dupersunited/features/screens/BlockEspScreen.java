@@ -54,7 +54,7 @@ public class BlockEspScreen extends Screen {
         super(Text.literal("Block ESP"));
         Registries.BLOCK.forEach(b -> {
             if (b != Blocks.AIR && b != Blocks.VOID_AIR && b != Blocks.CAVE_AIR
-                && (!b.asItem().getDefaultStack().isEmpty() || BlockEspModule.hasMarker(b))) {
+                && (!b.asItem().getDefaultStack().isEmpty() || BlockEspModule.hasInvisibleIcon(b))) {
                 allBlocks.add(b);
             }
         });

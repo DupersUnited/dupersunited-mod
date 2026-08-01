@@ -62,7 +62,7 @@ public class BlockEspModule extends Module {
     private static final int MARKER_INTERVAL = 60;
     private static final int MAX_RENDER = 50000;
     private static final int MAX_MARKERS = 4096;
-    private static final Map<Block, BlockStateParticleEffect> MARKERS = createMarkers();
+    private static final Map<Block, BlockStateParticleEffect> MARKER_EFFECTS = createMarkers();
 
     private final IntSetting range = register(new IntSetting("Range", 64, 16, 512));
     private final IntSetting red = register(new IntSetting("Red", 0, 0, 255));
@@ -185,6 +185,10 @@ public class BlockEspModule extends Module {
         });
     }
 
+    /**
+     * You don't have to know how this works, you just have to know that it works
+     * @author Crosby
+     */
     private void rescan(World world, BlockPos center, int r, Set<Block> snapshot, List<RenderShape> found) {
         int cr = Math.ceilDiv(r, 16);
         int ox = ChunkSectionPos.getSectionCoord(center.getX());
@@ -237,7 +241,7 @@ public class BlockEspModule extends Module {
     private void spawnMarkers(MinecraftClient mc) {
         int count = 0;
         for (RenderShape renderShape : renderShapes) {
-            BlockStateParticleEffect marker = MARKERS.get(renderShape.block());
+            BlockStateParticleEffect marker = MARKER_EFFECTS.get(renderShape.block());
             if (marker == null) continue;
             BlockPos pos = renderShape.pos();
             mc.world.addParticleClient(
@@ -251,8 +255,8 @@ public class BlockEspModule extends Module {
         }
     }
 
-    public static boolean hasMarker(Block block) {
-        return MARKERS.containsKey(block);
+    public static boolean hasInvisibleIcon(Block block) {
+        return MARKER_EFFECTS.containsKey(block);
     }
 
     private static Map<Block, BlockStateParticleEffect> createMarkers() {
@@ -269,13 +273,8 @@ public class BlockEspModule extends Module {
             Blocks.NETHER_PORTAL,
             Blocks.END_PORTAL,
             Blocks.END_GATEWAY,
-            Blocks.SPAWNER,
-            Blocks.TRIAL_SPAWNER,
-            Blocks.VAULT,
             Blocks.MOVING_PISTON,
-            Blocks.PISTON_HEAD,
-            Blocks.BEDROCK,
-            Blocks.REINFORCED_DEEPSLATE
+            Blocks.PISTON_HEAD
         )) {
             markers.put(block, new BlockStateParticleEffect(ParticleTypes.BLOCK_MARKER, block.getDefaultState()));
         }
