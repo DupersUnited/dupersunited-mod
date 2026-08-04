@@ -46,7 +46,7 @@ public final class CosmeticCatalog {
 
     private static List<Item> build() {
         return List.of(
-                generated("none-head", "None", Slot.HEAD, List.of()),
+                cosmetic("none-head", "None", Slot.HEAD, "Creator", "", List.of()),
                 cosmetic("bunny-ears", "Bunny Ears", Slot.HEAD, "Silvia_Rose", BUNNY,
                         ears(0xFFF1D4D4, 0xFFFF94B7)),
                 model("minecraft-duck", "Minecraft Duck", "Kadzuo", DUCK,
@@ -69,7 +69,7 @@ public final class CosmeticCatalog {
                         0xFFC72C68, 0xFFFF72AD, 0xFFFFC4D9),
                 catEars("slim-brown-cat-ears", "Slim Brown Cat Ears",
                         0xFF4A281B, 0xFF7B4930, 0xFFE8B995),
-                generated("none-tail", "None", Slot.TAIL, List.of()),
+                cosmetic("none-tail", "None", Slot.TAIL, "Creator", "", List.of()),
                 generated("cat-tail", "Cat Tail", Slot.TAIL, tail(0xFF30343B, false)),
                 generated("fox-tail", "Fox Tail", Slot.TAIL, tail(0xFFD76B2D, true)),
                 generated("bunny-puff", "Bunny Puff", Slot.TAIL, puff()),
