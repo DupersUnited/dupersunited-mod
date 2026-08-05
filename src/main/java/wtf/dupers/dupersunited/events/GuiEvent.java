@@ -3,6 +3,7 @@ package wtf.dupers.dupersunited.events;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.FabricatePackets;
@@ -57,6 +58,28 @@ public class GuiEvent {
                                     )
                                     .dimensions(x, y, 110, 20)
                                     .tooltip(Tooltip.of(Text.of("Closes your GUI clientside and saves it to reopen later.")))
+                                    .build()
+                    );
+                }
+
+                if (mod.desyncSetting.getValue()) {
+                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
+                            ButtonWidget.builder(
+                                            Text.literal("Desync").styled(s -> s.withColor(MAUVE)),
+                                            btn -> {
+                                                if (client.player == null || client.getNetworkHandler() == null) return;
+                                                if (client.player.currentScreenHandler == client.player.playerScreenHandler) {
+                                                    MainCommand.sendMessage("No screen open to desync.", true);
+                                                    return;
+                                                }
+                                                client.getNetworkHandler().sendPacket(
+                                                        new CloseHandledScreenC2SPacket(client.player.currentScreenHandler.syncId)
+                                                );
+                                                MainCommand.sendMessage("Desynced screen.", true);
+                                            }
+                                    )
+                                    .dimensions(x, y + 225, 80, 20)
+                                    .tooltip(Tooltip.of(Text.literal("Tells server GUI closed but keeps it open client-side.")))
                                     .build()
                     );
                 }

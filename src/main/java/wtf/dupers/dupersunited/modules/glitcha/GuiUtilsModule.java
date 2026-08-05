@@ -15,6 +15,7 @@ public class GuiUtilsModule extends Module {
     public final BooleanSetting saveGuiSetting = register(new BooleanSetting("SaveGui", true));
     public final BooleanSetting clearGuiSetting = register(new BooleanSetting("ClearGui", true));
     public final BooleanSetting disconnectAndSendSetting = register(new BooleanSetting("Disconnect", true));
+    public final BooleanSetting desyncSetting = register(new BooleanSetting("Desync", true));
     public final BooleanSetting ShowFabricatePackets = register(new BooleanSetting("FabriPackets", true));
     public final BooleanSetting delayPackets = register(new BooleanSetting("DelayPackets", true));
     public final BooleanSetting saveGuiButtonSetting = register(new BooleanSetting("SaveGUI", true));
