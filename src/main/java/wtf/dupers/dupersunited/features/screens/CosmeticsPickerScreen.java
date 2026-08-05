@@ -131,6 +131,10 @@ public class CosmeticsPickerScreen extends Screen {
                         rowY + 4, ColorUtil.SUBTEXT, false);
             }
         }
+
+        int listViewHeight = visibleRows(layout) * ROW_HEIGHT;
+        int listMaxScroll = Math.max(0, items.size() - visibleRows(layout));
+        renderScrollbar(context, layout.listRight() + 5, layout.y() + LIST_Y, 4, listViewHeight, scroll * ROW_HEIGHT, listMaxScroll * ROW_HEIGHT);
     }
 
     private void renderPreview(DrawContext context, Layout layout) {
@@ -184,9 +188,12 @@ public class CosmeticsPickerScreen extends Screen {
 
         context.enableScissor(layout.sideX(), layout.controlTop(),
                 layout.sideX() + SIDE_WIDTH, layout.controlBottom());
-        drawControls(context, layout.sideX(), layout.controlTop() - controlScroll,
-                SIDE_WIDTH, mouseX, mouseY);
+        drawControls(context, layout.sideX(), layout.controlTop() - controlScroll, SIDE_WIDTH - 8, mouseX, mouseY);
         context.disableScissor();
+
+        int controlHeight = layout.controlBottom() - layout.controlTop();
+        int maxControlScroll = layout.maxControlScroll();
+        renderScrollbar(context, layout.sideX() + SIDE_WIDTH - 5, layout.controlTop(), 4, controlHeight, controlScroll, maxControlScroll);
     }
 
     private void drawControls(DrawContext context, int x, int y, int width, int mouseX, int mouseY) {
@@ -236,6 +243,16 @@ public class CosmeticsPickerScreen extends Screen {
         context.fill(x, y, x + width, y + height, color);
         context.drawCenteredTextWithShadow(textRenderer, text, x + width / 2, y + 4,
                 active ? ColorUtil.TEAL : ColorUtil.PALE_NAVY);
+    }
+
+    private void renderScrollbar(DrawContext context, int x, int y, int width, int height, int scroll, int maxScroll) {
+        if (maxScroll <= 0 || height <= 0) return;
+
+        int thumbHeight = Math.max(20, Math.min(height, height * height / (height + maxScroll)));
+        int thumbY = y + (scroll * (height - thumbHeight)) / maxScroll;
+
+        context.fill(x, y, x + width, y + height, ColorUtil.DEEP_INDIGO);
+        context.fill(x, thumbY, x + width, thumbY + thumbHeight, ColorUtil.SUBTEXT);
     }
 
     @Override
@@ -410,7 +427,7 @@ public class CosmeticsPickerScreen extends Screen {
         int panelX = (width - panelWidth) / 2;
         int panelHeight = height - PANEL_Y * 2;
         int sideX = panelX + panelWidth - SIDE_PADDING - SIDE_WIDTH;
-        int listRight = sideX - SIDE_GAP;
+        int listRight = sideX - SIDE_GAP - 8;
         int previewY = PANEL_Y + LIST_Y;
         int previewHeight = Math.max(90, panelHeight - 325);
         int controlTop = previewY + previewHeight + 5;
