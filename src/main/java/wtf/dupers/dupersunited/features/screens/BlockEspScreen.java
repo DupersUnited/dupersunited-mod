@@ -37,7 +37,6 @@ public class BlockEspScreen extends Screen {
     private static final int CLEAR_BTN_H = 14;
     private static final int HEADER_H = SEARCH_TOP_OFF + SEARCH_H + AFTER_SEARCH_GAP + CLEAR_BTN_H + HEADER_AFTER_CLEAR_GAP;
     private static final int FOOTER_H = 16;
-
     private final List<Block> allBlocks = new ArrayList<>();
     private final List<Block> shown = new ArrayList<>();
     private String searchQuery = "";
@@ -55,7 +54,7 @@ public class BlockEspScreen extends Screen {
         super(Text.literal("Block ESP"));
         Registries.BLOCK.forEach(b -> {
             if (b != Blocks.AIR && b != Blocks.VOID_AIR && b != Blocks.CAVE_AIR
-                && !b.asItem().getDefaultStack().isEmpty()) {
+                && (!b.asItem().getDefaultStack().isEmpty() || BlockEspModule.hasMarker(b))) {
                 allBlocks.add(b);
             }
         });
@@ -232,7 +231,11 @@ public class BlockEspScreen extends Screen {
             if (hov) ctx.fill(cx, cy, cx + CELL - 2, cy + CELL - 2, 0x33CDD6F4);
 
             ItemStack stack = block.asItem().getDefaultStack();
-            ctx.drawItem(stack, cx + 9, cy + 9);
+            if (stack.isEmpty()) {
+                ctx.drawCenteredTextWithShadow(textRenderer, "?", cx + 17, cy + 13, TEXT_COL);
+            } else {
+                ctx.drawItem(stack, cx + 9, cy + 9);
+            }
 
             if (hov) {
                 ctx.drawTooltip(textRenderer, List.of(
