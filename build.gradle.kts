@@ -70,6 +70,7 @@ tasks {
         from("LICENSE") {
             rename { "${it}_${inputs.properties["archivesName"]}" }
         }
+        from("THIRD_PARTY_ASSETS.md")
     }
 
     withType<JavaCompile>().configureEach {

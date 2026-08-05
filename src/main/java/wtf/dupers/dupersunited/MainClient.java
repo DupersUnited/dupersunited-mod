@@ -82,6 +82,7 @@ public class MainClient implements ModInitializer {
             new PayAllSettingsModule(),
             new InvDropModule(),
             new BlockEspModule(),
+            new CosmeticsModule(),
             new NoRenderModule(),
             new NoTextureRotationsModule(),
             new BetterTabModule(),

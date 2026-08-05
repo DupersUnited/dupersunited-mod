@@ -35,6 +35,7 @@
         "render.EntityRendererMixin",
         "render.LightmapTextureManagerMixin",
         "render.ParticleManagerMixin",
+        "render.PlayerEntityRendererMixin",
         "render.TextRendererMixin",
         "render.WorldRendererMixin",
         "screen.ConnectScreenMixin",
