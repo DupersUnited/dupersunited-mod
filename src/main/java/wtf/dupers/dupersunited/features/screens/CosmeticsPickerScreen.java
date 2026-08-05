@@ -76,7 +76,7 @@ public class CosmeticsPickerScreen extends Screen {
         renderList(context, layout, items, mouseX, mouseY);
         renderPreview(context, layout);
         renderControls(context, layout, mouseX, mouseY);
-        renderCredit(context, layout);
+        renderCredit(context, layout, mouseX, mouseY);
 
         super.render(context, mouseX, mouseY, delta);
     }
@@ -213,14 +213,19 @@ public class CosmeticsPickerScreen extends Screen {
                 "Animate: " + module.animate.getValue(), module.animate.getValue(), mouseX, mouseY);
     }
 
-    private void renderCredit(DrawContext context, Layout layout) {
+    private void renderCredit(DrawContext context, Layout layout, int mouseX, int mouseY) {
         CosmeticCatalog.Item item = CosmeticCatalog.named(slot, selected());
-        String credit = "By " + item.creator();
+        String creditText = "Cosmetic by " + item.creator();
+        int textX = layout.x() + 10;
+        int textY = layout.y() + layout.height() - 20;
+        context.drawText(textRenderer, creditText, textX, textY, ColorUtil.SUBTEXT, false);
+
         if (!item.source().isBlank()) {
-            credit += " - click to open source";
+            int buttonWidth = 60;
+            int buttonX = textX + textRenderer.getWidth(creditText) + 4;
+            int buttonY = textY - 2;
+            drawButton(context, buttonX, buttonY, buttonWidth, 14, "Source", false, mouseX, mouseY);
         }
-        context.drawCenteredTextWithShadow(textRenderer, credit, width / 2,
-                layout.y() + layout.height() - 28, ColorUtil.SUBTEXT);
     }
 
     private void drawButton(DrawContext context, int x, int y, int width, int height,
@@ -243,10 +248,17 @@ public class CosmeticsPickerScreen extends Screen {
         if (selectCosmetic(layout, mouseX, mouseY)) return true;
         if (changeControl(layout, mouseX, mouseY)) return true;
 
-        if (contains(mouseX, mouseY, layout.x(),
-                layout.y() + layout.height() - 34, layout.width(), 16)) {
-            openSource(CosmeticCatalog.named(slot, selected()));
-            return true;
+        CosmeticCatalog.Item selectedItem = CosmeticCatalog.named(slot, selected());
+        if (!selectedItem.source().isBlank()) {
+            String creditText = "Cosmetic by " + selectedItem.creator();
+            int textX = layout.x() + 10;
+            int buttonWidth = 60;
+            int buttonX = textX + textRenderer.getWidth(creditText) + 4;
+            int buttonY = layout.y() + layout.height() - 22;
+            if (contains(mouseX, mouseY, buttonX, buttonY, buttonWidth, 14)) {
+                openSource(selectedItem);
+                return true;
+            }
         }
 
         return super.mouseClicked(click, doubled);
