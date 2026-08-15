@@ -63,6 +63,7 @@ public class MainClient implements ModInitializer {
         registry.namespace = "dupersunited";
 
         registry.registerModules(
+            new ModSettingsModule(),
             new EspModule(),
             new FullBrightModule(),
             new AutoSprintModule(),
