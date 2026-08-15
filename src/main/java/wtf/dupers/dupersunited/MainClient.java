@@ -13,6 +13,7 @@ import wtf.dupers.dupersunited.events.TickEvent;
 import wtf.dupers.dupersunited.events.WorldEvent;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.features.HudOverlay;
+import wtf.dupers.dupersunited.features.OfflineAccountManager;
 import wtf.dupers.dupersunited.features.ServerAlertConfig;
 import wtf.dupers.dupersunited.features.auth.AuthManager;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
@@ -144,7 +145,8 @@ public class MainClient implements ModInitializer {
         //config
         CompletableFuture<Void> proxyConfigTask = CompletableFuture.allOf(
             ProxyConfigManager.load(),
-            AccountProxyLinks.load()
+            AccountProxyLinks.load(),
+            OfflineAccountManager.load()
         ).thenAccept(nil -> {
             // auto apply proxy linked to the launch account if it exists
             String launchUsername = SessionManager.getSession() != null ? SessionManager.getSession().getUsername() : null;
