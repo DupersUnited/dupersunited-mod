@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import wtf.dupers.dupersunited.compat.MeteorCompat;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -14,6 +15,7 @@ import net.minecraft.client.session.Session;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import wtf.dupers.dupersunited.features.OfflineAccountManager;
 import wtf.dupers.dupersunited.features.proxies.*;
 import static wtf.dupers.dupersunited.utils.ColorUtil.*;
 import org.jetbrains.annotations.Nullable;
@@ -112,6 +114,11 @@ public class AccountsScreen extends Screen {
                 accountsToAdd.putIfAbsent(entry.name, entry);
             }
 
+            // offline accounts
+            for (OfflineAccountManager.OfflineAccount offline : OfflineAccountManager.accounts) {
+                accountsToAdd.putIfAbsent(offline.username, new AccountEntry(offline.username, offline.uuid, "Offline", true));
+            }
+
             MinecraftClient.getInstance().execute(() -> {
                 ACCOUNTS.clear();
                 ACCOUNTS.addAll(accountsToAdd.values());
@@ -184,6 +191,12 @@ public class AccountsScreen extends Screen {
         this.addSelectableChild(searchField);
         this.addSelectableChild(pathField);
 
+        // offline qaccs button
+        this.addDrawableChild(ButtonWidget.builder(
+            Text.literal("Offline Manager"),
+            btn -> client.setScreen(new OfflineAccountScreen(this))
+        ).dimensions(5, 8, 100, 20).build());
+
         int visibleRows = visibleRows();
 
         for (int i = 0; i < visibleRows && (i + scrollOffset) < filteredAccounts.size(); i++) {
@@ -193,7 +206,13 @@ public class AccountsScreen extends Screen {
 
             this.addDrawableChild(ButtonWidget.builder(
                     Text.literal("Login"),
-                    btn -> attemptLogin(entry, btn)
+                    btn -> {
+                        if (entry.isOffline()) {
+                            attemptOfflineLogin(entry, btn);
+                        } else {
+                            attemptLogin(entry, btn);
+                        }
+                    }
             ).dimensions(this.width - 225, y, 50, 20).build());
 
             // proxy link button
@@ -236,6 +255,24 @@ public class AccountsScreen extends Screen {
                 .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(
                     Text.literal(isFav ? "Unfavourite account" : "Favourite account (pins to top)")
                 )).build());
+
+            // delete button (for offline accounts only)
+            if (entry.isOffline() && OfflineAccountManager.exists(entry.name)) {
+                this.addDrawableChild(ButtonWidget.builder(
+                        Text.literal("§cX"),
+                        btn -> {
+                            OfflineAccountManager.delete(entry.name);
+                            AccountProxyLinks.unlink(entry.name);
+                            loadAccounts(() -> {
+                                applyFilter();
+                                this.rebuildList();
+                            });
+                        }
+                    ).dimensions(this.width - 35, y, 20, 20)
+                    .tooltip(Tooltip.of(
+                        Text.literal("Deletes this offline account")
+                    )).build());
+            }
         }
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Confirm"), btn -> {
@@ -301,6 +338,24 @@ public class AccountsScreen extends Screen {
                 });
             }
         });
+    }
+
+    private void attemptOfflineLogin(AccountEntry entry, ButtonWidget btn) {
+        String linkedProxy = AccountProxyLinks.getLinkedProxy(entry.name);
+
+        if (linkedProxy != null && !linkedProxy.isEmpty()) {
+            ProxyConfigManager.activeProfileName = linkedProxy;
+            ProxyConfigManager.globalEnabled = true;
+        } else {
+            ProxyConfigManager.globalEnabled = false;
+            ProxyConfigManager.activeProfileName = "";
+        }
+        ProxyConfigManager.save();
+
+        SessionManager.setSession(
+            SessionManager.createSession(entry.name, entry.token, "")
+        );
+        statusMessage = Text.literal("Logged in as: " + entry.name + " §7(offline)").formatted(Formatting.GREEN);
     }
 
     @Override
@@ -427,6 +482,10 @@ public class AccountsScreen extends Screen {
         MinecraftClient.getInstance().setScreen(parent);
     }
 
-    public record AccountEntry(String name, String token, String source) {}
+    public record AccountEntry(String name, String token, String source, boolean isOffline) {
+        public AccountEntry(String name, String token, String source) {
+            this(name, token, source, false);
+        }
+    }
     private record LauncherSource(String name, File file) {}
 }

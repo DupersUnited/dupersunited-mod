@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.commands.MainCommand;
+import wtf.dupers.dupersunited.modules.misc.ModSettingsModule;
+import wtf.dupers.dupersunited.modules.render.HudModule;
 import wtf.dupers.dupersunited.api.module.settings.Setting;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -79,6 +81,9 @@ public class Module {
 
     public void toggle() {
         setEnabled(!enabled);
+
+        ModSettingsModule hud = MainClient.getModule(ModSettingsModule.class);
+        if (hud != null && hud.toggleMessageSetting.getValue()) return;
 
         Text status = enabled
             ? Text.literal("enabled").formatted(Formatting.GREEN)
