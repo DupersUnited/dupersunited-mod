@@ -33,18 +33,11 @@ jobs:
           java-version: 21
           check-latest: true
 
-      - name: Resolve build id from Maven
-        id: build-id
-        run: node .github/get-build-id.mjs
-        env:
-          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-
       - name: Build with Gradle
-        run: ./gradlew build -PbuildId=${{ steps.build-id.outputs.number }}
+        run: ./gradlew build
 
       - name: Publish to Maven (snapshots)
-        run: ./gradlew publish -PbuildId=${{ steps.build-id.outputs.number }}
+        run: ./gradlew publish
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
@@ -52,6 +45,6 @@ jobs:
       - name: Upload Artifacts to GitHub
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: dupersunited-build-${{ steps.build-id.outputs.number }}
+          name: dupersunited-build-${{ github.sha }}
           path: build/libs/
           if-no-files-found: error

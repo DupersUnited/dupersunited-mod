@@ -3,13 +3,20 @@ plugins {
     id("maven-publish")
 }
 
+fun gitShortSha(): String? = try {
+    providers.exec {
+        commandLine("git", "rev-parse", "--short", "HEAD")
+    }.standardOutput.asText.get().trim().takeIf { it.isNotBlank() }
+} catch (_: Exception) {
+    null
+}
+
 base {
     archivesName.set(providers.gradleProperty("archives_base_name"))
-    // dev builds has buildId, releases build without it so thats gonna be how we decide what are releases and what are builds
-    // builds: dupersunited-{mod}+{mc}-{buildId}.jar, releases: dupersunited-{mod}+{mc}.jar
-    val buildId = providers.gradleProperty("buildId").orNull?.takeIf { it.isNotBlank() }
-    val baseVersion = "${providers.gradleProperty("version").get()}+${libs.versions.minecraft.get()}"
-    version = if (buildId != null) "$baseVersion-$buildId" else baseVersion
+    // builds: dupersunited-{mod}+{mc}-{sha}.jar, releases: dupersunited-{mod}+{mc}.jar
+    val release = providers.gradleProperty("release").orNull == "true"
+    val suffix = if (release) "" else "-" + (gitShortSha() ?: "local")
+    version = "${providers.gradleProperty("version").get()}+${libs.versions.minecraft.get()}$suffix"
     group = providers.gradleProperty("maven_group").get()
 }
 
@@ -92,8 +99,8 @@ publishing {
     }
 
     repositories {
-        val isSnapshot = providers.gradleProperty("buildId").orNull?.isNotBlank() == true
-        maven(if (isSnapshot) "https://maven.dupers.wtf/snapshots" else "https://maven.dupers.wtf/releases") {
+        val isRelease = providers.gradleProperty("release").orNull == "true"
+        maven(if (isRelease) "https://maven.dupers.wtf/releases" else "https://maven.dupers.wtf/snapshots") {
             name = "DupersWtfMaven"
 
             credentials {
