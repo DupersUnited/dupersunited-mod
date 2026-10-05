@@ -2,8 +2,8 @@ package wtf.dupers.dupersunited.commands.subcommands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.client.Minecraft;
+import net.minecraft.commands.CommandBuildContext;
 import wtf.dupers.dupersunited.api.command.Command;
 
 import static wtf.dupers.dupersunited.SharedVariables.randomQuote;
@@ -14,10 +14,10 @@ public final class QuoteCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
         builder.executes(c -> {
-            if (MinecraftClient.getInstance().player != null) {
-                MinecraftClient.getInstance().player.networkHandler.sendChatMessage(randomQuote());
+            if (Minecraft.getInstance().player != null) {
+                Minecraft.getInstance().player.connection.sendChat(randomQuote());
             }
             return 1;
         });

@@ -1,18 +1,19 @@
 package wtf.dupers.dupersunited.features.screens.mainmenu.alerts;
 
+import net.minecraft.ChatFormatting;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.SharedVariables;
 import wtf.dupers.dupersunited.features.ServerAlertConfig;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
-import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.network.ServerAddress;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.network.chat.Component;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -21,6 +22,8 @@ import java.net.URL;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class HallOfFame {
 
@@ -143,56 +146,54 @@ public class HallOfFame {
     public static class NoticeScreen extends Screen {
 
         private final Screen parent;
-        private final ServerInfo serverInfo;
+        private final ServerData serverInfo;
 
-        public NoticeScreen(Screen parent, ServerInfo serverInfo) {
-            super(Text.literal("Hall of Fame Notice"));
+        public NoticeScreen(Screen parent, ServerData serverInfo) {
+            super(Component.literal("Hall of Fame Notice"));
             this.parent = parent;
             this.serverInfo = serverInfo;
         }
 
         @Override
         protected void init() {
-            this.addDrawableChild(ButtonWidget.builder(Text.literal("§aConnect"), btn -> {
-                ServerAddress address = ServerAddress.parse(serverInfo.address);
-                ConnectScreen.connect(new MultiplayerScreen(new TitleScreen()), client, address, serverInfo, false, null);
-            }).dimensions(this.width / 2 - 155, this.height / 2 + 15, 150, 20).build());
+            this.addRenderableWidget(Button.builder(Component.literal("Connect").withStyle(ChatFormatting.GREEN), btn -> {
+                ServerAddress address = ServerAddress.parseString(serverInfo.ip);
+                ConnectScreen.startConnecting(new JoinMultiplayerScreen(new TitleScreen()), mc, address, serverInfo, false, null);
+            }).bounds(this.width / 2 - 155, this.height / 2 + 15, 150, 20).build());
 
-            this.addDrawableChild(ButtonWidget.builder(Text.literal("§cBack Out"), btn ->
-                client.setScreen(parent)
-            ).dimensions(this.width / 2 + 5, this.height / 2 + 15, 150, 20).build());
+            this.addRenderableWidget(Button.builder(Component.literal("Back Out").withStyle(ChatFormatting.RED), btn ->
+                mc.gui.setScreen(parent)
+            ).bounds(this.width / 2 + 5, this.height / 2 + 15, 150, 20).build());
 
-            this.addDrawableChild(ButtonWidget.builder(Text.literal("Disable for this server"), btn -> {
-                ServerAlertConfig.dismiss(serverInfo.address);
-                ServerAddress address = ServerAddress.parse(serverInfo.address);
-                ConnectScreen.connect(new MultiplayerScreen(new TitleScreen()), client, address, serverInfo, false, null);
-            }).dimensions(this.width / 2 - 75, this.height / 2 + 40, 150, 20).build());
+            this.addRenderableWidget(Button.builder(Component.literal("Disable for this server"), btn -> {
+                ServerAlertConfig.dismiss(serverInfo.ip);
+                ServerAddress address = ServerAddress.parseString(serverInfo.ip);
+                ConnectScreen.startConnecting(new JoinMultiplayerScreen(new TitleScreen()), mc, address, serverInfo, false, null);
+            }).bounds(this.width / 2 - 75, this.height / 2 + 40, 150, 20).build());
         }
 
         @Override
-        public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-            super.renderBackground(context, mouseX, mouseY, delta);
-        }
+        public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            super.extractRenderState(graphics, mouseX, mouseY, delta);
 
-        @Override
-        public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-            super.render(context, mouseX, mouseY, delta);
-
-            context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("§a★ HALL OF FAME ★"),
+            graphics.centeredText(font,
+                Component.literal("★ HALL OF FAME ★").withStyle(ChatFormatting.GREEN),
                 this.width / 2, this.height / 2 - 50, 0xFFFFFFFF);
 
-            context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("§2" + serverInfo.address + "§r is a recognised as an ethical server by DupersUnited!"),
+            graphics.centeredText(font,
+                Component.literal(serverInfo.ip).withStyle(ChatFormatting.DARK_GREEN)
+                    .append(Component.literal(" is a recognised as an ethical server by DupersUnited!").withStyle(ChatFormatting.RESET)),
                 this.width / 2, this.height / 2 - 32, 0xFFFFFFFF);
 
-            context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("Please remember to §c§lNOT§r dupe on servers with ethical ways of making money, if you find an exploit here you should report it to them!"),
+            graphics.centeredText(font,
+                Component.literal("Please remember to ").withStyle(ChatFormatting.RESET)
+                    .append(Component.literal("NOT").withStyle(ChatFormatting.RED, ChatFormatting.BOLD))
+                    .append(Component.literal(" dupe on servers with ethical ways of making money, if you find an exploit here you should report it to them!").withStyle(ChatFormatting.RESET)),
                 this.width / 2, this.height / 2 - 16, 0xFFFFFFFF);
         }
 
         @Override
-        public boolean shouldPause() {
+        public boolean isPauseScreen() {
             return false;
         }
     }

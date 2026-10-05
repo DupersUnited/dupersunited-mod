@@ -3,8 +3,9 @@ package wtf.dupers.dupersunited.modules.render;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.EntityType;
 import wtf.dupers.dupersunited.features.screens.NoRenderScreen;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
@@ -12,11 +13,11 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.ButtonSetting;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.EntityType;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Set;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class NoRenderModule extends Module {
 
@@ -36,14 +37,14 @@ public class NoRenderModule extends Module {
     }
 
     public void openScreen() {
-        MinecraftClient.getInstance().setScreen(new NoRenderScreen());
+        mc.gui.setScreen(new NoRenderScreen());
     }
 
     @Override
     public JsonElement writeJson() {
         JsonObject object = (JsonObject) super.writeJson();
         JsonArray noRenderEntities = new JsonArray();
-        for (EntityType<?> type : selectedEntityIds) noRenderEntities.add(Registries.ENTITY_TYPE.getId(type).toString());
+        for (EntityType<?> type : selectedEntityIds) noRenderEntities.add(BuiltInRegistries.ENTITY_TYPE.getKey(type).toString());
         object.add("selected-entity-ids", noRenderEntities);
         return object;
     }
@@ -54,7 +55,10 @@ public class NoRenderModule extends Module {
         if (element instanceof JsonObject object && object.has("selected-entity-ids")) {
             selectedEntityIds.clear();
             for (JsonElement el : object.getAsJsonArray("selected-entity-ids")) {
-                Registries.ENTITY_TYPE.getEntry(Identifier.tryParse(el.getAsString())).ifPresent(entry -> selectedEntityIds.add(entry.value()));
+                if (el.isJsonNull()) continue;
+                Identifier id = Identifier.tryParse(el.getAsString());
+                if (id == null) continue;
+                BuiltInRegistries.ENTITY_TYPE.get(id).ifPresent(entry -> selectedEntityIds.add(entry.value()));
             }
         }
     }

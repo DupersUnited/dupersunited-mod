@@ -1,27 +1,30 @@
 package wtf.dupers.dupersunited.features.screens;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.features.cosmetics.CosmeticCatalog;
 import wtf.dupers.dupersunited.features.cosmetics.CosmeticsFeatureRenderer;
 import wtf.dupers.dupersunited.modules.render.CosmeticsModule;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.client.render.entity.state.LivingEntityRenderState;
-import net.minecraft.text.Text;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
+import java.nio.file.Path;
 import java.util.List;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class CosmeticsPickerScreen extends Screen {
     private static final int PANEL_WIDTH = 360;
@@ -58,58 +61,58 @@ public class CosmeticsPickerScreen extends Screen {
     private float previewPanY;
 
     public CosmeticsPickerScreen(CosmeticsModule module) {
-        super(Text.literal("Cosmetics"));
+        super(Component.literal("Cosmetics"));
         this.module = module;
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         Layout layout = getLayout();
         List<CosmeticCatalog.Item> items = CosmeticCatalog.search(slot, query);
 
-        scroll = MathHelper.clamp(scroll, 0, maxListScroll(layout, items));
-        controlScroll = MathHelper.clamp(controlScroll, 0, layout.maxControlScroll());
+        scroll = Mth.clamp(scroll, 0, maxListScroll(layout, items));
+        controlScroll = Mth.clamp(controlScroll, 0, layout.maxControlScroll());
 
-        renderPanel(context, layout);
-        renderTabs(context, layout, mouseX, mouseY);
-        renderSearch(context, layout);
-        renderList(context, layout, items, mouseX, mouseY);
-        renderPreview(context, layout);
-        renderControls(context, layout, mouseX, mouseY);
-        renderCredit(context, layout, mouseX, mouseY);
+        renderPanel(graphics, layout);
+        renderTabs(graphics, layout, mouseX, mouseY);
+        renderSearch(graphics, layout);
+        renderList(graphics, layout, items, mouseX, mouseY);
+        renderPreview(graphics, layout);
+        renderControls(graphics, layout, mouseX, mouseY);
+        renderCredit(graphics, layout, mouseX, mouseY);
 
-        super.render(context, mouseX, mouseY, delta);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
-    private void renderPanel(DrawContext context, Layout layout) {
-        context.fill(layout.x(), layout.y(), layout.x() + layout.width(),
+    private void renderPanel(GuiGraphicsExtractor graphics, Layout layout) {
+        graphics.fill(layout.x(), layout.y(), layout.x() + layout.width(),
                 layout.y() + layout.height(), ColorUtil.DEEP_SAPPHIRE);
-        context.drawCenteredTextWithShadow(textRenderer, "Cosmetics", width / 2,
+        graphics.centeredText(font, "Cosmetics", width / 2,
                 layout.y() + 8, ColorUtil.MAUVE);
     }
 
-    private void renderTabs(DrawContext context, Layout layout, int mouseX, int mouseY) {
+    private void renderTabs(GuiGraphicsExtractor graphics, Layout layout, int mouseX, int mouseY) {
         int tabWidth = (layout.width() - 24) / 2;
         int tabY = layout.y() + 24;
 
-        drawButton(context, layout.x() + 10, tabY, tabWidth, 15, "Head",
+        drawButton(graphics, layout.x() + 10, tabY, tabWidth, 15, "Head",
                 slot == CosmeticCatalog.Slot.HEAD, mouseX, mouseY);
-        drawButton(context, layout.x() + 14 + tabWidth, tabY, tabWidth, 15, "Tail",
+        drawButton(graphics, layout.x() + 14 + tabWidth, tabY, tabWidth, 15, "Tail",
                 slot == CosmeticCatalog.Slot.TAIL, mouseX, mouseY);
     }
 
-    private void renderSearch(DrawContext context, Layout layout) {
+    private void renderSearch(GuiGraphicsExtractor graphics, Layout layout) {
         int searchX = layout.x() + 10;
         int searchY = layout.y() + 44;
         int searchWidth = layout.width() - 20;
         String text = query.isEmpty() ? "Search..." : query;
         int color = query.isEmpty() ? ColorUtil.SUBTEXT : ColorUtil.PALE_NAVY;
 
-        context.fill(searchX, searchY, searchX + searchWidth, searchY + 15, ColorUtil.DEEP_INDIGO);
-        context.drawText(textRenderer, text, searchX + 4, searchY + 4, color, false);
+        graphics.fill(searchX, searchY, searchX + searchWidth, searchY + 15, ColorUtil.DEEP_INDIGO);
+        graphics.text(font, text, searchX + 4, searchY + 4, color, false);
     }
 
-    private void renderList(DrawContext context, Layout layout, List<CosmeticCatalog.Item> items,
+    private void renderList(GuiGraphicsExtractor context, Layout layout, List<CosmeticCatalog.Item> items,
                             int mouseX, int mouseY) {
         int end = Math.min(items.size(), scroll + visibleRows(layout));
         for (int index = scroll; index < end; index++) {
@@ -121,13 +124,13 @@ public class CosmeticsPickerScreen extends Screen {
             int color = hovered ? 0x4439C5BB : selected ? 0x5549B8A8 : ColorUtil.DEEP_INDIGO;
 
             context.fill(layout.x() + 10, rowY, layout.listRight(), rowY + 16, color);
-            context.drawText(textRenderer, item.name(), layout.x() + 15, rowY + 4,
+            context.text(font, item.name(), layout.x() + 15, rowY + 4,
                     selected ? ColorUtil.TEAL : ColorUtil.PALE_NAVY, false);
 
-            int available = layout.listRight() - layout.x() - 30 - textRenderer.getWidth(item.name());
-            if (available > textRenderer.getWidth(item.creator())) {
-                context.drawText(textRenderer, item.creator(),
-                        layout.listRight() - 5 - textRenderer.getWidth(item.creator()),
+            int available = layout.listRight() - layout.x() - 30 - font.width(item.name());
+            if (available > font.width(item.creator())) {
+                context.text(font, item.creator(),
+                        layout.listRight() - 5 - font.width(item.creator()),
                         rowY + 4, ColorUtil.SUBTEXT, false);
             }
         }
@@ -137,40 +140,40 @@ public class CosmeticsPickerScreen extends Screen {
         renderScrollbar(context, layout.listRight() + 5, layout.y() + LIST_Y, 4, listViewHeight, scroll * ROW_HEIGHT, listMaxScroll * ROW_HEIGHT);
     }
 
-    private void renderPreview(DrawContext context, Layout layout) {
+    private void renderPreview(GuiGraphicsExtractor context, Layout layout) {
         int previewBottom = layout.previewY() + layout.previewHeight();
         context.fill(layout.sideX(), layout.previewY(), layout.sideX() + SIDE_WIDTH,
                 previewBottom, 0xFF111522);
         context.enableScissor(layout.sideX(), layout.previewY(),
                 layout.sideX() + SIDE_WIDTH, previewBottom);
-        if (client != null && client.player != null) {
+        if (mc != null && mc.player != null) {
             drawPlayerPreview(context, layout);
         }
         context.disableScissor();
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void drawPlayerPreview(DrawContext context, Layout layout) {
-        EntityRenderer renderer = client.getEntityRenderDispatcher().getRenderer(client.player);
-        EntityRenderState state = renderer.getAndUpdateRenderState(client.player, 1.0f);
+    private void drawPlayerPreview(GuiGraphicsExtractor graphics, Layout layout) {
+        EntityRenderer renderer = mc.getEntityRenderDispatcher().getRenderer(mc.player);
+        EntityRenderState state = renderer.createRenderState(mc.player, 1.0f);
 
         if (state instanceof LivingEntityRenderState living) {
-            living.bodyYaw = 180.0f + previewYaw;
-            living.relativeHeadYaw = 0;
-            living.pitch = previewPitch;
-            living.width /= living.baseScale;
-            living.height /= living.baseScale;
-            living.baseScale = 1.0f;
+            living.bodyRot = 180.0f + previewYaw;
+            living.yRot = 0;
+            living.xRot = previewPitch;
+            living.boundingBoxWidth /= living.scale;
+            living.boundingBoxHeight /= living.scale;
+            living.scale = 1.0f;
         }
 
-        state.light = 15728880;
+        state.lightCoords = 15728880;
         state.shadowPieces.clear();
         state.outlineColor = 0;
 
         float size = 42.0f * previewZoom;
         Vector3f offset = new Vector3f(
-                previewPanX / size, state.height / 2 + previewPanY / size, 0);
-        CosmeticsFeatureRenderer.preview(() -> context.addEntity(
+                previewPanX / size, state.boundingBoxHeight / 2 + previewPanY / size, 0);
+        CosmeticsFeatureRenderer.preview(() -> graphics.entity(
                 state,
                 size,
                 offset,
@@ -183,7 +186,7 @@ public class CosmeticsPickerScreen extends Screen {
         ));
     }
 
-    private void renderControls(DrawContext context, Layout layout, int mouseX, int mouseY) {
+    private void renderControls(GuiGraphicsExtractor context, Layout layout, int mouseX, int mouseY) {
         if (layout.controlBottom() <= layout.controlTop()) return;
 
         context.enableScissor(layout.sideX(), layout.controlTop(),
@@ -196,9 +199,9 @@ public class CosmeticsPickerScreen extends Screen {
         renderScrollbar(context, layout.sideX() + SIDE_WIDTH - 5, layout.controlTop(), 4, controlHeight, controlScroll, maxControlScroll);
     }
 
-    private void drawControls(DrawContext context, int x, int y, int width, int mouseX, int mouseY) {
+    private void drawControls(GuiGraphicsExtractor context, int x, int y, int width, int mouseX, int mouseY) {
         String title = slot == CosmeticCatalog.Slot.HEAD ? "Head position" : "Tail position";
-        context.drawCenteredTextWithShadow(textRenderer, title, x + width / 2, y, ColorUtil.MAUVE);
+        context.centeredText(font, title, x + width / 2, y, ColorUtil.MAUVE);
 
         List<IntSetting> settings = module.settings(slot);
         for (int index = 0; index < SETTING_NAMES.length; index++) {
@@ -206,12 +209,12 @@ public class CosmeticsPickerScreen extends Screen {
             String value = Integer.toString(settings.get(index).getValue());
 
             context.fill(x, rowY, x + width, rowY + 14, ColorUtil.DEEP_INDIGO);
-            context.drawText(textRenderer, SETTING_NAMES[index], x + 4, rowY + 3, ColorUtil.PALE_NAVY, false);
-            context.drawText(textRenderer, "-", x + width - 43, rowY + 3, ColorUtil.TEAL, false);
-            context.drawText(textRenderer, value,
-                    x + width - 24 - textRenderer.getWidth(value) / 2,
+            context.text(font, SETTING_NAMES[index], x + 4, rowY + 3, ColorUtil.PALE_NAVY, false);
+            context.text(font, "-", x + width - 43, rowY + 3, ColorUtil.TEAL, false);
+            context.text(font, value,
+                    x + width - 24 - font.width(value) / 2,
                     rowY + 3, ColorUtil.PALE_NAVY, false);
-            context.drawText(textRenderer, "+", x + width - 8, rowY + 3, ColorUtil.TEAL, false);
+            context.text(font, "+", x + width - 8, rowY + 3, ColorUtil.TEAL, false);
         }
 
         int resetY = y + 158;
@@ -220,32 +223,32 @@ public class CosmeticsPickerScreen extends Screen {
                 "Animate: " + module.animate.getValue(), module.animate.getValue(), mouseX, mouseY);
     }
 
-    private void renderCredit(DrawContext context, Layout layout, int mouseX, int mouseY) {
+    private void renderCredit(GuiGraphicsExtractor context, Layout layout, int mouseX, int mouseY) {
         CosmeticCatalog.Item item = CosmeticCatalog.named(slot, selected());
         String creditText = "Cosmetic by " + item.creator();
         int textX = layout.x() + 10;
         int textY = layout.y() + layout.height() - 20;
-        context.drawText(textRenderer, creditText, textX, textY, ColorUtil.SUBTEXT, false);
+        context.text(font, creditText, textX, textY, ColorUtil.SUBTEXT, false);
 
         if (!item.source().isBlank()) {
             int buttonWidth = 60;
-            int buttonX = textX + textRenderer.getWidth(creditText) + 4;
+            int buttonX = textX + font.width(creditText) + 4;
             int buttonY = textY - 2;
             drawButton(context, buttonX, buttonY, buttonWidth, 14, "Source", false, mouseX, mouseY);
         }
     }
 
-    private void drawButton(DrawContext context, int x, int y, int width, int height,
+    private void drawButton(GuiGraphicsExtractor context, int x, int y, int width, int height,
                             String text, boolean active, int mouseX, int mouseY) {
         int color = active
                 ? 0x6649B8A8
                 : contains(mouseX, mouseY, x, y, width, height) ? 0x4439C5BB : ColorUtil.DEEP_INDIGO;
         context.fill(x, y, x + width, y + height, color);
-        context.drawCenteredTextWithShadow(textRenderer, text, x + width / 2, y + 4,
+        context.centeredText(font, text, x + width / 2, y + 4,
                 active ? ColorUtil.TEAL : ColorUtil.PALE_NAVY);
     }
 
-    private void renderScrollbar(DrawContext context, int x, int y, int width, int height, int scroll, int maxScroll) {
+    private void renderScrollbar(GuiGraphicsExtractor context, int x, int y, int width, int height, int scroll, int maxScroll) {
         if (maxScroll <= 0 || height <= 0) return;
 
         int thumbHeight = Math.max(20, Math.min(height, height * height / (height + maxScroll)));
@@ -256,7 +259,7 @@ public class CosmeticsPickerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         Layout layout = getLayout();
         int mouseX = (int) click.x();
         int mouseY = (int) click.y();
@@ -270,7 +273,7 @@ public class CosmeticsPickerScreen extends Screen {
             String creditText = "Cosmetic by " + selectedItem.creator();
             int textX = layout.x() + 10;
             int buttonWidth = 60;
-            int buttonX = textX + textRenderer.getWidth(creditText) + 4;
+            int buttonX = textX + font.width(creditText) + 4;
             int buttonY = layout.y() + layout.height() - 22;
             if (contains(mouseX, mouseY, buttonX, buttonY, buttonWidth, 14)) {
                 openSource(selectedItem);
@@ -354,11 +357,11 @@ public class CosmeticsPickerScreen extends Screen {
     }
 
     private static void adjust(IntSetting setting, int amount) {
-        setting.setValue(MathHelper.clamp(setting.getValue() + amount, setting.getMin(), setting.getMax()));
+        setting.setValue(Mth.clamp(setting.getValue() + amount, setting.getMin(), setting.getMax()));
     }
 
     @Override
-    public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+    public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
         Layout layout = getLayout();
         if (click.x() <= layout.listRight()) {
             return super.mouseDragged(click, deltaX, deltaY);
@@ -366,7 +369,7 @@ public class CosmeticsPickerScreen extends Screen {
 
         if (click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             previewYaw = (previewYaw - (float) deltaX * 1.5f) % 360.0f;
-            previewPitch = MathHelper.clamp(previewPitch + (float) deltaY, -80.0f, 80.0f);
+            previewPitch = Mth.clamp(previewPitch + (float) deltaY, -80.0f, 80.0f);
         } else if (click.button() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             previewPanX += (float) deltaX;
             previewPanY += (float) deltaY;
@@ -381,10 +384,10 @@ public class CosmeticsPickerScreen extends Screen {
         int direction = (int) Math.signum(verticalAmount);
 
         if (mouseX > layout.listRight() && mouseY >= layout.controlTop() && layout.maxControlScroll() > 0) {
-            controlScroll = MathHelper.clamp(
+            controlScroll = Mth.clamp(
                     controlScroll - direction * 12, 0, layout.maxControlScroll());
         } else if (mouseX > layout.listRight()) {
-            previewZoom = MathHelper.clamp(previewZoom + (float) verticalAmount * 0.1f, 0.55f, 1.8f);
+            previewZoom = Mth.clamp(previewZoom + (float) verticalAmount * 0.1f, 0.55f, 1.8f);
         } else {
             scroll = Math.max(0, scroll - direction);
         }
@@ -392,9 +395,9 @@ public class CosmeticsPickerScreen extends Screen {
     }
 
     @Override
-    public boolean charTyped(CharInput input) {
-        if (input.isValidChar()) {
-            query += input.asString();
+    public boolean charTyped(CharacterEvent input) {
+        if (input.isAllowedChatCharacter()) {
+            query += input.codepointAsString();
             scroll = 0;
             return true;
         }
@@ -402,8 +405,8 @@ public class CosmeticsPickerScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        if (input.getKeycode() == GLFW.GLFW_KEY_BACKSPACE && !query.isEmpty()) {
+    public boolean keyPressed(KeyEvent input) {
+        if (input.input() == GLFW.GLFW_KEY_BACKSPACE && !query.isEmpty()) {
             query = query.substring(0, query.length() - 1);
             scroll = 0;
             return true;
@@ -412,13 +415,13 @@ public class CosmeticsPickerScreen extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         ConfigManager.save();
-        super.close();
+        super.onClose();
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 
@@ -467,7 +470,7 @@ public class CosmeticsPickerScreen extends Screen {
 
     private static void openSource(CosmeticCatalog.Item item) {
         if (!item.source().isBlank()) {
-            Util.getOperatingSystem().open(item.source());
+            Util.getPlatform().openPath(Path.of(item.source()));
         }
     }
 

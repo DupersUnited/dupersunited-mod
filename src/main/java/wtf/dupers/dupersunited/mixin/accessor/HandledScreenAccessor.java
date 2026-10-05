@@ -1,13 +1,13 @@
 package wtf.dupers.dupersunited.mixin.accessor;
 
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(HandledScreen.class)
+@Mixin(AbstractContainerScreen.class)
 public interface HandledScreenAccessor {
-    @Accessor("x") int dupersunited$getGuiX();
-    @Accessor("y") int dupersunited$getGuiY();
-    @Accessor("backgroundWidth") int dupersunited$getBackgroundWidth();
-    @Accessor("backgroundHeight") int dupersunited$getBackgroundHeight();
+    @Accessor("leftPos") int dupersunited$getGuiX();
+    @Accessor("topPos") int dupersunited$getGuiY();
+    @Accessor("imageWidth") int dupersunited$getBackgroundWidth();
+    @Accessor("imageHeight") int dupersunited$getBackgroundHeight();
 }

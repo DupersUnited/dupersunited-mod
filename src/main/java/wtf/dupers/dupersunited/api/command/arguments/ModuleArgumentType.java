@@ -8,7 +8,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.command.CommandSource;
+import net.minecraft.commands.SharedSuggestionProvider;
 import org.jetbrains.annotations.Nullable;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.api.module.Module;
@@ -26,11 +26,11 @@ public class ModuleArgumentType implements ArgumentType<Module> {
         return INSTANCE;
     }
 
-    public static <S extends CommandSource> Module get(CommandContext<S> context) {
+    public static <S extends SharedSuggestionProvider> Module get(CommandContext<S> context) {
         return context.getArgument("module", Module.class);
     }
 
-    public static <S extends CommandSource> Module get(CommandContext<S> context, String name) {
+    public static <S extends SharedSuggestionProvider> Module get(CommandContext<S> context, String name) {
         return context.getArgument(name, Module.class);
     }
 
@@ -52,6 +52,6 @@ public class ModuleArgumentType implements ArgumentType<Module> {
             ? MainClient.getModules().stream().flatMap((m) -> Stream.of(m.getName(), m.getIdentifier()))
             : MainClient.getModules().stream().map(Module::getName);
 
-        return CommandSource.suggestMatching(stream, builder);
+        return SharedSuggestionProvider.suggest(stream, builder);
     }
 }

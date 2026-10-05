@@ -1,13 +1,13 @@
 package wtf.dupers.dupersunited.features.screens.macroscreen;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.features.chatmacros.*;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacro;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
@@ -15,6 +15,7 @@ import wtf.dupers.dupersunited.features.chatmacros.MacroMessage;
 
 import java.util.*;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
 import static wtf.dupers.dupersunited.utils.ColorUtil.*;
 
 public class ChatMacroConfigScreen extends Screen {
@@ -40,7 +41,7 @@ public class ChatMacroConfigScreen extends Screen {
     private final int itemHeight = 25;
 
     public ChatMacroConfigScreen(Screen parent, ChatMacro macro) {
-        super(Text.literal("ChatMacro Editor"));
+        super(Component.literal("ChatMacro Editor"));
         this.parent = parent;
         this.macro = macro;
         this.editName = macro.getName();
@@ -49,7 +50,7 @@ public class ChatMacroConfigScreen extends Screen {
     }
 
     private boolean isCtrlDown() {
-        long handle = MinecraftClient.getInstance().getWindow().getHandle();
+        long handle = mc.getWindow().handle();
         return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
             GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
     }
@@ -88,79 +89,82 @@ public class ChatMacroConfigScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.renderInGameBackground(ctx);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractMenuBackground(graphics);
         int w = 340, x = (width - w) / 2;
-        ctx.fill(x - 10, 5, x + w + 10, height - 5, 0xAA000000);
+        graphics.fill(x - 10, 5, x + w + 10, height - 5, 0xAA000000);
 
-        ctx.drawCenteredTextWithShadow(textRenderer, "§7Editing §b" + editName, width / 2, 8, 0xFFFFFFFF);
-        ctx.fill(x, 22, x + w, height - 5, 0xCC11111B);
+        graphics.centeredText(font,
+            Component.literal("Editing ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(editName).withStyle(ChatFormatting.AQUA)),
+            width / 2, 8, 0xFFFFFFFF);
+        graphics.fill(x, 22, x + w, height - 5, 0xCC11111B);
 
         int headerY = 30;
 
         boolean hovAdd = mouseX >= x + 10 && mouseX <= x + 80 && mouseY >= headerY && mouseY <= headerY + 14;
-        ctx.fill(x + 10, headerY, x + 80, headerY + 14, hovAdd ? BUTTON_GREEN : 0x4440A02B);
-        ctx.drawCenteredTextWithShadow(textRenderer, "§aAdd", x + 45, headerY + 3, 0xFFFFFFFF);
+        graphics.fill(x + 10, headerY, x + 80, headerY + 14, hovAdd ? BUTTON_GREEN : 0x4440A02B);
+        graphics.centeredText(font, Component.literal("Add").withStyle(ChatFormatting.GREEN), x + 45, headerY + 3, 0xFFFFFFFF);
 
         boolean hovDel = mouseX >= x + 90 && mouseX <= x + 190 && mouseY >= headerY && mouseY <= headerY + 14;
-        ctx.fill(x + 90, headerY, x + 190, headerY + 14, hovDel ? BUTTON_RED : 0x44D20F39);
-        ctx.drawCenteredTextWithShadow(textRenderer, "§cDelete Macro", x + 140, headerY + 3, 0xFFFFFFFF);
+        graphics.fill(x + 90, headerY, x + 190, headerY + 14, hovDel ? BUTTON_RED : 0x44D20F39);
+        graphics.centeredText(font, Component.literal("Delete Macro").withStyle(ChatFormatting.RED), x + 140, headerY + 3, 0xFFFFFFFF);
 
-        ctx.drawTextWithShadow(textRenderer, "§7Bind:", x + 205, headerY + 3, 0xFFFFFFFF);
+        graphics.text(font, Component.literal("Bind:").withStyle(ChatFormatting.GRAY), x + 205, headerY + 3, 0xFFFFFFFF);
         String bindStr = rebinding ? "???" : getBindName(keyCode);
         boolean hovBind = mouseX >= x + 240 && mouseX <= x + 330 && mouseY >= headerY && mouseY <= headerY + 14;
-        ctx.fill(x + 240, headerY, x + 330, headerY + 14, rebinding ? REBIND_ACTIVE : (hovBind ? 0x66CDD6F4 : 0x44000000));
-        ctx.drawCenteredTextWithShadow(textRenderer, bindStr, x + 285, headerY + 3, 0xFFFFFFFF);
+        graphics.fill(x + 240, headerY, x + 330, headerY + 14, rebinding ? REBIND_ACTIVE : (hovBind ? 0x66CDD6F4 : 0x44000000));
+        graphics.centeredText(font, Component.literal(bindStr), x + 285, headerY + 3, 0xFFFFFFFF);
 
-        ctx.drawTextWithShadow(textRenderer, "§7Name:", x + 10, headerY + 20, 0xFFAAAAAA);
+        graphics.text(font, Component.literal("Name:").withStyle(ChatFormatting.GRAY), x + 10, headerY + 20, 0xFFAAAAAA);
         int nameX = x + 50, nameY = headerY + 18;
-        ctx.fill(nameX, nameY, x + 330, headerY + 30, focusIdx == FOCUS_NAME ? FIELD_FOCUSED : 0x44000000);
+        graphics.fill(nameX, nameY, x + 330, headerY + 30, focusIdx == FOCUS_NAME ? FIELD_FOCUSED : 0x44000000);
 
-        if (focusIdx == FOCUS_NAME) renderTextField(ctx, editName, nameX + 5, headerY + 20);
-        else ctx.drawTextWithShadow(textRenderer, editName, nameX + 5, headerY + 20, 0xFFFFFFFF);
+        if (focusIdx == FOCUS_NAME) renderTextField(graphics, editName, nameX + 5, headerY + 20);
+        else graphics.text(font, Component.literal(editName), nameX + 5, headerY + 20, 0xFFFFFFFF);
 
-        ctx.fill(x + 10, headerY + 35, x + w - 10, headerY + 36, 0x33FFFFFF);
+        graphics.fill(x + 10, headerY + 35, x + w - 10, headerY + 36, 0x33FFFFFF);
 
         int listStartY = headerY + 40;
         int listEndY = height - 20;
 
-        ctx.enableScissor(x, listStartY, x + w, listEndY);
+        graphics.enableScissor(x, listStartY, x + w, listEndY);
         for (int i = 0; i < messages.size(); i++) {
             int ry = (int) (listStartY + (i * itemHeight) - scrollOffset);
             if (ry > listEndY || ry + itemHeight < listStartY) continue;
             MacroMessage m = messages.get(i);
 
-            ctx.fill(x + 10, ry, x + 240, ry + 16, (focusIdx == i && !focusDelay) ? FIELD_FOCUSED : 0x22000000);
-            if (focusIdx == i && !focusDelay) renderTextField(ctx, m.getText(), x + 15, ry + 4);
-            else ctx.drawTextWithShadow(textRenderer, m.getText(), x + 15, ry + 4, 0xFFFFFFFF);
+            graphics.fill(x + 10, ry, x + 240, ry + 16, (focusIdx == i && !focusDelay) ? FIELD_FOCUSED : 0x22000000);
+            if (focusIdx == i && !focusDelay) renderTextField(graphics, m.getText(), x + 15, ry + 4);
+            else graphics.text(font, m.getText(), x + 15, ry + 4, 0xFFFFFFFF);
 
-            ctx.fill(x + 245, ry, x + 305, ry + 16, (focusIdx == i && focusDelay) ? FIELD_FOCUSED : 0x22000000);
-            ctx.drawCenteredTextWithShadow(textRenderer, m.getDelayMs() + "ms", x + 275, ry + 4, PEACH);
+            graphics.fill(x + 245, ry, x + 305, ry + 16, (focusIdx == i && focusDelay) ? FIELD_FOCUSED : 0x22000000);
+            graphics.centeredText(font, m.getDelayMs() + "ms", x + 275, ry + 4, PEACH);
 
             boolean hovX = mouseX >= x + 310 && mouseX <= x + 330 && mouseY >= ry && mouseY <= ry + 16;
-            ctx.drawTextWithShadow(textRenderer, hovX ? "§fX" : "§7x", x + 315, ry + 4, 0xFFFFFFFF);
+            graphics.text(font, hovX ? Component.literal("X").withStyle(ChatFormatting.WHITE) : Component.literal("x").withStyle(ChatFormatting.GRAY), x + 315, ry + 4, 0xFFFFFFFF);
         }
-        ctx.disableScissor();
+        graphics.disableScissor();
 
-        ctx.drawCenteredTextWithShadow(textRenderer, "§8Press ESC to Save", width / 2, height - 15, 0xFFFFFFFF);
+        graphics.centeredText(font, Component.literal("Press ESC to Save").withStyle(ChatFormatting.DARK_GRAY), width / 2, height - 15, 0xFFFFFFFF);
     }
 
-    private void renderTextField(DrawContext ctx, String text, int tx, int ty) {
+    private void renderTextField(GuiGraphicsExtractor graphics, String text, int tx, int ty) {
         if (hasSelection()) {
-            int s1 = tx + textRenderer.getWidth(text.substring(0, selStart()));
-            int s2 = tx + textRenderer.getWidth(text.substring(0, selEnd()));
-            ctx.fill(s1, ty - 1, s2, ty + 9, 0x6689b4fa);
+            int s1 = tx + font.width(text.substring(0, selStart()));
+            int s2 = tx + font.width(text.substring(0, selEnd()));
+            graphics.fill(s1, ty - 1, s2, ty + 9, 0x6689b4fa);
         }
-        ctx.drawTextWithShadow(textRenderer, text, tx, ty, 0xFFFFFFFF);
+        graphics.text(font, text, tx, ty, 0xFFFFFFFF);
         if (!hasSelection() && (System.currentTimeMillis() / 500) % 2 == 0) {
-            int cx = tx + textRenderer.getWidth(text.substring(0, Math.min(cursorPos, text.length())));
-            ctx.fill(cx, ty - 1, cx + 1, ty + 9, GREEN);
+            int cx = tx + font.width(text.substring(0, Math.min(cursorPos, text.length())));
+            graphics.fill(cx, ty - 1, cx + 1, ty + 9, GREEN);
         }
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        int key = input.getKeycode();
+    public boolean keyPressed(KeyEvent input) {
+        int key = input.input();
         if (rebinding) {
             this.keyCode = (key == GLFW.GLFW_KEY_ESCAPE) ? GLFW.GLFW_KEY_UNKNOWN : key;
             rebinding = false;
@@ -187,11 +191,11 @@ public class ChatMacroConfigScreen extends Screen {
                 return true;
             }
             if (ctrl && key == GLFW.GLFW_KEY_C) {
-                if (hasSelection()) MinecraftClient.getInstance().keyboard.setClipboard(cur.substring(selStart(), selEnd()));
+                if (hasSelection()) mc.keyboardHandler.setClipboard(cur.substring(selStart(), selEnd()));
                 return true;
             }
             if (ctrl && key == GLFW.GLFW_KEY_V) {
-                String cb = MinecraftClient.getInstance().keyboard.getClipboard();
+                String cb = mc.keyboardHandler.getClipboard();
                 if (cb != null && !cb.isEmpty()) {
                     if (hasSelection()) deleteSelection();
                     cur = getCurrentText();
@@ -221,16 +225,16 @@ public class ChatMacroConfigScreen extends Screen {
             }
         }
 
-        if (key == GLFW.GLFW_KEY_ESCAPE) { save(); client.setScreen(parent); return true; }
+        if (key == GLFW.GLFW_KEY_ESCAPE) { save(); mc.gui.setScreen(parent); return true; }
         return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(CharInput input) {
+    public boolean charTyped(CharacterEvent input) {
         if (isCtrlDown() || focusIdx < FOCUS_NAME) return false;
 
         if (focusDelay && focusIdx >= 0) {
-            String typed = input.asString();
+            String typed = input.codepointAsString();
             if (!typed.isEmpty() && Character.isDigit(typed.charAt(0))) {
                 char c = typed.charAt(0);
                 MacroMessage m = messages.get(focusIdx);
@@ -242,10 +246,10 @@ public class ChatMacroConfigScreen extends Screen {
                 return true;
             }
         } else if (!focusDelay) {
-            if (input.isValidChar()) {
+            if (input.isAllowedChatCharacter()) {
                 if (hasSelection()) deleteSelection();
                 String cur = getCurrentText();
-                updateCurrentText(cur.substring(0, cursorPos) + input.asString() + cur.substring(cursorPos));
+                updateCurrentText(cur.substring(0, cursorPos) + input.codepointAsString() + cur.substring(cursorPos));
                 cursorPos++;
                 return true;
             }
@@ -261,7 +265,7 @@ public class ChatMacroConfigScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean secondary) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean secondary) {
         int w = 340, x = (width - w) / 2;
         int headerY = 30;
         int mx = (int) click.x(), my = (int) click.y();
@@ -282,7 +286,7 @@ public class ChatMacroConfigScreen extends Screen {
 
         if (mx >= x + 90 && mx <= x + 190 && my >= headerY && my <= headerY + 14) {
             ChatMacroManager.removeMacro(macro.getName(), false);
-            client.setScreen(parent);
+            mc.gui.setScreen(parent);
             return true;
         }
 

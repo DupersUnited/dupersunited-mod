@@ -1,39 +1,36 @@
 package wtf.dupers.dupersunited.commands;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
-
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.minecraft.ChatFormatting;
 import wtf.dupers.dupersunited.SharedVariables;
 import wtf.dupers.dupersunited.api.command.Command;
 import wtf.dupers.dupersunited.features.screens.ClickGui;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.network.chat.Component;
 
 import java.util.Map;
 
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public final class MainCommand {
-    private static final Text FEEDBACK_PREFIX = Text.empty()
-            .append(Text.literal("DupersUnited ").formatted(Formatting.BOLD, Formatting.AQUA))
-            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY));
+    private static final Component FEEDBACK_PREFIX = Component.empty()
+            .append(Component.literal("DupersUnited ").withStyle(ChatFormatting.BOLD, ChatFormatting.AQUA))
+            .append(Component.literal("» ").withStyle(ChatFormatting.DARK_GRAY));
 
     private MainCommand() {}
 
     public static void sendMessage(String message, boolean prefix) {
-        sendMessage(Text.literal(message), prefix);
+        sendMessage(Component.literal(message), prefix);
     }
 
-    public static void sendMessage(Text message, boolean prefix) {
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-
-        if (player != null) {
+    public static void sendMessage(Component message, boolean prefix) {
+        if (mc.player != null) {
             if (prefix) {
-                player.sendMessage(Text.empty().append(FEEDBACK_PREFIX).append(message), false);
+                mc.gui.hud.getChat().addClientSystemMessage(Component.empty().append(FEEDBACK_PREFIX).append(message));
             } else {
-                player.sendMessage(message, false);
+                mc.gui.hud.getChat().addClientSystemMessage(message);
             }
         }
     }
@@ -41,7 +38,7 @@ public final class MainCommand {
     public static void register(Map<String, Command> commands) {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             LiteralArgumentBuilder<FabricClientCommandSource> root = literal("du").executes(ctx -> {
-                SharedVariables.screenToOpen = new ClickGui(MinecraftClient.getInstance().currentScreen);
+                SharedVariables.screenToOpen = new ClickGui(mc.gui.screen());
                 sendMessage("Opening ClickGUI!", true);
                 return 1;
             });

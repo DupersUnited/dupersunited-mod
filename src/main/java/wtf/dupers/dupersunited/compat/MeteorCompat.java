@@ -1,9 +1,9 @@
 package wtf.dupers.dupersunited.compat;
 
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 import wtf.dupers.dupersunited.MainClient;
-import wtf.dupers.dupersunited.features.ssidLogin.AccountsScreen;
+import wtf.dupers.dupersunited.features.account.AccountsScreen;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.lang.reflect.Field;
@@ -170,7 +170,7 @@ public final class MeteorCompat {
         try {
             Class<?> entrypointType = Class.forName("meteordevelopment.meteorclient.addons.MeteorAddon");
             int entries = 1 + FabricLoader.getInstance().getEntrypoints("meteor", entrypointType).size();
-            return (MinecraftClient.getInstance().textRenderer.fontHeight + 2) * entries - 2;
+            return (Minecraft.getInstance().font.lineHeight + 2) * entries - 2;
         } catch (ClassNotFoundException e) {
             error(e);
             return 0;

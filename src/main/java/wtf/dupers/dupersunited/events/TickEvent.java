@@ -1,14 +1,15 @@
 package wtf.dupers.dupersunited.events;
 
 import wtf.dupers.dupersunited.commands.subcommands.WaitCommand;
-import wtf.dupers.dupersunited.features.ClickSlotManager;
-import wtf.dupers.dupersunited.features.PayAllManager;
-import wtf.dupers.dupersunited.features.PluginScanner;
+import wtf.dupers.dupersunited.features.glitchutils.ClickSlotManager;
+import wtf.dupers.dupersunited.features.glitchutils.PayAllManager;
+import wtf.dupers.dupersunited.features.glitchutils.PluginScanner;
 import wtf.dupers.dupersunited.features.auth.AuthManager;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
+import wtf.dupers.dupersunited.features.macrogui.MacroManager;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import static wtf.dupers.dupersunited.MainClient.MODULE_MANAGER;
 import static wtf.dupers.dupersunited.SharedVariables.screenToOpen;
@@ -21,15 +22,20 @@ public class TickEvent {
             if (pendingDisconnectTicks > 0) {
                 pendingDisconnectTicks--;
             } else if (pendingDisconnectTicks == 0) {
-                if (client.getNetworkHandler() != null) {
-                    client.getNetworkHandler().getConnection()
-                            .disconnect(Text.literal("Disconnected & sent packets"));
+                if (client.getConnection() != null) {
+                    client.getConnection().getConnection()
+                        .disconnect(Component.literal("Disconnected & sent packets"));
                 }
                 pendingDisconnectTicks = -1;
             }
 
+            MacroManager.tick();
             if (screenToOpen != null) {
-                client.setScreen(screenToOpen);
+                client.gui.setScreen(screenToOpen);
+                screenToOpen = null;
+            }
+            if (screenToOpen != null) {
+                client.gui.setScreen(screenToOpen);
                 screenToOpen = null;
             }
             if (MODULE_MANAGER != null) {

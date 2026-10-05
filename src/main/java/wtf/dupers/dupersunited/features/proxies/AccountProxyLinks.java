@@ -5,7 +5,9 @@ import wtf.dupers.dupersunited.features.AsyncConfigs;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -15,10 +17,10 @@ public class AccountProxyLinks {
 
     public static Map<String, String> links = new HashMap<>();
     public static Set<String> bypassAccounts = new ObjectOpenHashSet<>();
-    public static Set<String> favoritedAccounts = new ObjectOpenHashSet<>();
+    public static List<String> accountOrder = new ArrayList<>();
 
     public static void save() {
-        ConfigData data = new ConfigData(links, bypassAccounts, favoritedAccounts);
+        ConfigData data = new ConfigData(links, bypassAccounts, accountOrder);
         AsyncConfigs.save(data, FILE, "account proxy links");
     }
 
@@ -26,7 +28,7 @@ public class AccountProxyLinks {
         return AsyncConfigs.load(ConfigData.class, FILE, "account proxy links").thenAccept(data -> {
             links = data.links != null ? data.links : new HashMap<>();
             bypassAccounts = data.bypassAccounts != null ? data.bypassAccounts : new ObjectOpenHashSet<>();
-            favoritedAccounts = data.favoritedAccounts != null ? data.favoritedAccounts : new ObjectOpenHashSet<>();
+            accountOrder = data.accountOrder != null ? data.accountOrder : new ArrayList<>();
         });
     }
 
@@ -60,18 +62,10 @@ public class AccountProxyLinks {
         }
         save();
     }
-    public static boolean isFavorite(String accountName) {
-        return favoritedAccounts.contains(accountName);
-    }
-
-    public static void toggleFavorite(String accountName) {
-        if (favoritedAccounts.contains(accountName)) {
-            favoritedAccounts.remove(accountName);
-        } else {
-            favoritedAccounts.add(accountName);
-        }
+    public static void saveOrder(List<String> order) {
+        accountOrder = new ArrayList<>(order);
         save();
     }
 
-    private record ConfigData(Map<String, String> links, Set<String> bypassAccounts, Set<String> favoritedAccounts) {}
+    private record ConfigData(Map<String, String> links, Set<String> bypassAccounts, List<String> accountOrder) {}
 }

@@ -1,5 +1,8 @@
 package wtf.dupers.dupersunited.features.proxies;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.SharedVariables;
 import wtf.dupers.dupersunited.features.AsyncConfigs;
@@ -45,9 +48,9 @@ public class ProxyConfigManager {
 
     public static String getWarningReason() {
         if (!globalEnabled)
-            return "§7You currently have proxies fully §cdisabled§7!";
+            return ChatFormatting.GRAY + "You currently have proxies fully " + ChatFormatting.RED + "disabled" + ChatFormatting.GRAY + "!";
         if (getActiveProfile() == null)
-            return "§7You have no proxy profile §cselected§7 for this account!";
+            return ChatFormatting.GRAY + "You have no proxy profile " + ChatFormatting.RED + "selected" + ChatFormatting.GRAY + " for this account!";
         return "";
     }
 
@@ -56,4 +59,6 @@ public class ProxyConfigManager {
     }
 
     private record ConfigData(boolean globalEnabled, boolean proxyWarningEnabled, String activeProfileName, List<ProxyProfiles> profiles, List<String> customAccountPaths) {}
+
+
 }

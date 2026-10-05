@@ -4,9 +4,30 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.math.*;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.LayeringTransform;
+import net.minecraft.client.renderer.rendertype.OutputTarget;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.features.screens.BlockEspScreen;
@@ -15,33 +36,21 @@ import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.ButtonSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.render.*;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.ChunkSection;
-import net.minecraft.world.chunk.WorldChunk;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public class BlockEspModule extends Module {
+
+    /*
+    THERES AN ISSUE WITH BLOCK ESP THAT JUST MAKES IT NOT PROPERLY RENDER (sometimes) idk it's super odd,
+    Please someone else fix it, thank you - litten
+     */
 
     private static BlockEspModule instance;
     public static final Set<Block> selectedBlocks = new ReferenceOpenHashSet<>();
@@ -62,7 +71,7 @@ public class BlockEspModule extends Module {
     private static final int MARKER_INTERVAL = 60;
     private static final int MAX_RENDER = 50000;
     private static final int MAX_MARKERS = 4096;
-    private static final Map<Block, BlockStateParticleEffect> MARKERS = createMarkers();
+    private static final Map<Block, BlockParticleOption> MARKERS = createMarkers();
 
     private final IntSetting range = register(new IntSetting("Range", 64, 16, 512));
     private final IntSetting red = register(new IntSetting("Red", 0, 0, 255));
@@ -76,19 +85,19 @@ public class BlockEspModule extends Module {
     );
 
     private static final RenderPipeline ESP_LINES_PIPELINE = RenderPipelines.register(
-            RenderPipeline.builder(RenderPipelines.RENDERTYPE_LINES_SNIPPET)
-                    .withLocation(Identifier.of("dupersunited", "pipeline/esp_lines"))
-                    .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-                    .withDepthWrite(false)
+            RenderPipeline.builder(RenderPipelines.LINES_SNIPPET)
+                    .withLocation(Identifier.fromNamespaceAndPath("dupersunited", "pipeline/esp_lines"))
+// TODO: I couldn't fucking figure out what this is. - khao 2026
+                    .withDepthStencilState(Optional.empty())
                     .build()
     );
 
-    public static final RenderLayer ESP_LINES = RenderLayer.of(
+    public static final RenderType ESP_LINES = RenderType.create(
         "dupersunited_esp_lines",
         RenderSetup.builder(ESP_LINES_PIPELINE)
-            .layeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-            .outputTarget(OutputTarget.ITEM_ENTITY_TARGET)
-            .build()
+            .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+            .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
+            .createRenderSetup()
     );
 
     public BlockEspModule() {
@@ -100,14 +109,14 @@ public class BlockEspModule extends Module {
     public static BlockEspModule getInstance() { return instance; }
 
     public void openScreen() {
-        MinecraftClient.getInstance().setScreen(new BlockEspScreen());
+        mc.gui.setScreen(new BlockEspScreen());
     }
 
     @Override
     public JsonElement writeJson() {
         JsonObject object = (JsonObject) super.writeJson();
         JsonArray espBlocks = new JsonArray();
-        for (Block block : selectedBlocks) espBlocks.add(Registries.BLOCK.getId(block).toString());
+        for (Block block : selectedBlocks) espBlocks.add(BuiltInRegistries.BLOCK.getKey(block).toString());
         object.add("selected-blocks", espBlocks);
         return object;
     }
@@ -118,7 +127,7 @@ public class BlockEspModule extends Module {
         if (element instanceof JsonObject object && object.has("selected-blocks")) {
             selectedBlocks.clear();
             for (JsonElement el : object.getAsJsonArray("selected-blocks")) {
-                Registries.BLOCK.getEntry(Identifier.tryParse(el.getAsString())).ifPresent(entry -> selectedBlocks.add(entry.value()));
+                BuiltInRegistries.BLOCK.get(Identifier.tryParse(el.getAsString())).ifPresent(entry -> selectedBlocks.add(entry.value()));
             }
         }
     }
@@ -136,10 +145,9 @@ public class BlockEspModule extends Module {
     public void onTick() {
         if (selectedBlocks.isEmpty()) { renderShapes.clear(); return; }
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.world == null || mc.player == null) return;
+        if (mc.level == null || mc.player == null) return;
 
-        BlockPos playerPos = mc.player.getBlockPos();
+        BlockPos playerPos = mc.player.blockPosition();
         int currentRange = range.getValue();
         ticksSinceScan++;
 
@@ -155,11 +163,11 @@ public class BlockEspModule extends Module {
 
         if ((ticksSinceScan >= SCAN_INTERVAL || movedFar) && !scanning) {
             ticksSinceScan = 0;
-            lastScanCenter = playerPos.toImmutable();
-            scheduleRescan(mc.world, playerPos.toImmutable(), currentRange);
+            lastScanCenter = playerPos.immutable();
+            scheduleRescan(mc.level, playerPos.immutable(), currentRange);
         }
 
-        if (markerIcons.getValue() && markerTicks++ % MARKER_INTERVAL == 0) spawnMarkers(mc);
+        if (markerIcons.getValue() && markerTicks++ % MARKER_INTERVAL == 0) spawnMarkers();
     }
 
     public void invalidateCache() {
@@ -167,14 +175,14 @@ public class BlockEspModule extends Module {
         ticksSinceScan = SCAN_INTERVAL;
     }
 
-    private void scheduleRescan(World world, BlockPos center, int r) {
+    private void scheduleRescan(Level level, BlockPos center, int r) {
         Set<Block> snapshot = new ReferenceOpenHashSet<>(selectedBlocks);
         scanning = true;
 
         executor.submit(() -> {
             try {
                 List<RenderShape> found = new ArrayList<>();
-                rescan(world, center, r, snapshot, found);
+                rescan(level, center, r, snapshot, found);
 
                 renderShapes.clear();
                 renderShapes.addAll(found);
@@ -189,31 +197,31 @@ public class BlockEspModule extends Module {
      * You don't have to know how this works, you just have to know that it works
      * @author Crosby
      */
-    private void rescan(World world, BlockPos center, int r, Set<Block> snapshot, List<RenderShape> found) {
+    private void rescan(Level level, BlockPos center, int r, Set<Block> snapshot, List<RenderShape> found) {
         int cr = Math.ceilDiv(r, 16);
-        int ox = ChunkSectionPos.getSectionCoord(center.getX());
-        int oz = ChunkSectionPos.getSectionCoord(center.getZ());
+        int ox = SectionPos.blockToSectionCoord(center.getX());
+        int oz = SectionPos.blockToSectionCoord(center.getZ());
 
-        int wMinY = Math.max(world.getBottomY(), center.getY() - r);
-        int wMaxY = Math.min(world.getTopYInclusive(), center.getY() + r);
-        int cMinY = ChunkSectionPos.getSectionCoord(wMinY);
-        int cMaxY = ChunkSectionPos.getSectionCoord(wMaxY);
+        int wMinY = Math.max(level.getMinY(), center.getY() - r);
+        int wMaxY = Math.min(level.getMaxY(), center.getY() + r);
+        int cMinY = SectionPos.blockToSectionCoord(wMinY);
+        int cMaxY = SectionPos.blockToSectionCoord(wMaxY);
 
         for (int cx = ox - cr; cx <= ox + cr; cx++) {
             for (int cz = oz - cr; cz <= oz + cr; cz++) {
-                WorldChunk chunk = world.getChunk(cx, cz);
+                LevelChunk chunk = level.getChunk(cx, cz);
 
-                int minX = Math.max(ChunkSectionPos.getOffsetPos(cx, 0), center.getX() - r);
-                int maxX = Math.min(ChunkSectionPos.getOffsetPos(cx, 15), center.getX() + r);
-                int minZ = Math.max(ChunkSectionPos.getOffsetPos(cz, 0), center.getZ() - r);
-                int maxZ = Math.min(ChunkSectionPos.getOffsetPos(cz, 15), center.getZ() + r);
+                int minX = Math.max(SectionPos.sectionToBlockCoord(cx, 0), center.getX() - r);
+                int maxX = Math.min(SectionPos.sectionToBlockCoord(cx, 15), center.getX() + r);
+                int minZ = Math.max(SectionPos.sectionToBlockCoord(cz, 0), center.getZ() - r);
+                int maxZ = Math.min(SectionPos.sectionToBlockCoord(cz, 15), center.getZ() + r);
 
                 for (int cy = cMinY; cy <= cMaxY; cy++) {
-                    ChunkSection section = chunk.getSection(chunk.sectionCoordToIndex(cy));
+                    LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(cy));
 
-                    if (section.hasAny(state -> snapshot.contains(state.getBlock()))) {
-                        int minY = Math.max(ChunkSectionPos.getOffsetPos(cy, 0), wMinY);
-                        int maxY = Math.min(ChunkSectionPos.getOffsetPos(cy, 15), wMaxY);
+                    if (section.maybeHas(state -> snapshot.contains(state.getBlock()))) {
+                        int minY = Math.max(SectionPos.sectionToBlockCoord(cy, 0), wMinY);
+                        int maxY = Math.min(SectionPos.sectionToBlockCoord(cy, 15), wMaxY);
 
                         for (int y = minY; y <= maxY; y++) {
                             for (int z = minZ; z <= maxZ; z++) {
@@ -221,9 +229,9 @@ public class BlockEspModule extends Module {
                                     BlockState state = section.getBlockState(x & 15, y & 15, z & 15);
                                     if (snapshot.contains(state.getBlock())) {
                                         BlockPos pos = new BlockPos(x, y, z);
-                                        VoxelShape shape = state.getOutlineShape(world, pos);
+                                        VoxelShape shape = state.getShape(level, pos);
                                         found.add(new RenderShape(
-                                            shape != VoxelShapes.fullCube() ? shape.asCuboid() : shape,
+                                            shape != Shapes.block() ? shape.singleEncompassing() : shape,
                                             pos,
                                             state.getBlock()
                                         ));
@@ -238,13 +246,13 @@ public class BlockEspModule extends Module {
         }
     }
 
-    private void spawnMarkers(MinecraftClient mc) {
+    private void spawnMarkers() {
         int count = 0;
         for (RenderShape renderShape : renderShapes) {
-            BlockStateParticleEffect marker = MARKERS.get(renderShape.block());
+            BlockParticleOption marker = MARKERS.get(renderShape.block());
             if (marker == null) continue;
             BlockPos pos = renderShape.pos();
-            mc.world.addParticleClient(
+            mc.level.addParticle(
                 marker, true, false,
                 pos.getX() + 0.5,
                 pos.getY() + 0.5,
@@ -259,8 +267,8 @@ public class BlockEspModule extends Module {
         return MARKERS.containsKey(block);
     }
 
-    private static Map<Block, BlockStateParticleEffect> createMarkers() {
-        Map<Block, BlockStateParticleEffect> markers = new IdentityHashMap<>();
+    private static Map<Block, BlockParticleOption> createMarkers() {
+        Map<Block, BlockParticleOption> markers = new IdentityHashMap<>();
         for (Block block : List.of(
             Blocks.BARRIER,
             Blocks.LIGHT,
@@ -281,25 +289,37 @@ public class BlockEspModule extends Module {
             Blocks.BEDROCK,
             Blocks.REINFORCED_DEEPSLATE
         )) {
-            markers.put(block, new BlockStateParticleEffect(ParticleTypes.BLOCK_MARKER, block.getDefaultState()));
+            markers.put(block, new BlockParticleOption(ParticleTypes.BLOCK_MARKER, block.defaultBlockState()));
         }
         return markers;
     }
 
-    public void onRender(MatrixStack matrices, VertexConsumerProvider consumers, Vec3d cameraPos) {
+    public void onRender(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, Vec3 cameraPos) {
         if (!isEnabled() || renderShapes.isEmpty()) return;
 
-        VertexConsumer lines = consumers.getBuffer(ESP_LINES);
+        int color = ARGB.color(red.getValue(), green.getValue(), blue.getValue());
         int count = 0;
-
-        int color = ColorHelper.getArgb(red.getValue(), green.getValue(), blue.getValue());
 
         for (RenderShape renderShape : renderShapes) {
             if (count++ >= MAX_RENDER) break;
-            double x = renderShape.pos().getX() - cameraPos.x;
-            double y = renderShape.pos().getY() - cameraPos.y;
-            double z = renderShape.pos().getZ() - cameraPos.z;
-            VertexRendering.drawOutline(matrices, lines, renderShape.shape(), x, y, z, color, 1.5f);
+
+            poseStack.pushPose();
+            poseStack.translate(
+                renderShape.pos().getX() - cameraPos.x,
+                renderShape.pos().getY() - cameraPos.y,
+                renderShape.pos().getZ() - cameraPos.z
+            );
+
+            submitNodeCollector.submitShapeOutline(
+                poseStack,
+                renderShape.shape(),
+                ESP_LINES,
+                color,
+                1.5f,
+                false
+            );
+
+            poseStack.popPose();
         }
     }
 

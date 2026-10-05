@@ -1,36 +1,30 @@
 package wtf.dupers.dupersunited.features.screens.mainmenu;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NonNull;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacro;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
+import wtf.dupers.dupersunited.features.screens.ui.DuScreen;
 import wtf.dupers.dupersunited.api.module.Module;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static wtf.dupers.dupersunited.utils.ColorUtil.*;
+import static wtf.dupers.dupersunited.features.screens.ui.Theme.*;
 
-public class KeybindScreen extends Screen {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger("DU/Keybinds");
-
-    private final Screen parent;
+public class KeybindScreen extends DuScreen {
     private int scrollOffset = 0;
 
     private Module listeningModule = null;
@@ -39,7 +33,7 @@ public class KeybindScreen extends Screen {
     private String listeningChatMacro = null;
 
     private String searchQuery = "";
-    private TextFieldWidget searchField;
+    private EditBox searchField;
 
     private static final int ROW_HEIGHT = 26;
     private static final int START_Y = 66;
@@ -66,8 +60,7 @@ public class KeybindScreen extends Screen {
     private final List<Row> rows = new ArrayList<>();
 
     public KeybindScreen(Screen parent) {
-        super(Text.literal("Keybinds"));
-        this.parent = parent;
+        super(Component.literal("Keybinds"), parent, "Keybinds");
     }
 
     private int panelLeft() {
@@ -123,8 +116,8 @@ public class KeybindScreen extends Screen {
         return switch (row) {
             case Row.ModuleRow(Module m) -> m.getName().toLowerCase(Locale.ROOT).contains(searchQuery) || m.getIdentifier().toLowerCase(Locale.ROOT).contains(searchQuery);
             case Row.KeybindRow(Keybind kb) -> kb.getName().toLowerCase(Locale.ROOT).contains(searchQuery);
-            case Row.MacroRow(String name, int k) -> name.toLowerCase(Locale.ROOT).contains(searchQuery);
-            case Row.ChatMacroRow(String name, int k) -> name.toLowerCase(Locale.ROOT).contains(searchQuery);
+            case Row.MacroRow(String name, _) -> name.toLowerCase(Locale.ROOT).contains(searchQuery);
+            case Row.ChatMacroRow(String name, _) -> name.toLowerCase(Locale.ROOT).contains(searchQuery);
             default -> false;
         };
     }
@@ -141,7 +134,7 @@ public class KeybindScreen extends Screen {
 
         Map<String, List<Module>> grouped = new LinkedHashMap<>();
         for (Module m : MainClient.MODULE_MANAGER.modules()) {
-            grouped.computeIfAbsent(m.getCategory(), k -> new ArrayList<>()).add(m);
+            grouped.computeIfAbsent(m.getCategory(), _ -> new ArrayList<>()).add(m);
         }
         for (var entry : grouped.entrySet()) {
             rows.add(new Row.Category(entry.getKey()));
@@ -153,7 +146,7 @@ public class KeybindScreen extends Screen {
         Set<String> chatMacroIds = ChatMacroManager.getMacros().keySet();
         List<Keybind> filteredKeybinds = KeybindManager.getRegisteredKeybinds().values().stream()
             .filter(kb -> !chatMacroIds.contains(kb.getName()))
-            .collect(Collectors.toList());
+            .toList();
         if (!filteredKeybinds.isEmpty()) {
             rows.add(new Row.Category("Keybinds"));
             for (Keybind kb : filteredKeybinds) rows.add(new Row.KeybindRow(kb));
@@ -168,25 +161,25 @@ public class KeybindScreen extends Screen {
 
         int searchX = panelLeft() + 4;
         int searchW = panelRight() - panelLeft() - 8;
-        searchField = new TextFieldWidget(textRenderer, searchX, 41, searchW, 18, Text.literal("Search..."));
+        searchField = new EditBox(font, searchX, 41, searchW, 18, Component.literal("Search..."));
         searchField.setMaxLength(64);
         searchField.setSuggestion("Search keybinds...");
-        searchField.setChangedListener(text -> {
+        searchField.setResponder(text -> {
             searchQuery = text.toLowerCase(Locale.ROOT);
             searchField.setSuggestion(text.isEmpty() ? "Search keybinds..." : "");
             scrollOffset = 0;
             rebuildButtons();
         });
-        this.addDrawableChild(searchField);
+        this.addRenderableWidget(searchField);
 
         rebuildButtons();
     }
 
 
     private void rebuildButtons() {
-        this.clearChildren();
+        this.clearWidgets();
 
-        if (searchField != null) this.addDrawableChild(searchField);
+        if (searchField != null) this.addRenderableWidget(searchField);
 
         List<Row> fr = filteredRows();
         int visible  = visibleRows();
@@ -203,92 +196,87 @@ public class KeybindScreen extends Screen {
 
             if (row instanceof Row.ModuleRow(Module module)) {
                 boolean listening = module == listeningModule;
-                this.addDrawableChild(ButtonWidget.builder(
-                    listening ? Text.literal("[ press a key ]") : getKeyText(module.getKeybind()),
-                    btn -> {
+                this.addRenderableWidget(Button.builder(
+                    listening ? Component.literal("[ press a key ]") : getKeyText(module.getKeybind()),
+                    _ -> {
                         listeningModule = (listeningModule == module) ? null : module;
                         listeningKeybind = null;
                         listeningMacro = null;
                         listeningChatMacro = null;
                         rebuildButtons();
                     }
-                ).dimensions(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
+                ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
                 if (module.getKeybind() != GLFW.GLFW_KEY_UNKNOWN && !listening) {
-                    this.addDrawableChild(ButtonWidget.builder(Text.literal("§cx"), btn -> {
+                    this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
                         module.setKeybind(GLFW.GLFW_KEY_UNKNOWN);
                         ConfigManager.save();
                         rebuildButtons();
-                    }).dimensions(clearX, btnY, 18, BTN_HEIGHT).build());
+                    }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
 
             } else if (row instanceof Row.KeybindRow(Keybind keybind)) {
                 boolean listening = keybind == listeningKeybind;
-                this.addDrawableChild(ButtonWidget.builder(
-                    listening ? Text.literal("[ press a key ]") : getKeyText(keybind.getKeyCode()),
-                    btn -> {
+                this.addRenderableWidget(Button.builder(
+                    listening ? Component.literal("[ press a key ]") : getKeyText(keybind.getKeyCode()),
+                    _ -> {
                         listeningKeybind = (listeningKeybind == keybind) ? null : keybind;
                         listeningModule = null;
                         listeningMacro = null;
                         listeningChatMacro = null;
                         rebuildButtons();
                     }
-                ).dimensions(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
+                ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
                 if (keybind.getKeyCode() != GLFW.GLFW_KEY_UNKNOWN && !listening) {
-                    this.addDrawableChild(ButtonWidget.builder(Text.literal("§cx"), btn -> {
+                    this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
                         keybind.setKeyCode(GLFW.GLFW_KEY_UNKNOWN);
                         ConfigManager.save();
                         rebuildButtons();
-                    }).dimensions(clearX, btnY, 18, BTN_HEIGHT).build());
+                    }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
 
             } else if (row instanceof Row.MacroRow(String name, int key)) {
                 boolean listening = name.equals(listeningMacro);
-                this.addDrawableChild(ButtonWidget.builder(
-                    listening ? Text.literal("[ press a key ]") : getKeyText(key),
-                    btn -> {
+                this.addRenderableWidget(Button.builder(
+                    listening ? Component.literal("[ press a key ]") : getKeyText(key),
+                    _ -> {
                         listeningMacro = listening ? null : name;
                         listeningModule = null;
                         listeningKeybind = null;
                         listeningChatMacro = null;
                         rebuildButtons();
                     }
-                ).dimensions(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
+                ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
                 if (key != GLFW.GLFW_KEY_UNKNOWN && !listening) {
-                    this.addDrawableChild(ButtonWidget.builder(Text.literal("§cx"), btn -> {
+                    this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
                         //saveMacroKey(name, GLFW.GLFW_KEY_UNKNOWN);
                         init();
-                    }).dimensions(clearX, btnY, 18, BTN_HEIGHT).build());
+                    }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
 
             } else if (row instanceof Row.ChatMacroRow(String name, int key)) {
                 boolean listening = name.equals(listeningChatMacro);
-                this.addDrawableChild(ButtonWidget.builder(
-                    listening ? Text.literal("[ press a key ]") : getKeyText(key),
-                    btn -> {
+                this.addRenderableWidget(Button.builder(
+                    listening ? Component.literal("[ press a key ]") : getKeyText(key),
+                    _ -> {
                         listeningChatMacro = listening ? null : name;
                         listeningModule = null;
                         listeningKeybind = null;
                         listeningMacro = null;
                         rebuildButtons();
                     }
-                ).dimensions(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
+                ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
                 if (key != GLFW.GLFW_KEY_UNKNOWN && !listening) {
-                    this.addDrawableChild(ButtonWidget.builder(Text.literal("§cx"), btn -> {
+                    this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
                         ChatMacroManager.rebind(name, GLFW.GLFW_KEY_UNKNOWN);
                         init();
-                    }).dimensions(clearX, btnY, 18, BTN_HEIGHT).build());
+                    }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
             }
         }
-
-        this.addDrawableChild(ButtonWidget.builder(
-            Text.literal("Done"),
-            btn -> MinecraftClient.getInstance().setScreen(parent)
-        ).dimensions(this.width / 2 - 50, this.height - 28, 100, 20).build());
     }
 
 
@@ -300,7 +288,7 @@ public class KeybindScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean bl) {
+    public boolean mouseClicked(@NonNull MouseButtonEvent click, boolean bl) {
         if (isListening()) {
             int mx = (int) click.x();
             int my = (int) click.y();
@@ -337,7 +325,7 @@ public class KeybindScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
+    public boolean keyPressed(@NonNull KeyEvent input) {
         if (listeningModule != null) {
             int keyCode = input.key();
             listeningModule.setKeybind(keyCode == GLFW.GLFW_KEY_ESCAPE ? GLFW.GLFW_KEY_UNKNOWN : keyCode);
@@ -366,19 +354,13 @@ public class KeybindScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        ctx.fill(0, 0, this.width, this.height, DEEP_SAPPHIRE);
+    public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        drawStructure(graphics, mouseX, mouseY);
 
-        ctx.fill(0, 0, this.width, 36, MANTLE);
-        ctx.fill(0, 36, this.width, 37, FADED_INDIGO);
-        ctx.drawCenteredTextWithShadow(this.textRenderer,
-            Text.literal("Keybinds").formatted(Formatting.BOLD),
-            this.width / 2, 14, LAVENDER);
+        graphics.fill(panelLeft(), 38, panelRight(), 62, border);
+        graphics.fill(panelLeft(), 62, panelRight(), 63, edge);
 
-        ctx.fill(panelLeft(), 38, panelRight(), 62, DEEP_INDIGO);
-        ctx.fill(panelLeft(), 62, panelRight(), 63, FADED_INDIGO);
-
-        ctx.fill(panelLeft(), START_Y, panelRight(), panelBottom(), MANTLE);
+        graphics.fill(panelLeft(), START_Y, panelRight(), panelBottom(), header);
 
         List<Row> fr = filteredRows();
         int visible = visibleRows();
@@ -391,87 +373,87 @@ public class KeybindScreen extends Screen {
             int y = START_Y + screenI * ROW_HEIGHT;
 
             if (row instanceof Row.Category(String label)) {
-                ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
-                ctx.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, FADED_INDIGO);
-                ctx.drawTextWithShadow(this.textRenderer,
-                    Text.literal("▸ " + label.toUpperCase()),
-                    panelLeft() + 8, y + (ROW_HEIGHT - 9) / 2, MAUVE);
+                graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, border);
+                graphics.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, edge);
+                graphics.text(this.font,
+                    Component.literal("▸ " + label.toUpperCase()),
+                    panelLeft() + 8, y + (ROW_HEIGHT - 9) / 2, primary);
 
             } else if (row instanceof Row.ModuleRow(Module module)) {
                 boolean listening = module == listeningModule;
                 boolean hovered   = mouseX >= panelLeft() && mouseX <= panelRight()
                     && mouseY >= y && mouseY < y + ROW_HEIGHT;
 
-                if (hovered || listening) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
-                else if (i % 2 == 0) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
+                if (hovered || listening) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, border);
+                else if (i % 2 == 0) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
 
-                ctx.drawTextWithShadow(this.textRenderer,
-                    Text.literal(module.getName()),
+                graphics.text(this.font,
+                    Component.literal(module.getName()),
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
-                    listening ? PEACH : PALE_NAVY);
+                    listening ? value : text);
 
                 boolean hasBind = module.getKeybind() != GLFW.GLFW_KEY_UNKNOWN;
-                ctx.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
+                graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
-                    listening ? PEACH : hasBind ? GREEN : FADED_INDIGO);
-                ctx.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
+                    listening ? value : hasBind ? accent : edge);
+                graphics.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, border);
 
             } else if (row instanceof Row.KeybindRow(Keybind keybind)) {
                 boolean listening = keybind == listeningKeybind;
                 boolean hovered   = mouseX >= panelLeft() && mouseX <= panelRight()
                     && mouseY >= y && mouseY < y + ROW_HEIGHT;
 
-                if (hovered || listening) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
-                else if (i % 2 == 0) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
+                if (hovered || listening) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, border);
+                else if (i % 2 == 0) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
 
-                ctx.drawTextWithShadow(this.textRenderer,
-                    Text.literal(keybind.getName()),
+                graphics.text(this.font,
+                    Component.literal(keybind.getName()),
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
-                    listening ? PEACH : PALE_NAVY);
+                    listening ? value : text);
 
                 boolean hasBind = keybind.getKeyCode() != GLFW.GLFW_KEY_UNKNOWN;
-                ctx.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
+                graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
-                    listening ? PEACH : hasBind ? GREEN : FADED_INDIGO);
-                ctx.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
+                    listening ? value : hasBind ? accent : edge);
+                graphics.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, border);
 
             } else if (row instanceof Row.MacroRow(String name, int key)) {
                 boolean listening = name.equals(listeningMacro);
                 boolean hovered   = mouseX >= panelLeft() && mouseX <= panelRight()
                     && mouseY >= y && mouseY < y + ROW_HEIGHT;
 
-                if (hovered || listening) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
-                else if (i % 2 == 0) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
+                if (hovered || listening) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, border);
+                else if (i % 2 == 0) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
 
-                ctx.drawTextWithShadow(this.textRenderer,
-                    Text.literal(name),
+                graphics.text(this.font,
+                    Component.literal(name),
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
-                    listening ? PEACH : PALE_NAVY);
+                    listening ? value : text);
 
                 boolean hasBind = key != GLFW.GLFW_KEY_UNKNOWN;
-                ctx.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
+                graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
-                    listening ? PEACH : hasBind ? GREEN : FADED_INDIGO);
-                ctx.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
+                    listening ? value : hasBind ? accent : edge);
+                graphics.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, border);
 
             } else if (row instanceof Row.ChatMacroRow(String name, int key)) {
                 boolean listening = name.equals(listeningChatMacro);
                 boolean hovered   = mouseX >= panelLeft() && mouseX <= panelRight()
                     && mouseY >= y && mouseY < y + ROW_HEIGHT;
 
-                if (hovered || listening) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
-                else if (i % 2 == 0) ctx.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
+                if (hovered || listening) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, border);
+                else if (i % 2 == 0) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
 
-                ctx.drawTextWithShadow(this.textRenderer,
-                    Text.literal(name),
+                graphics.text(this.font,
+                    Component.literal(name),
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
-                    listening ? PEACH : PALE_NAVY);
+                    listening ? value : text);
 
                 boolean hasBind = key != GLFW.GLFW_KEY_UNKNOWN;
-                ctx.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
+                graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
-                    listening ? PEACH : hasBind ? GREEN : FADED_INDIGO);
-                ctx.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, DEEP_INDIGO);
+                    listening ? value : hasBind ? accent : edge);
+                graphics.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, border);
             }
         }
 
@@ -479,22 +461,22 @@ public class KeybindScreen extends Screen {
             int totalH = visibleHeight();
             int barH   = Math.max(24, totalH * visible / fr.size());
             int barY   = START_Y + (totalH - barH) * scrollOffset / maxScroll();
-            ctx.fill(panelRight() + 2, START_Y, panelRight() + 4, panelBottom(), DEEP_INDIGO);
-            ctx.fill(panelRight() + 2, barY, panelRight() + 4, barY + barH, LAVENDER);
+            graphics.fill(panelRight() + 2, START_Y, panelRight() + 4, panelBottom(), border);
+            graphics.fill(panelRight() + 2, barY, panelRight() + 4, barY + barH, secondary);
         }
 
         if (fr.isEmpty() && !searchQuery.isEmpty()) {
-            ctx.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("No keybinds match \"" + searchField.getText() + "\""),
-                this.width / 2, START_Y + visibleHeight() / 2, FADED_NAVY);
+            graphics.centeredText(this.font,
+                Component.literal("No keybinds match \"" + searchField.getValue() + "\""),
+                this.width / 2, START_Y + visibleHeight() / 2, dim);
         }
 
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
 
-    private Text getKeyText(int key) {
-        if (key == GLFW.GLFW_KEY_UNKNOWN) return Text.literal("unbound").formatted(Formatting.WHITE);
+    private Component getKeyText(int key) {
+        if (key == GLFW.GLFW_KEY_UNKNOWN) return Component.literal("unbound").withStyle(ChatFormatting.WHITE);
         if (key >= GLFW.GLFW_MOUSE_BUTTON_1 && key <= GLFW.GLFW_MOUSE_BUTTON_LAST) {
             String name = switch (key) {
                 case GLFW.GLFW_MOUSE_BUTTON_LEFT -> "MOUSE LEFT";
@@ -502,7 +484,7 @@ public class KeybindScreen extends Screen {
                 case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> "MOUSE MIDDLE";
                 default -> "MOUSE " + (key + 1);
             };
-            return Text.literal(name);
+            return Component.literal(name);
         }
 
         if (key < 0) {
@@ -514,15 +496,10 @@ public class KeybindScreen extends Screen {
                     case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> "MOUSE MIDDLE";
                     default -> "MOUSE " + (btn + 1);
                 };
-                return Text.literal(name);
+                return Component.literal(name);
             }
-            return Text.literal("UNKNOWN");
+            return Component.literal("UNKNOWN");
         }
-        return Text.literal(InputUtil.Type.KEYSYM.createFromCode(key).getLocalizedText().getString().toUpperCase());
-    }
-
-    @Override
-    public void close() {
-        MinecraftClient.getInstance().setScreen(parent);
+        return Component.literal(InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString().toUpperCase());
     }
 }

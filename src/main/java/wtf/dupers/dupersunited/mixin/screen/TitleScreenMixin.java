@@ -1,71 +1,39 @@
 package wtf.dupers.dupersunited.mixin.screen;
 
-import wtf.dupers.dupersunited.SharedVariables;
-import wtf.dupers.dupersunited.compat.MeteorCompat;
-import wtf.dupers.dupersunited.features.screens.DupersUnitedScreen;
-import wtf.dupers.dupersunited.features.screens.mainmenu.*;
-import wtf.dupers.dupersunited.features.ssidLogin.*;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.SplashTextRenderer;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.components.SplashRenderer;
+import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import wtf.dupers.dupersunited.features.ssidLogin.SessionAPI;
-import wtf.dupers.dupersunited.features.ssidLogin.SessionManager;
+import wtf.dupers.dupersunited.SharedVariables;
+import wtf.dupers.dupersunited.features.account.SessionAPI;
+import wtf.dupers.dupersunited.features.account.SessionManager;
+import wtf.dupers.dupersunited.features.proxies.ProxyConfigManager;
+import wtf.dupers.dupersunited.features.proxies.ProxyProfiles;
 
 @Mixin(TitleScreen.class)
 public abstract class TitleScreenMixin extends Screen {
-    protected TitleScreenMixin(Text title) {
+    protected TitleScreenMixin(Component title) {
         super(title);
     }
 
     @Shadow
-    private SplashTextRenderer splashText;
+    private SplashRenderer splash;
 
     @Inject(method = "init", at = @At("TAIL"))
     private void onInit(CallbackInfo ci) {
-        this.splashText = new SplashTextRenderer(Text.literal(SharedVariables.randomQuote()));
+        this.splash = new SplashRenderer(Component.literal(SharedVariables.randomQuote()));
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
-    private void addButton(CallbackInfo ci) {
-
-        int x = this.width;
-
-        /*
-        this.addDrawableChild(
-                ButtonWidget.builder(
-                        Text.literal("SSID Login"),
-                        button -> {
-                            assert this.client != null;
-                            this.client.setScreen(new LoginScreen(MinecraftClient.getInstance().currentScreen));
-                        }
-                ).dimensions(centerX - 100, y, 200, 20).build()
-        );
-        */
-
-        this.addDrawableChild(
-                ButtonWidget.builder(
-                        Text.literal("DupersUnited"),
-                        button -> {
-                            assert this.client != null;
-                            this.client.setScreen(new DupersUnitedScreen(MinecraftClient.getInstance().currentScreen));
-                        }
-                ).dimensions(x - 105, 5 + MeteorCompat.getTitleScreenYOffset(), 100, 20).build()
-        );
-    }
-
-    @Inject(method = "render", at = @At("TAIL"))
-    public void render(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        super.render(context, mouseX, mouseY, delta);
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
+        super.extractRenderState(graphics, mouseX, mouseY, a);
 
         String username = SessionManager.getUsername();
 
@@ -73,30 +41,25 @@ public abstract class TitleScreenMixin extends Screen {
             SessionManager.hasValidationStarted = true;
 
             new Thread(() -> {
-                    SessionManager.isSessionValid = SessionAPI.validateSession(this.client.getSession().getAccessToken());
-                    SessionManager.hasValidationStarted = false;
-                }, "SessionValidationThread"
-            ).start();
+                SessionManager.isSessionValid = SessionAPI.validateSession(this.minecraft.getUser().getAccessToken());
+                SessionManager.hasValidationStarted = false;
+            }, "SessionValidationThread").start();
         }
 
-        Text status;
+        Component playerDisplay = Component.literal("IGN: ").withStyle(ChatFormatting.GRAY)
+            .append(Component.literal(username).withStyle(ChatFormatting.AQUA));
+        graphics.text(this.font, playerDisplay, 5, 7, -1, true);
 
-        if (SessionManager.isSessionValid == null) {
-            status = Text.literal("[... Validating]")
-                    .formatted(Formatting.GRAY);
-        } else if (SessionManager.isSessionValid) {
-            status = Text.literal("[Valid]")
-                    .formatted(Formatting.GREEN);
-        } else {
-            status = Text.literal("[Invalid]")
-                    .formatted(Formatting.RED);
+        ProxyProfiles active = ProxyConfigManager.getActiveProfile();
+        Component proxyComponent = Component.literal("none").withStyle(ChatFormatting.RED);
+        if (ProxyConfigManager.globalEnabled && active != null) {
+            proxyComponent = Component.literal(active.name).withStyle(ChatFormatting.GREEN);
         }
 
-        Text playerDisplay = Text.literal("User: ")
-                .append(Text.literal(username).formatted(Formatting.AQUA))
-                .append(Text.literal(" | ").formatted(Formatting.DARK_GRAY))
-                .append(status);
-
-        context.drawText(this.textRenderer, playerDisplay, 5, 5, -1, true);
-    }
+        graphics.text(this.font,
+            Component.literal("Proxy: ").withStyle(ChatFormatting.GRAY)
+                .append(proxyComponent),
+            5, 18, -1, true
+        );
+        }
 }

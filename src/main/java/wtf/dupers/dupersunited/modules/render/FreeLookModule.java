@@ -4,14 +4,12 @@ import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.FloatSetting;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.Perspective;
+import net.minecraft.client.CameraType;
 import org.lwjgl.glfw.GLFW;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public class FreeLookModule extends Module {
-
-    private static final MinecraftClient mc = MinecraftClient.getInstance();
-
     public final FloatSetting sensitivity = register(new FloatSetting("Sensitivity", 8f, 0f, 20f));
 
     public float cameraYaw;
@@ -25,24 +23,24 @@ public class FreeLookModule extends Module {
     @Override
     protected void onEnable() {
         if (mc.player == null) return;
-        cameraYaw = mc.player.getYaw();
+        cameraYaw = mc.player.getYRot();
         smoothYaw = cameraYaw;
-        mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+        mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
     }
 
     @Override
     protected void onDisable() {
-        mc.options.setPerspective(Perspective.FIRST_PERSON);
+        mc.options.setCameraType(CameraType.FIRST_PERSON);
     }
 
     @Override
     public void onTick() {
         if (mc.player == null) return;
-        if (mc.options.getPerspective() != Perspective.THIRD_PERSON_BACK)
-            mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+        if (mc.options.getCameraType() != CameraType.THIRD_PERSON_BACK)
+            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
     }
 
     public boolean isPlayerMode() {
-        return isEnabled() && mc.options.getPerspective() == Perspective.THIRD_PERSON_BACK;
+        return isEnabled() && mc.options.getCameraType() == CameraType.THIRD_PERSON_BACK;
     }
 }

@@ -1,10 +1,21 @@
 package wtf.dupers.dupersunited.features.screens;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NonNull;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.features.screens.hud.HudEditorScreen;
 import wtf.dupers.dupersunited.features.screens.macroscreen.ChatMacroScreen;
 import wtf.dupers.dupersunited.features.screens.mainmenu.KeybindScreen;
+import wtf.dupers.dupersunited.features.screens.ui.DuScreen;
+import wtf.dupers.dupersunited.features.screens.ui.Theme;
+import wtf.dupers.dupersunited.features.screens.ui.Ui;
+import wtf.dupers.dupersunited.features.account.AccountsScreen;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import wtf.dupers.dupersunited.api.module.Module;
@@ -15,21 +26,16 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 
-import static wtf.dupers.dupersunited.features.PrideTheme.*;
-import static wtf.dupers.dupersunited.utils.ColorUtil.*;
+import static wtf.dupers.dupersunited.MainClient.mc;
+import static wtf.dupers.dupersunited.features.screens.ui.PrideTheme.*;
 
-public class ClickGui extends Screen {
+public class ClickGui extends DuScreen {
 
     private static final int PW = 130;
     private static final int HEADER_H = 16;
@@ -37,32 +43,10 @@ public class ClickGui extends Screen {
     private static final int SET_H = 13;
     private static final int SLD_H = 4;
     private static final int PAD = 6;
-
-    private static final int C_BG = BG;
-    private static final int C_BORDER = DEEP_INDIGO;
-    private static final int C_HDR_BG = MANTLE;
-    private static final int C_HDR_TXT = PALE_NAVY;
-    private static final int C_HDR_BTN = HDR_BTN;
-    private static final int C_ON = GREEN;
-    private static final int C_OFF = OFF;
-    private static final int C_HOVER = HOVER;
-    private static final int C_ACCENT = GREEN;
-    private static final int C_SET_BG = SET_BG;
-    private static final int C_SET_LINE = SET_LINE;
-    private static final int C_LBL = FADED_NAVY;
-    private static final int C_GREEN = GREEN;
-    private static final int C_RED = RED;
-    private static final int C_BLUE = BLUE;
-    private static final int C_ORANGE = PEACH;
-    private static final int C_SLD_BG = DEEP_INDIGO;
-    private static final int C_SLD_FG = GREEN;
-    private static final int C_STR_FOCUS = FIELD_FOCUSED;
-    private static final int C_CURSOR = GREEN;
-    private static final int C_SELECTION = SELECTION;
+    private static final int PANEL_TOP = 30;
 
     private final List<Panel> panels = new ArrayList<>();
     private HudPanel hudPanel;
-    private final Screen parent;
 
     // <user customization>
     public static final Map<String, String> customCategories = new LinkedHashMap<>();
@@ -93,7 +77,7 @@ public class ClickGui extends Screen {
     }
 
     private boolean isCtrlDown() {
-        long handle = MinecraftClient.getInstance().getWindow().getHandle();
+        long handle = mc.getWindow().handle();
         return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
     }
 
@@ -105,30 +89,121 @@ public class ClickGui extends Screen {
         return Math.max(cursorPos, selectionAnchor);
     }
 
-    private void deleteSelection(StringSetting ss) {
-        String cur = ss.getValue();
-        int s = selStart(), e = selEnd();
-        ss.setValue(cur.substring(0, s) + cur.substring(e));
-        cursorPos = s;
-        clearSelection();
+    // there has to be something that already exists for this
+    private interface TextBuffer {
+        String get();
+        void set(String value);
+        int cap();
     }
 
-    private void deleteSearchSelection() {
-        int s = selStart(), e = selEnd();
-        searchQuery = searchQuery.substring(0, s) + searchQuery.substring(e);
-        cursorPos = s;
-        clearSelection();
+    private boolean editKey(TextBuffer buf, int keyCode) {
+        boolean ctrl = isCtrlDown();
+        if (ctrl && keyCode == GLFW.GLFW_KEY_A) {
+            selectionAnchor = 0;
+            cursorPos = buf.get().length();
+            return true;
+        }
+        if (ctrl && keyCode == GLFW.GLFW_KEY_C) {
+            if (hasSelection()) mc.keyboardHandler.setClipboard(buf.get().substring(selStart(), selEnd()));
+            return true;
+        }
+        if (ctrl && keyCode == GLFW.GLFW_KEY_V) {
+            String cb = mc.keyboardHandler.getClipboard();
+            if (!cb.isEmpty()) {
+                String cur = buf.get();
+                if (hasSelection()) {
+                    buf.set(cur.substring(0, selStart()) + cur.substring(selEnd()));
+                    cursorPos = selStart();
+                    clearSelection();
+                    cur = buf.get();
+                }
+                cursorPos = Math.min(cursorPos, cur.length());
+                int room = buf.cap() - cur.length();
+                if (room > 0) {
+                    String paste = cb.substring(0, Math.min(room, cb.length()));
+                    buf.set(cur.substring(0, cursorPos) + paste + cur.substring(cursorPos));
+                    cursorPos = Math.min(cursorPos + paste.length(), buf.get().length());
+                }
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+            String cur = buf.get();
+            cursorPos = Math.min(cursorPos, cur.length());
+            if (hasSelection()) {
+                buf.set(cur.substring(0, selStart()) + cur.substring(selEnd()));
+                cursorPos = selStart();
+                clearSelection();
+            } else if (cursorPos > 0) {
+                buf.set(cur.substring(0, cursorPos - 1) + cur.substring(cursorPos));
+                cursorPos--;
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DELETE) {
+            String cur = buf.get();
+            cursorPos = Math.min(cursorPos, cur.length());
+            if (hasSelection()) {
+                buf.set(cur.substring(0, selStart()) + cur.substring(selEnd()));
+                cursorPos = selStart();
+                clearSelection();
+            } else if (cursorPos < cur.length()) {
+                buf.set(cur.substring(0, cursorPos) + cur.substring(cursorPos + 1));
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+            if (hasSelection()) { cursorPos = selStart(); clearSelection(); }
+            else if (cursorPos > 0) cursorPos--;
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+            if (hasSelection()) { cursorPos = selEnd(); clearSelection(); }
+            else if (cursorPos < buf.get().length()) cursorPos++;
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_HOME) {
+            cursorPos = 0;
+            clearSelection();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_END) {
+            cursorPos = buf.get().length();
+            clearSelection();
+            return true;
+        }
+        return true;
     }
 
-    private void clearFocus() {
-        focusedPanel = null;
-        focusedMod = null;
-        focusedSet = null;
-        searchFocused = false;
-        cursorPos = 0;
-        selectionAnchor = -1;
-        rebindingModule = null;
-        rebindingKeybind = null;
+    private void editChar(TextBuffer buf, String ins) {
+        if (hasSelection()) {
+            String cur = buf.get();
+            buf.set(cur.substring(0, selStart()) + cur.substring(selEnd()));
+            cursorPos = selStart();
+            clearSelection();
+        }
+        String cur = buf.get();
+        cursorPos = Math.min(cursorPos, cur.length());
+        if (cur.length() + ins.length() <= buf.cap()) {
+            buf.set(cur.substring(0, cursorPos) + ins + cur.substring(cursorPos));
+            cursorPos++;
+        }
+    }
+
+    private TextBuffer searchBuffer() {
+        return new TextBuffer() {
+            public String get() { return searchQuery; }
+            public void set(String v) { searchQuery = v; }
+            public int cap() { return Integer.MAX_VALUE; }
+        };
+    }
+
+    private TextBuffer settingBuffer(StringSetting ss) {
+        return new TextBuffer() {
+            public String get() { return ss.getValue(); }
+            public void set(String v) { ss.setValue(v); }
+            public int cap() { return ss.getMaxLength(); }
+        };
     }
 
     private void setFocus(Panel panel, String modName, String setName) {
@@ -149,15 +224,6 @@ public class ClickGui extends Screen {
         return name != null ? name.toUpperCase() : "K" + key;
     }
 
-    private List<String> getAllCategories() {
-        List<String> result = new ArrayList<>();
-        for (Module m : MainClient.MODULE_MANAGER.modules()) {
-            String cat = m.getCategory();
-            if (!result.contains(cat)) result.add(cat);
-        }
-        return result;
-    }
-
     private class HudPanel {
         int x, y;
         boolean dragging;
@@ -169,49 +235,35 @@ public class ClickGui extends Screen {
             this.y = hudPanelPosition.y();
         }
 
-        void draw(DrawContext ctx, int mx, int my) {
+        void draw(GuiGraphicsExtractor graphics, int mx, int my) {
             int ph = HEADER_H + MOD_H * 3;
-            for (int i = 4; i >= 1; i--) {
-                int a = (int) (255 * 0.055f * i);
-                ctx.fill(x - i, y - i, x + PW + i, y + ph + i, a << 24);
-            }
-            ctx.fill(x, y, x + PW, y + ph, C_BG);
-            ctx.fill(x, y, x + PW, y + 1, C_BORDER);
-            ctx.fill(x, y + ph - 1, x + PW, y + ph, C_BORDER);
-            ctx.fill(x, y, x + 1, y + ph, C_BORDER);
-            ctx.fill(x + PW - 1, y, x + PW, y + ph, C_BORDER);
-            ctx.fill(x, y, x + PW, y + HEADER_H, C_HDR_BG);
-            ctx.fill(x, y + HEADER_H - 1, x + PW, y + HEADER_H, C_BORDER);
-            if (PRIDE) ctx.drawTextWithShadow(textRenderer, prideStyle("Configs"), x + PAD, y + (HEADER_H - 7) / 2, -1);
-            else ctx.drawTextWithShadow(textRenderer, "Configs", x + PAD, y + (HEADER_H - 7) / 2, C_HDR_TXT);
+            Ui.shadow(graphics, x, y, PW, ph);
+            Ui.box(graphics, x, y, PW, ph);
+            Ui.header(graphics, x, y, PW, HEADER_H);
+            if (PRIDE) graphics.text(font, prideStyle("Configs"), x + PAD, y + (HEADER_H - 7) / 2, -1);
+            else graphics.text(font, "Configs", x + PAD, y + (HEADER_H - 7) / 2, Theme.text);
             int ry = y + HEADER_H;
 
-            boolean hovHud = mx >= x && mx < x + PW && my >= ry && my < ry + MOD_H;
-            if (hovHud) ctx.fill(x, ry, x + PW, ry + MOD_H, C_HOVER);
-            ctx.fill(x, ry, x + 2, ry + MOD_H, PRIDE ? C_PRIDE_1 : C_BLUE);
-            if (PRIDE) ctx.drawText(textRenderer, transStyle("Edit HUD"), x + PAD + 2, ry + 3, -1, false);
-            else ctx.drawText(textRenderer, "Edit HUD", x + PAD + 2, ry + 3, C_BLUE, false);
-
+            hudRow(graphics, "Edit HUD", Theme.info, ry, mx, my);
             ry += MOD_H;
-            boolean hovKb = mx >= x && mx < x + PW && my >= ry && my < ry + MOD_H;
-            if (hovKb) ctx.fill(x, ry, x + PW, ry + MOD_H, C_HOVER);
-            ctx.fill(x, ry, x + 2, ry + MOD_H, PRIDE ? C_PRIDE_1 : C_BLUE);
-            if (PRIDE) ctx.drawText(textRenderer, transStyle("Keybinds"), x + PAD + 2, ry + 3, -1, false);
-            else ctx.drawText(textRenderer, "Keybinds", x + PAD + 2, ry + 3, C_BLUE, false);
-
+            hudRow(graphics, "Keybinds", Theme.info, ry, mx, my);
             ry += MOD_H;
-            boolean hovCm = mx >= x && mx < x + PW && my >= ry && my < ry + MOD_H;
-            if (hovCm) ctx.fill(x, ry, x + PW, ry + MOD_H, C_HOVER);
-            ctx.fill(x, ry, x + 2, ry + MOD_H, PRIDE ? C_PRIDE_1 : C_BLUE);
-            if (PRIDE) ctx.drawText(textRenderer, transStyle("ChatMacros"), x + PAD + 2, ry + 3, -1, false);
-            else ctx.drawText(textRenderer, "ChatMacros", x + PAD + 2, ry + 3, C_BLUE, false);
+            hudRow(graphics, "ChatMacros", Theme.info, ry, mx, my);
 
             Keybind kb = KeybindManager.getRegisteredKeybinds().get("keybinds");
             if (kb != null) {
                 String kbStr = (kb == rebindingKeybind) ? "..." : "[" + getKeyName(kb.getKeyCode()) + "]";
-                int kbW = textRenderer.getWidth(kbStr);
-                ctx.drawText(textRenderer, kbStr, x + PW - PAD - kbW, ry + 3, C_LBL, false);
+                int kbW = font.width(kbStr);
+                graphics.text(font, kbStr, x + PW - PAD - kbW, ry + 3, Theme.dim, false);
             }
+        }
+
+        void hudRow(GuiGraphicsExtractor graphics, String label, int color, int ry, int mx, int my) {
+            boolean hov = mx >= x && mx < x + PW && my >= ry && my < ry + MOD_H;
+            if (hov) graphics.fill(x, ry, x + PW, ry + MOD_H, Theme.hover);
+            graphics.fill(x, ry, x + 2, ry + MOD_H, PRIDE ? C_PRIDE_1 : color);
+            if (PRIDE) graphics.text(font, transStyle(label), x + PAD + 2, ry + 3, -1, false);
+            else graphics.text(font, label, x + PAD + 2, ry + 3, color, false);
         }
 
         boolean mouseClicked(int mx, int my, int btn) {
@@ -224,13 +276,13 @@ public class ClickGui extends Screen {
             }
             int ry = y + HEADER_H;
             if (my >= ry && my < ry + MOD_H && btn == 0) {
-                MinecraftClient.getInstance().setScreen(new HudEditorScreen());
+                mc.gui.setScreen(new HudEditorScreen());
                 return true;
             }
             ry += MOD_H;
             if (my >= ry && my < ry + MOD_H) {
                 if (btn == 0) {
-                    MinecraftClient.getInstance().setScreen(new KeybindScreen(ClickGui.this));
+                    mc.gui.setScreen(new KeybindScreen(ClickGui.this));
                     return true;
                 }
                 if (btn == 2 || btn == 1) {
@@ -240,7 +292,7 @@ public class ClickGui extends Screen {
             }
             ry += MOD_H;
             if (my >= ry && my < ry + MOD_H && btn == 0) {
-                MinecraftClient.getInstance().setScreen(new ChatMacroScreen(ClickGui.this));
+                mc.gui.setScreen(new ChatMacroScreen(ClickGui.this));
                 return true;
             }
             return false;
@@ -250,7 +302,7 @@ public class ClickGui extends Screen {
             if (dragging) {
                 x = mx - dox;
                 y = my - doy;
-                hudPanelPosition.set(x, y);
+                if (hudPanelPosition != null) hudPanelPosition.set(x, y);
             }
         }
 
@@ -274,11 +326,11 @@ public class ClickGui extends Screen {
             this.category = category;
             this.modules = modules;
 
-            Vector2i position = categoryPositions.computeIfAbsent(category, k -> new Vector2i(x, y));
+            Vector2i position = categoryPositions.computeIfAbsent(category, _ -> new Vector2i(x, y));
             this.x = position.x();
             this.y = position.y();
-            this.expanded = categoryExpandedModules.computeIfAbsent(category, k -> new ObjectOpenHashSet<>());
-            this.collapsed = categoryCollapsed.computeIfAbsent(category, k -> false);
+            this.expanded = categoryExpandedModules.computeIfAbsent(category, _ -> new ObjectOpenHashSet<>());
+            this.collapsed = categoryCollapsed.computeIfAbsent(category, _ -> false);
         }
 
         private List<Module> getFilteredModules() {
@@ -317,36 +369,52 @@ public class ClickGui extends Screen {
 
         int settBlockH(List<Setting<?>> ss) {
             int h = 4;
-            for (Setting<?> s : ss) {
-                if (s instanceof FloatSetting || s instanceof IntSetting) h += SET_H + SLD_H + 3;
-                else h += SET_H;
-            }
+            for (Setting<?> s : ss) h += rowHeight(s);
             return h;
         }
 
-        void draw(DrawContext ctx, int mx, int my) {
+        // all settings row height are here, don't use other values
+        boolean stringTwoLines(Setting<?> s) {
+            int sw = PW - PAD * 2 - 2;
+            return s instanceof StringSetting && font.width(s.getName() + ": ") + 30 > sw;
+        }
+
+        int rowHeight(Setting<?> s) {
+            if (s instanceof FloatSetting || s instanceof IntSetting) return SET_H + SLD_H + 3;
+            if (stringTwoLines(s)) return SET_H * 2;
+            return SET_H;
+        }
+
+        void drawSliderValue(GuiGraphicsExtractor graphics, int sx, int sy, String name, String value, float pct, int sw) {
+            String lbl = name + ": ";
+            graphics.text(font, lbl, sx, sy, Theme.dim, false);
+            graphics.text(font, value, sx + font.width(lbl), sy, Theme.info, false);
+            Ui.slider(graphics, sx, sy + SET_H - 2, sw, SLD_H, pct);
+        }
+
+        boolean sliderHit(int mx, int my, int sx, int sy, int sw, int btn) {
+            return btn == 0 && my >= sy && my <= sy + SET_H - 2 + SLD_H + 2;
+        }
+
+        float sliderPct(int mx, int sx, int sw) {
+            return (float) (mx - sx) / sw;
+        }
+
+        void draw(GuiGraphicsExtractor graphics, int mx, int my) {
             int pw = PW, ph = height();
-            for (int i = 4; i >= 1; i--) {
-                int a = (int) (255 * 0.055f * i);
-                ctx.fill(x - i, y - i, x + pw + i, y + ph + i, a << 24);
-            }
-            ctx.fill(x, y, x + pw, y + ph, C_BG);
-            ctx.fill(x, y, x + pw, y + 1, C_BORDER);
-            ctx.fill(x, y + ph - 1, x + pw, y + ph, C_BORDER);
-            ctx.fill(x, y, x + 1, y + ph, C_BORDER);
-            ctx.fill(x + pw - 1, y, x + pw, y + ph, C_BORDER);
-            ctx.fill(x, y, x + pw, y + HEADER_H, C_HDR_BG);
-            ctx.fill(x, y + HEADER_H - 1, x + pw, y + HEADER_H, C_BORDER);
-            if (PRIDE) ctx.drawTextWithShadow(textRenderer, prideStyle(category), x + PAD, y + (HEADER_H - 7) / 2, -1);
-            else ctx.drawTextWithShadow(textRenderer, category, x + PAD, y + (HEADER_H - 7) / 2, C_HDR_TXT);
-            ctx.drawText(textRenderer, collapsed ? "+" : "—", x + pw - 10, y + (HEADER_H - 7) / 2, C_HDR_BTN, false);
+            Ui.shadow(graphics, x, y, pw, ph);
+            Ui.box(graphics, x, y, pw, ph);
+            Ui.header(graphics, x, y, pw, HEADER_H);
+            if (PRIDE) graphics.text(font, prideStyle(category), x + PAD, y + (HEADER_H - 7) / 2, -1);
+            else graphics.text(font, category, x + PAD, y + (HEADER_H - 7) / 2, Theme.text);
+            graphics.text(font, collapsed ? "+" : "—", x + pw - 10, y + (HEADER_H - 7) / 2, Theme.faint, false);
 
             if (collapsed) return;
 
             int ry = y + HEADER_H;
             List<Module> filtered = getFilteredModules();
             if (filtered.isEmpty() && !searchQuery.isEmpty()) {
-                ctx.drawText(textRenderer, "No results", x + PAD, ry + 3, C_OFF, false);
+                graphics.text(font, "No results", x + PAD, ry + 3, Theme.muted, false);
                 return;
             }
 
@@ -355,30 +423,30 @@ public class ClickGui extends Screen {
                 boolean on = mod.isEnabled();
                 boolean exp = expanded.contains(mod.getIdentifier());
                 if (hov) {
-                    ctx.fill(x, ry, x + pw, ry + MOD_H, C_HOVER);
+                    graphics.fill(x, ry, x + pw, ry + MOD_H, Theme.hover);
                     hoveredDescription = mod.getDescription();
                 }
-                if (on) ctx.fill(x, ry, x + 2, ry + MOD_H, PRIDE ? C_PRIDE_1 : C_ACCENT);
+                if (on) graphics.fill(x, ry, x + 2, ry + MOD_H, PRIDE ? C_PRIDE_1 : Theme.accent);
                 int tx = x + PAD + (on ? 2 : 0);
                 if (on) {
-                    if (PRIDE) ctx.drawTextWithShadow(textRenderer, transStyle(mod.getName()), tx, ry + 3, -1);
-                    else ctx.drawTextWithShadow(textRenderer, mod.getName(), tx, ry + 3, C_ON);
+                    if (PRIDE) graphics.text(font, transStyle(mod.getName()), tx, ry + 3, -1);
+                    else graphics.text(font, mod.getName(), tx, ry + 3, Theme.accent);
                 }
-                else ctx.drawText(textRenderer, mod.getName(), tx, ry + 3, C_OFF, false);
+                else graphics.text(font, mod.getName(), tx, ry + 3, Theme.muted, false);
 
                 populateSettings(mod);
                 if (!settings.isEmpty())
-                    ctx.drawText(textRenderer, exp ? "▾" : "▸", x + pw - 9, ry + 3, C_LBL, false);
+                    graphics.text(font, exp ? "▾" : "▸", x + pw - 9, ry + 3, Theme.dim, false);
                 ry += MOD_H;
 
                 if (exp) {
                     List<Setting<?>> ss = settings;
                     if (!ss.isEmpty()) {
                         int bh = settBlockH(ss);
-                        ctx.fill(x, ry, x + pw, ry + bh, C_SET_BG);
-                        ctx.fill(x, ry, x + 1, ry + bh, C_SET_LINE);
-                        ctx.fill(x + pw - 1, ry, x + pw, ry + bh, C_SET_LINE);
-                        ctx.fill(x, ry + bh - 1, x + pw, ry + bh, C_SET_LINE);
+                        graphics.fill(x, ry, x + pw, ry + bh, Theme.inset);
+                        graphics.fill(x, ry, x + 1, ry + bh, Theme.line);
+                        graphics.fill(x + pw - 1, ry, x + pw, ry + bh, Theme.line);
+                        graphics.fill(x, ry + bh - 1, x + pw, ry + bh, Theme.line);
 
                         int sy = ry + 3;
                         int sx = x + PAD + 2;
@@ -387,96 +455,87 @@ public class ClickGui extends Screen {
                         for (Setting<?> s : ss) {
                             if (s instanceof FloatSetting fs) {
                                 float val = fs.getValue();
-                                String lbl = s.getName() + ": ";
-                                String vs = (val == (int) val) ? String.valueOf((int) val) : String.format("%.1f", val);
-                                ctx.drawText(textRenderer, lbl, sx, sy, C_LBL, false);
-                                ctx.drawText(textRenderer, vs, sx + textRenderer.getWidth(lbl), sy, C_BLUE, false);
-                                int barY = sy + SET_H - 2;
-                                float pct = Math.max(0, Math.min(1, (val - fs.getMin()) / (fs.getMax() - fs.getMin())));
-                                int fw = (int) (sw * pct);
-                                ctx.fill(sx, barY, sx + sw, barY + SLD_H, C_SLD_BG);
-                                if (fw > 0) ctx.fill(sx, barY, sx + fw, barY + SLD_H, C_SLD_FG);
-                                sy += SET_H + SLD_H + 3;
+                                drawSliderValue(graphics, sx, sy, s.getName(),
+                                    (val == (int) val) ? String.valueOf((int) val) : String.format("%.1f", val),
+                                    (val - fs.getMin()) / (fs.getMax() - fs.getMin()), sw);
+                                sy += rowHeight(s);
 
                             } else if (s instanceof IntSetting is) {
                                 int val = is.getValue();
-                                String lbl = s.getName() + ": ";
-                                ctx.drawText(textRenderer, lbl, sx, sy, C_LBL, false);
-                                ctx.drawText(textRenderer, String.valueOf(val), sx + textRenderer.getWidth(lbl), sy, C_BLUE, false);
-                                int barY = sy + SET_H - 2;
-                                float pct = Math.max(0, Math.min(1, (float) (val - is.getMin()) / (is.getMax() - is.getMin())));
-                                int fw = (int) (sw * pct);
-                                ctx.fill(sx, barY, sx + sw, barY + SLD_H, C_SLD_BG);
-                                if (fw > 0) ctx.fill(sx, barY, sx + fw, barY + SLD_H, C_SLD_FG);
-                                sy += SET_H + SLD_H + 3;
+                                drawSliderValue(graphics, sx, sy, s.getName(), String.valueOf(val),
+                                    (float) (val - is.getMin()) / (is.getMax() - is.getMin()), sw);
+                                sy += rowHeight(s);
 
                             } else if (s instanceof BooleanSetting bs) {
                                 boolean v = bs.getValue();
                                 String lbl = s.getName() + ": ";
-                                ctx.drawText(textRenderer, lbl, sx, sy, C_LBL, false);
-                                ctx.drawText(textRenderer, v ? "true" : "false", sx + textRenderer.getWidth(lbl), sy, v ? C_GREEN : C_RED, false);
-                                sy += SET_H;
+                                graphics.text(font, lbl, sx, sy, Theme.dim, false);
+                                graphics.text(font, Boolean.toString(v), sx + font.width(lbl), sy, v ? Theme.good : Theme.bad, false);
+                                sy += rowHeight(s);
 
                             } else if (s instanceof ModeSetting ms) {
                                 String lbl = s.getName() + ": ";
-                                ctx.drawText(textRenderer, lbl, sx, sy, C_LBL, false);
-                                ctx.drawText(textRenderer, ms.getValue(), sx + textRenderer.getWidth(lbl), sy, C_ORANGE, false);
-                                sy += SET_H;
+                                graphics.text(font, lbl, sx, sy, Theme.dim, false);
+                                graphics.text(font, ms.getValue(), sx + font.width(lbl), sy, Theme.value, false);
+                                sy += rowHeight(s);
 
                             } else if (s instanceof EnumSetting<?> es) {
                                 String lbl = s.getName() + ": ";
-                                ctx.drawText(textRenderer, lbl, sx, sy, C_LBL, false);
-                                ctx.drawText(textRenderer, es.getValue().toString(), sx + textRenderer.getWidth(lbl), sy, C_ORANGE, false);
-                                sy += SET_H;
+                                graphics.text(font, lbl, sx, sy, Theme.dim, false);
+                                graphics.text(font, es.getValue().toString(), sx + font.width(lbl), sy, Theme.value, false);
+                                sy += rowHeight(s);
 
 
                             } else if (s instanceof ButtonSetting bs) {
                                 boolean hov2 = mx >= x && mx < x + pw && my >= sy && my < sy + SET_H;
-                                if (hov2) ctx.fill(x, sy, x + pw, sy + SET_H, C_HOVER);
-                                ctx.fill(x, sy, x + 2, sy + SET_H, C_BLUE);
-                                ctx.drawText(textRenderer, bs.getName(), sx + 2, sy + 3, C_BLUE, false);
-                                sy += SET_H;
+                                if (hov2) graphics.fill(x, sy, x + pw, sy + SET_H, Theme.hover);
+                                graphics.fill(x, sy, x + 2, sy + SET_H, Theme.info);
+                                graphics.text(font, bs.getName(), sx + 2, sy + 3, Theme.info, false);
+                                sy += rowHeight(s);
 
                             } else if (s instanceof BindSetting bs) {
                                 boolean isRebinding = mod.getIdentifier().equals(rebindingModule) && s.getName().equals(focusedSet);
                                 String lbl = s.getName() + ": ";
                                 String val = isRebinding ? "..." : "[" + bs.getKeyName() + "]";
-                                ctx.drawText(textRenderer, lbl, sx, sy, C_LBL, false);
-                                ctx.drawText(textRenderer, val, sx + textRenderer.getWidth(lbl), sy, C_ORANGE, false);
-                                sy += SET_H;
+                                graphics.text(font, lbl, sx, sy, Theme.dim, false);
+                                graphics.text(font, val, sx + font.width(lbl), sy, Theme.value, false);
+                                sy += rowHeight(s);
 
                             } else if (s instanceof StringSetting ss2) {
                                 boolean focused = isFocused(this, mod.getIdentifier(), s.getName());
                                 String lbl = s.getName() + ": ";
                                 String val = ss2.getValue();
                                 String renderedVal = val.replace('&', '§');
-                                int valueX = sx + textRenderer.getWidth(lbl);
-                                int textEndX = valueX + textRenderer.getWidth(val);
+                                int clipRight = sx + sw;
+                                boolean twoLines = stringTwoLines(s);
+                                int fieldX = twoLines ? sx : sx + font.width(lbl);
+                                int fieldY = twoLines ? sy + SET_H : sy;
+                                graphics.text(font, lbl, sx, sy, Theme.dim, false);
                                 if (focused) {
-                                    int bgRight = textEndX + (val.isEmpty() ? 4 : 2);
-                                    ctx.fill(sx - 1, sy - 1, bgRight + 1, sy + SET_H - 1, C_STR_FOCUS);
+                                    int clampedCursor = Math.min(cursorPos, val.length());
+                                    int avail = Math.max(1, clipRight - fieldX - font.width("|"));
+                                    int start = 0;
+                                    while (start < clampedCursor && font.width(renderedVal.substring(start, clampedCursor)) > avail) start++;
+                                    graphics.fill(fieldX - 1, fieldY - 1, clipRight + 1, fieldY + SET_H - 1, Theme.field);
+                                    graphics.enableScissor(fieldX, fieldY - 1, clipRight, fieldY + SET_H);
                                     if (hasSelection()) {
-                                        int s1 = valueX + textRenderer.getWidth(val.substring(0, selStart()));
-                                        int s2 = valueX + textRenderer.getWidth(val.substring(0, selEnd()));
-                                        ctx.fill(s1, sy - 1, s2, sy + SET_H - 1, C_SELECTION);
+                                        int s1 = fieldX + font.width(renderedVal.substring(start, Math.max(start, Math.min(selStart(), val.length()))));
+                                        int s2 = fieldX + font.width(renderedVal.substring(start, Math.max(start, Math.min(selEnd(), val.length()))));
+                                        graphics.fill(s1, fieldY - 1, s2, fieldY + SET_H - 1, Theme.selection);
                                     }
-                                }
-                                ctx.drawText(textRenderer, lbl, sx, sy, C_LBL, false);
-                                if (focused) {
-                                    ctx.drawText(textRenderer, renderedVal, valueX, sy, C_HDR_TXT, false);
+                                    graphics.text(font, renderedVal.substring(start), fieldX, fieldY, Theme.text, false);
                                     long now = System.currentTimeMillis();
                                     if (!hasSelection() && (now / 500) % 2 == 0) {
-                                        int clampedCursor = Math.min(cursorPos, val.length());
-                                        int cursorDrawX = valueX + textRenderer.getWidth(val.substring(0, clampedCursor));
-                                        ctx.drawText(textRenderer, "|", cursorDrawX, sy, C_CURSOR, false);
+                                        int cursorDrawX = fieldX + font.width(renderedVal.substring(start, clampedCursor));
+                                        graphics.text(font, "|", cursorDrawX, fieldY, Theme.accent, false);
                                     }
+                                    graphics.disableScissor();
                                 } else {
-                                    int clipRight = sx + sw;
-                                    ctx.enableScissor(valueX, sy - 1, clipRight, sy + SET_H);
-                                    ctx.drawText(textRenderer, renderedVal, valueX, sy, C_HDR_TXT, false);
-                                    ctx.disableScissor();
+                                    graphics.enableScissor(fieldX, fieldY - 1, clipRight, fieldY + SET_H);
+                                    graphics.text(font, renderedVal, fieldX, fieldY, Theme.text, false);
+                                    graphics.disableScissor();
                                 }
-                                sy += SET_H;
+                                sy += rowHeight(s);
                             }
                         }
                         ry += bh;
@@ -531,34 +590,30 @@ public class ClickGui extends Screen {
                             int sw = PW - PAD * 2 - 2;
                             for (Setting<?> s : ss) {
                                 if (s instanceof FloatSetting fs) {
-                                    int barY = sy + SET_H - 2;
-                                    if (my >= sy && my <= barY + SLD_H + 2 && btn == 0) {
-                                        float pct = (float) (mx - sx) / sw;
-                                        fs.setValue(fs.getMin() + pct * (fs.getMax() - fs.getMin()));
+                                    if (sliderHit(mx, my, sx, sy, sw, btn)) {
+                                        fs.setValue(fs.getMin() + sliderPct(mx, sx, sw) * (fs.getMax() - fs.getMin()));
                                         sliderMod = mod.getIdentifier();
                                         sliderSet = fs.getName();
                                         clearFocus();
                                         return true;
                                     }
-                                    sy += SET_H + SLD_H + 3;
+                                    sy += rowHeight(s);
                                 } else if (s instanceof IntSetting is) {
-                                    int barY = sy + SET_H - 2;
-                                    if (my >= sy && my <= barY + SLD_H + 2 && btn == 0) {
-                                        float pct = (float) (mx - sx) / sw;
-                                        is.setValue(Math.round(is.getMin() + pct * (is.getMax() - is.getMin())));
+                                    if (sliderHit(mx, my, sx, sy, sw, btn)) {
+                                        is.setValue(Math.round(is.getMin() + sliderPct(mx, sx, sw) * (is.getMax() - is.getMin())));
                                         sliderMod = mod.getIdentifier();
                                         sliderSet = is.getName();
                                         clearFocus();
                                         return true;
                                     }
-                                    sy += SET_H + SLD_H + 3;
+                                    sy += rowHeight(s);
                                 } else if (s instanceof BooleanSetting bs) {
                                     if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
                                         bs.toggle();
                                         clearFocus();
                                         return true;
                                     }
-                                    sy += SET_H;
+                                    sy += rowHeight(s);
                                 } else if (s instanceof ModeSetting ms) {
                                     if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
                                         List<String> opts = ms.getOptions();
@@ -569,37 +624,43 @@ public class ClickGui extends Screen {
                                         clearFocus();
                                         return true;
                                     }
-                                    sy += SET_H;
+                                    sy += rowHeight(s);
                                 } else if (s instanceof EnumSetting<?> es) {
                                     if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
                                         es.cycle(btn == 0);
                                         clearFocus();
                                         return true;
                                     }
-                                    sy += SET_H;
+                                    sy += rowHeight(s);
                                 } else if (s instanceof ButtonSetting bs) {
                                     if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
                                         bs.press();
                                         clearFocus();
                                         return true;
                                     }
-                                    sy += SET_H;
+                                    sy += rowHeight(s);
                                 } else if (s instanceof BindSetting) {
                                     if (my >= sy && my < sy + SET_H && btn == 0) {
                                         setFocus(this, mod.getIdentifier(), s.getName());
                                         rebindingModule = mod.getIdentifier();
                                         return true;
                                     }
-                                    sy += SET_H;
+                                    sy += rowHeight(s);
                                 } else if (s instanceof StringSetting ss2) {
-                                    if (my >= sy && my < sy + SET_H && btn == 0) {
+                                    int rowH = rowHeight(s);
+                                    if (my >= sy && my < sy + rowH && btn == 0) {
                                         setFocus(this, mod.getIdentifier(), s.getName());
                                         clearSelection();
                                         String val = ss2.getValue();
-                                        int valueX = sx + textRenderer.getWidth(s.getName() + ": ");
+                                        int fieldX = stringTwoLines(s) ? sx : sx + font.width(s.getName() + ": ");
+                                        int avail = Math.max(1, sx + sw - fieldX - font.width("|"));
+                                        int cur = Math.min(cursorPos, val.length());
+                                        int scrollPx = 0;
+                                        while (scrollPx < cur && font.width(val.substring(scrollPx, cur)) > avail) scrollPx++;
+                                        scrollPx = font.width(val.substring(0, scrollPx));
                                         int bestPos = val.length(), bestDist = Integer.MAX_VALUE;
                                         for (int i = 0; i <= val.length(); i++) {
-                                            int cx = valueX + textRenderer.getWidth(val.substring(0, i));
+                                            int cx = fieldX + font.width(val.substring(0, i)) - scrollPx;
                                             int dist = Math.abs(mx - cx);
                                             if (dist < bestDist) {
                                                 bestDist = dist;
@@ -609,7 +670,7 @@ public class ClickGui extends Screen {
                                         cursorPos = bestPos;
                                         return true;
                                     }
-                                    sy += SET_H;
+                                    sy += rowH;
                                 }
                             }
                             clearFocus();
@@ -653,9 +714,13 @@ public class ClickGui extends Screen {
     }
 
     public ClickGui(Screen parent) {
-        super(Text.literal("ClickGUI"));
-        if (this.getClass().isInstance(parent)) this.parent = null;
-        else this.parent = parent;
+        super(Component.literal("ClickGUI"), parent instanceof ClickGui ? null : parent, "Modules");
+        AccountsScreen.preloadAccounts();
+    }
+
+    @Override
+    protected Screen tabParent() {
+        return this;
     }
 
     @Override
@@ -663,9 +728,9 @@ public class ClickGui extends Screen {
         panels.clear();
         Map<String, List<Module>> cats = new LinkedHashMap<>();
         for (Module m : MainClient.MODULE_MANAGER.modules())
-            cats.computeIfAbsent(customCategories.getOrDefault(m.getIdentifier(), customCategories.getOrDefault(m.getName(), m.getCategory())), k -> new ArrayList<>()).add(m);
+            cats.computeIfAbsent(customCategories.getOrDefault(m.getIdentifier(), customCategories.getOrDefault(m.getName(), m.getCategory())), _ -> new ArrayList<>()).add(m);
 
-        int maxWidth = MinecraftClient.getInstance().getWindow().getScaledWidth();
+        int maxWidth = mc.getWindow().getGuiScaledWidth();
         int col = 0;
         Int2IntMap heights = new Int2IntOpenHashMap();
 
@@ -675,7 +740,7 @@ public class ClickGui extends Screen {
                 col = 0;
                 x = 6;
             }
-            int y = 4 + heights.getOrDefault(col, 2);
+            int y = PANEL_TOP + heights.getOrDefault(col, 2);
 
             Panel panel = new Panel(e.getKey(), e.getValue(), x, y);
             panels.add(panel);
@@ -690,71 +755,75 @@ public class ClickGui extends Screen {
                 col = 0;
                 x = 6;
             }
-            int y = 4 + heights.getOrDefault(col, 2);
+            int y = PANEL_TOP + heights.getOrDefault(col, 2);
 
             hudPanel = new HudPanel(x, y);
         }
     }
 
-    private void drawSearchBar(DrawContext ctx, int mx, int my) {
+    private void drawSearchBar(GuiGraphicsExtractor graphics, int mx, int my) {
         int w = PW + 20;
         int h = HEADER_H;
         int x = (this.width - w) / 2;
         int y = this.height - 30;
 
-        ctx.fill(x, y, x + w, y + h, C_BG);
-        ctx.fill(x, y, x + w, y + 1, C_BORDER);
-        ctx.fill(x, y + h - 1, x + w, y + h, C_BORDER);
-        ctx.fill(x, y, x + 1, y + h, C_BORDER);
-        ctx.fill(x + w - 1, y, x + w, y + h, C_BORDER);
+        graphics.fill(x, y, x + w, y + h, Theme.surface);
+        graphics.fill(x, y, x + w, y + 1, Theme.border);
+        graphics.fill(x, y + h - 1, x + w, y + h, Theme.border);
+        graphics.fill(x, y, x + 1, y + h, Theme.border);
+        graphics.fill(x + w - 1, y, x + w, y + h, Theme.border);
+
+        // scroll long queries so the cursor stays inside the bar instead of running off-screen
+        int searchCursor = Math.min(cursorPos, searchQuery.length());
+        int searchStart = 0;
+        while (searchStart < searchCursor && font.width(searchQuery.substring(searchStart, searchCursor)) > w - PAD * 2 - font.width("|")) searchStart++;
+        String searchVisible = searchFocused ? searchQuery.substring(searchStart) : searchQuery;
 
         if (searchFocused) {
-            ctx.fill(x + 1, y + 1, x + w - 1, y + h - 1, C_STR_FOCUS);
+            graphics.fill(x + 1, y + 1, x + w - 1, y + h - 1, Theme.field);
             if (hasSelection()) {
-                int s1 = x + PAD + textRenderer.getWidth(searchQuery.substring(0, selStart()));
-                int s2 = x + PAD + textRenderer.getWidth(searchQuery.substring(0, selEnd()));
-                ctx.fill(s1, y + 2, s2, y + h - 2, C_SELECTION);
+                int s1 = x + PAD + font.width(searchQuery.substring(searchStart, Math.max(searchStart, Math.min(selStart(), searchQuery.length()))));
+                int s2 = x + PAD + font.width(searchQuery.substring(searchStart, Math.max(searchStart, Math.min(selEnd(), searchQuery.length()))));
+                graphics.fill(s1, y + 2, s2, y + h - 2, Theme.selection);
             }
         }
 
-        String display = searchQuery.isEmpty() && !searchFocused ? "Search Modules..." : searchQuery;
-        int color = searchQuery.isEmpty() && !searchFocused ? C_OFF : C_HDR_TXT;
-        ctx.drawText(textRenderer, display, x + PAD, y + 4, color, false);
+        String display = searchQuery.isEmpty() && !searchFocused ? "Search Modules..." : searchVisible;
+        int color = searchQuery.isEmpty() && !searchFocused ? Theme.muted : Theme.text;
+        graphics.enableScissor(x + PAD, y + 1, x + w - PAD, y + h - 1);
+        graphics.text(font, display, x + PAD, y + 4, color, false);
 
         if (searchFocused) {
             long now = System.currentTimeMillis();
             if (!hasSelection() && (now / 500) % 2 == 0) {
-                int cursorX = x + PAD + textRenderer.getWidth(searchQuery.substring(0, cursorPos));
-                ctx.drawText(textRenderer, "|", cursorX, y + 4, C_CURSOR, false);
+                int cursorX = x + PAD + font.width(searchQuery.substring(searchStart, searchCursor));
+                graphics.text(font, "|", cursorX, y + 4, Theme.accent, false);
             }
         }
+        graphics.disableScissor();
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        ctx.fill(0, 0, this.width, this.height, 0x99000000);
-        drawSearchBar(ctx, mouseX, mouseY);
+    public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        drawStructure(graphics, mouseX, mouseY);
+        drawSearchBar(graphics, mouseX, mouseY);
         hoveredDescription = null;
         Panel top = null;
         for (Panel p : panels) if (p.dragging) top = p;
-        for (Panel p : panels) if (p != top) p.draw(ctx, mouseX, mouseY);
-        if (top != null) top.draw(ctx, mouseX, mouseY);
-        hudPanel.draw(ctx, mouseX, mouseY);
+        for (Panel p : panels) if (p != top) p.draw(graphics, mouseX, mouseY);
+        if (top != null) top.draw(graphics, mouseX, mouseY);
+        hudPanel.draw(graphics, mouseX, mouseY);
         if (hoveredDescription != null && !hoveredDescription.isEmpty()) {
-            int tw = textRenderer.getWidth(hoveredDescription);
+            int tw = font.width(hoveredDescription);
             int tx = mouseX + 10, ty = mouseY + 10;
-            ctx.fill(tx - 2, ty - 2, tx + tw + 2, ty + 12, MANTLE);
-            ctx.fill(tx - 3, ty - 3, tx + tw + 3, ty - 2, DEEP_INDIGO);
-            ctx.fill(tx - 3, ty + 12, tx + tw + 3, ty + 13, DEEP_INDIGO);
-            ctx.fill(tx - 3, ty - 2, tx - 2, ty + 12, DEEP_INDIGO);
-            ctx.fill(tx + tw + 2, ty - 2, tx + tw + 3, ty + 12, DEEP_INDIGO);
-            ctx.drawText(textRenderer, hoveredDescription, tx, ty + 1, C_HDR_TXT, false);
+            Ui.box(graphics, tx - 3, ty - 3, tw + 6, 16, Theme.header, Theme.border);
+            graphics.text(font, hoveredDescription, tx, ty + 1, Theme.text, false);
         }
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(@NonNull MouseButtonEvent click, boolean doubled) {
         int mx = (int) click.x();
         int my = (int) click.y();
         int btn = click.button();
@@ -770,11 +839,7 @@ public class ClickGui extends Screen {
             if (mod != null) {
                 Setting<?> s = mod.getSettingByName(focusedSet);
                 if (s instanceof BindSetting bs) {
-                    boolean hitAnyPanel = false;
-
-                    if (mx >= hudPanel.x && mx <= hudPanel.x + PW && my >= hudPanel.y && my <= hudPanel.y + (HEADER_H + MOD_H * 2)) {
-                        hitAnyPanel = true;
-                    }
+                    boolean hitAnyPanel = mx >= hudPanel.x && mx <= hudPanel.x + PW && my >= hudPanel.y && my <= hudPanel.y + (HEADER_H + MOD_H * 2);
 
                     if (!hitAnyPanel) {
                         for (Panel p : panels) {
@@ -810,7 +875,7 @@ public class ClickGui extends Screen {
             int bestPos = searchQuery.length(), bestDist = Integer.MAX_VALUE;
             int startX = sx + PAD;
             for (int i = 0; i <= searchQuery.length(); i++) {
-                int cx = startX + textRenderer.getWidth(searchQuery.substring(0, i));
+                int cx = startX + font.width(searchQuery.substring(0, i));
                 int dist = Math.abs(mx - cx);
                 if (dist < bestDist) {
                     bestDist = dist;
@@ -835,22 +900,22 @@ public class ClickGui extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         hudPanel.mouseDragged((int) click.x(), (int) click.y());
         panels.forEach(p -> p.mouseDragged((int) click.x(), (int) click.y()));
         return super.mouseDragged(click, dx, dy);
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(@NonNull MouseButtonEvent click) {
         hudPanel.mouseReleased();
         panels.forEach(Panel::mouseReleased);
         return super.mouseReleased(click);
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
-        int keyCode = input.getKeycode();
+    public boolean keyPressed(KeyEvent input) {
+        int keyCode = input.input();
 
         if (rebindingKeybind != null) {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
@@ -862,21 +927,25 @@ public class ClickGui extends Screen {
             return true;
         }
 
-        if (rebindingModule != null && focusedSet != null) {
-            Module mod = MainClient.MODULE_MANAGER.getModuleByName(rebindingModule);
-            if (mod != null) {
-                Setting<?> s = mod.getSettingByName(focusedSet);
-                if (s instanceof BindSetting bs) {
-                    if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-                        bs.setKeyCode(GLFW.GLFW_KEY_UNKNOWN);
-                    } else {
-                        bs.setKeyCode(keyCode);
+        if (rebindingModule != null) {
+            if (focusedSet != null) {
+                Module mod = MainClient.MODULE_MANAGER.getModuleByName(rebindingModule);
+                if (mod != null) {
+                    Setting<?> s = mod.getSettingByName(focusedSet);
+                    if (s instanceof BindSetting bs) {
+                        if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                            bs.setKeyCode(GLFW.GLFW_KEY_UNKNOWN);
+                        } else {
+                            bs.setKeyCode(keyCode);
+                        }
+                        ConfigManager.save();
                     }
-                    ConfigManager.save();
-                    clearFocus();
-                    return true;
                 }
             }
+
+            rebindingModule = null;
+            clearFocus();
+            return true;
         }
 
         if (searchFocused) {
@@ -884,144 +953,39 @@ public class ClickGui extends Screen {
                 searchFocused = false;
                 return true;
             }
-            boolean ctrl = isCtrlDown();
-            if (ctrl && keyCode == GLFW.GLFW_KEY_A) {
-                selectionAnchor = 0;
-                cursorPos = searchQuery.length();
-                return true;
-            }
-            if (ctrl && keyCode == GLFW.GLFW_KEY_C) {
-                if (hasSelection()) MinecraftClient.getInstance().keyboard.setClipboard(searchQuery.substring(selStart(), selEnd()));
-                return true;
-            }
-            if (ctrl && keyCode == GLFW.GLFW_KEY_V) {
-                String cb = MinecraftClient.getInstance().keyboard.getClipboard();
-                if (cb != null && !cb.isEmpty()) {
-                    if (hasSelection()) deleteSearchSelection();
-                    searchQuery = searchQuery.substring(0, cursorPos) + cb + searchQuery.substring(cursorPos);
-                    cursorPos += cb.length();
-                }
-                return true;
-            }
-            if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-                if (hasSelection()) deleteSearchSelection();
-                else if (cursorPos > 0) {
-                    searchQuery = searchQuery.substring(0, cursorPos - 1) + searchQuery.substring(cursorPos);
-                    cursorPos--;
-                }
-                return true;
-            }
-            if (keyCode == GLFW.GLFW_KEY_DELETE) {
-                if (hasSelection()) deleteSearchSelection();
-                else if (cursorPos < searchQuery.length()) searchQuery = searchQuery.substring(0, cursorPos) + searchQuery.substring(cursorPos + 1);
-                return true;
-            }
-            if (keyCode == GLFW.GLFW_KEY_LEFT) {
-                if (hasSelection()) { cursorPos = selStart(); clearSelection(); }
-                else if (cursorPos > 0) cursorPos--;
-                return true;
-            }
-            if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-                if (hasSelection()) { cursorPos = selEnd(); clearSelection(); }
-                else if (cursorPos < searchQuery.length()) cursorPos++;
-                return true;
-            }
-            return true;
+            return editKey(searchBuffer(), keyCode);
         }
 
         if (focusedMod != null && focusedSet != null) {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
                 clearFocus();
+                this.onClose();
                 return true;
             }
             Module mod = MainClient.MODULE_MANAGER.getModuleByName(focusedMod);
             if (mod != null) {
                 Setting<?> s = mod.getSettingByName(focusedSet);
                 if (s instanceof StringSetting ss) {
-                    String cur = ss.getValue();
-                    cursorPos = Math.min(cursorPos, cur.length());
-                    boolean ctrl = isCtrlDown();
-                    if (ctrl && keyCode == GLFW.GLFW_KEY_A) {
-                        selectionAnchor = 0;
-                        cursorPos = cur.length();
-                        return true;
-                    }
-                    if (ctrl && keyCode == GLFW.GLFW_KEY_C) {
-                        if (hasSelection())
-                            MinecraftClient.getInstance().keyboard.setClipboard(ss.getValue().substring(selStart(), selEnd()));
-                        return true;
-                    }
-                    if (ctrl && keyCode == GLFW.GLFW_KEY_V) {
-                        String clipboard = MinecraftClient.getInstance().keyboard.getClipboard();
-                        if (clipboard != null && !clipboard.isEmpty()) {
-                            if (hasSelection()) deleteSelection(ss);
-                            cur = ss.getValue();
-                            cursorPos = Math.min(cursorPos, cur.length());
-                            ss.setValue(cur.substring(0, cursorPos) + clipboard + cur.substring(cursorPos));
-                            cursorPos = Math.min(cursorPos + clipboard.length(), ss.getValue().length());
-                        }
-                        return true;
-                    }
-                    if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-                        if (hasSelection()) deleteSelection(ss);
-                        else if (cursorPos > 0) {
-                            ss.setValue(cur.substring(0, cursorPos - 1) + cur.substring(cursorPos));
-                            cursorPos--;
-                        }
-                        return true;
-                    }
-                    if (keyCode == GLFW.GLFW_KEY_DELETE) {
-                        if (hasSelection()) deleteSelection(ss);
-                        else if (cursorPos < cur.length())
-                            ss.setValue(cur.substring(0, cursorPos) + cur.substring(cursorPos + 1));
-                        return true;
-                    }
-                    if (keyCode == GLFW.GLFW_KEY_LEFT) {
-                        if (hasSelection()) {
-                            cursorPos = selStart();
-                            clearSelection();
-                        } else if (cursorPos > 0) cursorPos--;
-                        return true;
-                    }
-                    if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-                        if (hasSelection()) {
-                            cursorPos = selEnd();
-                            clearSelection();
-                        } else if (cursorPos < cur.length()) cursorPos++;
-                        return true;
-                    }
-                    if (keyCode == GLFW.GLFW_KEY_HOME) {
-                        cursorPos = 0;
-                        clearSelection();
-                        return true;
-                    }
-                    if (keyCode == GLFW.GLFW_KEY_END) {
-                        cursorPos = cur.length();
-                        clearSelection();
-                        return true;
-                    }
                     if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_TAB) {
                         clearFocus();
                         return true;
                     }
-                    return true;
+                    return editKey(settingBuffer(ss), keyCode);
                 }
             }
             clearFocus();
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            this.close();
+            this.onClose();
             return true;
         }
         return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(net.minecraft.client.input.CharInput input) {
-        if (searchFocused && input.isValidChar()) {
-            if (hasSelection()) deleteSearchSelection();
-            searchQuery = searchQuery.substring(0, cursorPos) + input.asString() + searchQuery.substring(cursorPos);
-            cursorPos++;
+    public boolean charTyped(@NonNull CharacterEvent input) {
+        if (searchFocused && input.isAllowedChatCharacter()) {
+            editChar(searchBuffer(), input.codepointAsString());
             return true;
         }
 
@@ -1030,13 +994,7 @@ public class ClickGui extends Screen {
             if (mod != null) {
                 Setting<?> s = mod.getSettingByName(focusedSet);
                 if (s instanceof StringSetting ss) {
-                    if (input.isValidChar()) {
-                        if (hasSelection()) deleteSelection(ss);
-                        String cur = ss.getValue();
-                        cursorPos = Math.min(cursorPos, cur.length());
-                        ss.setValue(cur.substring(0, cursorPos) + input.asString() + cur.substring(cursorPos));
-                        cursorPos++;
-                    }
+                    if (input.isAllowedChatCharacter()) editChar(settingBuffer(ss), input.codepointAsString());
                     return true;
                 }
             }
@@ -1046,14 +1004,8 @@ public class ClickGui extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         ConfigManager.save();
-        assert this.client != null;
-        this.client.setScreen(parent);
-    }
-
-    @Override
-    public boolean shouldPause() {
-        return false;
+        super.onClose();
     }
 }

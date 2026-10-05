@@ -52,6 +52,10 @@ public class BindSetting extends Setting<Integer> {
         if (callback != null) callback.accept(keyCode);
     }
 
+    public void firePress() {
+        if (callback != null) callback.accept(getValue());
+    }
+
     @Override
     public Integer getValue() {
         // always return the actual value to prevent desync
@@ -86,6 +90,19 @@ public class BindSetting extends Setting<Integer> {
 
     @Override
     public void readJson(JsonElement element) throws IllegalArgumentException {
-        this.setKeyCode(element.getAsInt());
+        int keyCode = element.getAsInt();
+
+        this.value = keyCode;
+
+        if (linkedModule != null) {
+            linkedModule.setKeybind(keyCode);
+        }
+
+        if (linkedKeybindId != null) {
+            Keybind kb = KeybindManager.getRegisteredKeybinds().get(linkedKeybindId);
+            if (kb != null) {
+                kb.setKeyCode(keyCode);
+            }
+        }
     }
 }

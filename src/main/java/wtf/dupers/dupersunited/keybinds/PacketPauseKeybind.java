@@ -2,16 +2,15 @@ package wtf.dupers.dupersunited.keybinds;
 
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.commands.MainCommand;
-import wtf.dupers.dupersunited.features.PacketPauseManager;
+import wtf.dupers.dupersunited.features.glitchutils.PacketPauseManager;
 import wtf.dupers.dupersunited.modules.glitcha.PacketDelayModule;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
-public class PacketPauseKeybind extends Keybind {
+import static wtf.dupers.dupersunited.MainClient.mc;
 
-    public static final MinecraftClient client = MinecraftClient.getInstance();
+public class PacketPauseKeybind extends Keybind {
     public static long blinkStartTime = 0;
 
     public PacketPauseKeybind() {
@@ -38,7 +37,7 @@ public class PacketPauseKeybind extends Keybind {
     }
 
     public static void handleToggle() {
-        if (client.getNetworkHandler() == null) return;
+        if (mc.getConnection() == null) return;
 
         if (isShiftDown()) {
             handleCancel();
@@ -48,19 +47,19 @@ public class PacketPauseKeybind extends Keybind {
 
             PacketPauseManager.toggle();
 
-            if (client.player != null) {
-                client.setScreen(client.currentScreen); //prolly better way to do this but wtv bro
+            if (mc.player != null) {
+                mc.gui.setScreen(mc.gui.screen()); //prolly better way to do this but wtv bro
                 if (wasPaused) {
                     blinkStartTime = 0;
-                    MainCommand.sendMessage(Text.literal("Sent ")
-                            .append(Text.literal(Integer.toString(packetCount)).formatted(Formatting.AQUA))
+                    MainCommand.sendMessage(Component.literal("Sent ")
+                            .append(Component.literal(Integer.toString(packetCount)).withStyle(ChatFormatting.AQUA))
                             .append(" packets."), true);
-                    MainCommand.sendMessage(Text.literal("Packets are now ")
-                            .append(Text.literal("resumed").formatted(Formatting.GREEN))
+                    MainCommand.sendMessage(Component.literal("Packets are now ")
+                            .append(Component.literal("resumed").withStyle(ChatFormatting.GREEN))
                             .append("."), true);
                 } else {
-                    MainCommand.sendMessage(Text.literal("Packets are now ")
-                            .append(Text.literal("paused").formatted(Formatting.RED))
+                    MainCommand.sendMessage(Component.literal("Packets are now ")
+                            .append(Component.literal("paused").withStyle(ChatFormatting.RED))
                             .append("."), true);
                     blinkStartTime = System.currentTimeMillis();
                 }
@@ -69,14 +68,14 @@ public class PacketPauseKeybind extends Keybind {
     }
 
     private static boolean isShiftDown() {
-        long window = client.getWindow().getHandle();
+        long window = mc.getWindow().handle();
         return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
                 || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
     }
 
     public static void handleCancel() {
         if (!PacketPauseManager.isPaused()) {
-            if (client.player != null) {
+            if (mc.player != null) {
                 MainCommand.sendMessage("Cannot cancel packets because blink is not active.", true);
             }
             return;
@@ -88,9 +87,9 @@ public class PacketPauseKeybind extends Keybind {
 
         blinkStartTime = 0;
 
-        if (client.player != null) {
-            MainCommand.sendMessage(Text.literal("Blink cancelled, cleared ")
-                    .append(Text.literal(Integer.toString(packetCount)).formatted(Formatting.AQUA))
+        if (mc.player != null) {
+            MainCommand.sendMessage(Component.literal("Blink cancelled, cleared ")
+                    .append(Component.literal(Integer.toString(packetCount)).withStyle(ChatFormatting.AQUA))
                     .append(" packets."), true);
         }
     }

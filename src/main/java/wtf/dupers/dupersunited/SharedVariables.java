@@ -1,9 +1,9 @@
 package wtf.dupers.dupersunited;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 
 import java.nio.file.Path;
@@ -14,9 +14,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 
 public class SharedVariables {
-    public static final Executor IO_EXECUTOR = Util.getIoWorkerExecutor().named("DupersUnited");
+    public static final Executor IO_EXECUTOR = Util.ioPool().forName("DupersUnited");
     public static final Path DIRECTORY = FabricLoader.getInstance().getGameDir().resolve("DupersUnited");
-    public static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("dupersunited", "dupersunited"));
+    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("dupersunited", "dupersunited"));
     public static Screen screenToOpen;
     private static final List<String> glitchaQuotes = Arrays.asList(
             "Popbob ghost duper今天很热，Null button dupe服务器崩了，非常危险的情况发生了。",

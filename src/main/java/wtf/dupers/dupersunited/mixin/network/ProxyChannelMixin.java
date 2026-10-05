@@ -13,7 +13,7 @@ import wtf.dupers.dupersunited.features.proxies.ProxyProfiles;
 
 import java.net.InetSocketAddress;
 
-@Mixin(targets = "net.minecraft.network.ClientConnection$1")
+@Mixin(targets = "net.minecraft.network.Connection$1")
 public abstract class ProxyChannelMixin extends ChannelInitializer<Channel> {
 
     @Inject(method = "initChannel", at = @At("HEAD"))

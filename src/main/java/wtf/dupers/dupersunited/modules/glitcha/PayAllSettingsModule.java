@@ -1,6 +1,6 @@
 package wtf.dupers.dupersunited.modules.glitcha;
 
-import wtf.dupers.dupersunited.features.PayAllManager;
+import wtf.dupers.dupersunited.features.glitchutils.PayAllManager;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;

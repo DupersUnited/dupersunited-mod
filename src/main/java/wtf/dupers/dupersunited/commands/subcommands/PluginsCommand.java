@@ -2,11 +2,12 @@ package wtf.dupers.dupersunited.commands.subcommands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.commands.CommandBuildContext;
 import wtf.dupers.dupersunited.api.command.Command;
 import wtf.dupers.dupersunited.commands.MainCommand;
-import wtf.dupers.dupersunited.features.PluginScanner;
+import wtf.dupers.dupersunited.features.glitchutils.PluginScanner;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public final class PluginsCommand extends Command {
     public PluginsCommand() {
@@ -14,9 +15,9 @@ public final class PluginsCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
         builder.executes(c -> {
-            if (MinecraftClient.getInstance().player != null) {
+            if (mc.player != null) {
                 PluginScanner.startScan();
             } else {
                 MainCommand.sendMessage("wyd my glitcha!", false);

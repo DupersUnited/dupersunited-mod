@@ -4,12 +4,11 @@ import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 
-public class AutoSprintModule extends Module {
+import static wtf.dupers.dupersunited.MainClient.mc;
 
-    MinecraftClient mc = MinecraftClient.getInstance();
+public class AutoSprintModule extends Module {
     private boolean wasSprinting = false;
 
     private final BooleanSetting waterCheck = register(new BooleanSetting("WaterCheck", true));
@@ -28,14 +27,14 @@ public class AutoSprintModule extends Module {
     public void onTick() {
         if (isEnabled()) {
             if (mc.player != null) {
-                if (waterCheck.getValue() && mc.player.isTouchingWater()) {
+                if (waterCheck.getValue() && mc.player.isInWater()) {
                     if (wasSprinting) {
-                        mc.options.sprintKey.setPressed(false);
+                        mc.options.keySprint.setDown(false);
                         wasSprinting = false;
                     }
                     return;
                 }
-                mc.options.sprintKey.setPressed(true);
+                mc.options.keySprint.setDown(true);
                 wasSprinting = true;
             }
         }

@@ -1,16 +1,22 @@
 package wtf.dupers.dupersunited.features.screens;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.MobCategory;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 import java.util.function.Predicate;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class EntitySelectionScreen extends Screen {
 
@@ -56,13 +62,13 @@ public class EntitySelectionScreen extends Screen {
     private boolean listDragAdd;
     private int listDragLastShownIndex = -1;
 
-    public EntitySelectionScreen(Text screenTitle, String headerTitle, Set<EntityType<?>> selection, Runnable saveAction) {
+    public EntitySelectionScreen(Component screenTitle, String headerTitle, Set<EntityType<?>> selection, Runnable saveAction) {
         super(screenTitle);
         this.headerTitle = headerTitle;
         this.selection = selection;
         this.saveAction = saveAction;
-        Registries.ENTITY_TYPE.forEach(allTypes::add);
-        allTypes.sort(Comparator.comparing(t -> Registries.ENTITY_TYPE.getId(t).toString()));
+        BuiltInRegistries.ENTITY_TYPE.forEach(allTypes::add);
+        allTypes.sort(Comparator.comparing(t -> BuiltInRegistries.ENTITY_TYPE.getKey(t).toString()));
         rebuildShown();
     }
 
@@ -74,7 +80,7 @@ public class EntitySelectionScreen extends Screen {
     );
 
     private static boolean isExcludedFromAllBulk(EntityType<?> t) {
-        return EXCLUDED_FROM_ALL_BULK_IDS.contains(Registries.ENTITY_TYPE.getId(t).toString());
+        return EXCLUDED_FROM_ALL_BULK_IDS.contains(BuiltInRegistries.ENTITY_TYPE.getKey(t).toString());
     }
 
     private static final Set<String> FORCE_PASSIVE_BULK_IDS = Set.of(
@@ -86,49 +92,49 @@ public class EntitySelectionScreen extends Screen {
         if (isExcludedFromAllBulk(t)) {
             return false;
         }
-        String id = Registries.ENTITY_TYPE.getId(t).toString();
+        String id = BuiltInRegistries.ENTITY_TYPE.getKey(t).toString();
         if (FORCE_PASSIVE_BULK_IDS.contains(id)) {
             return false;
         }
-        return t.getSpawnGroup() == SpawnGroup.MONSTER;
+        return t.getCategory() == MobCategory.MONSTER;
     }
 
     private static boolean isPassive(EntityType<?> t) {
         if (isExcludedFromAllBulk(t)) {
             return false;
         }
-        String id = Registries.ENTITY_TYPE.getId(t).toString();
+        String id = BuiltInRegistries.ENTITY_TYPE.getKey(t).toString();
         if (FORCE_PASSIVE_BULK_IDS.contains(id)) {
             return true;
         }
-        SpawnGroup g = t.getSpawnGroup();
-        return g == SpawnGroup.CREATURE
-                || g == SpawnGroup.AMBIENT
-                || g == SpawnGroup.WATER_CREATURE
-                || g == SpawnGroup.WATER_AMBIENT
-                || g == SpawnGroup.UNDERGROUND_WATER_CREATURE
-                || g == SpawnGroup.AXOLOTLS;
+        MobCategory g = t.getCategory();
+        return g == MobCategory.CREATURE
+                || g == MobCategory.AMBIENT
+                || g == MobCategory.WATER_CREATURE
+                || g == MobCategory.WATER_AMBIENT
+                || g == MobCategory.UNDERGROUND_WATER_CREATURE
+                || g == MobCategory.AXOLOTLS;
     }
 
     private static boolean isItemEntity(EntityType<?> t) {
-        return t == EntityType.ITEM;
+        return t == EntityTypes.ITEM;
     }
 
     private static boolean isMisc(EntityType<?> t) {
         if (isExcludedFromAllBulk(t)) {
             return false;
         }
-        String id = Registries.ENTITY_TYPE.getId(t).toString();
+        String id = BuiltInRegistries.ENTITY_TYPE.getKey(t).toString();
         if (FORCE_PASSIVE_BULK_IDS.contains(id)) {
             return false;
         }
-        if (t == EntityType.ITEM) {
+        if (t == EntityTypes.ITEM) {
             return false;
         }
-        if (t.getSpawnGroup() != SpawnGroup.MISC) {
+        if (t.getCategory() != MobCategory.MISC) {
             return false;
         }
-        String path = Registries.ENTITY_TYPE.getId(t).getPath();
+        String path = BuiltInRegistries.ENTITY_TYPE.getKey(t).getPath();
         return !path.endsWith("_golem");
     }
 
@@ -173,8 +179,8 @@ public class EntitySelectionScreen extends Screen {
         shown.clear();
         String q = searchQuery.toLowerCase(Locale.ROOT);
         for (EntityType<?> t : allTypes) {
-            String id = Registries.ENTITY_TYPE.getId(t).toString();
-            String name = Text.translatable(t.getTranslationKey()).getString().toLowerCase(Locale.ROOT);
+            String id = BuiltInRegistries.ENTITY_TYPE.getKey(t).toString();
+            String name = Component.translatable(t.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
             if (q.isEmpty() || name.contains(q) || id.contains(q)) {
                 shown.add(t);
             }
@@ -268,14 +274,14 @@ public class EntitySelectionScreen extends Screen {
     }
 
     private String ellipsize(String s, int maxWidth) {
-        if (textRenderer.getWidth(s) <= maxWidth) {
+        if (font.width(s) <= maxWidth) {
             return s;
         }
         String dots = "...";
-        int dotsW = textRenderer.getWidth(dots);
+        int dotsW = font.width(dots);
         for (int len = s.length() - 1; len >= 1; len--) {
             String t = s.substring(0, len) + dots;
-            if (textRenderer.getWidth(t) <= maxWidth) {
+            if (font.width(t) <= maxWidth) {
                 return t;
             }
         }
@@ -283,7 +289,7 @@ public class EntitySelectionScreen extends Screen {
     }
 
     private int clearButtonWidth() {
-        return textRenderer.getWidth(CLEAR_BTN_LABEL) + 10;
+        return font.width(CLEAR_BTN_LABEL) + 10;
     }
 
     private int clearButtonX(int px, int pw) {
@@ -294,7 +300,7 @@ public class EntitySelectionScreen extends Screen {
         return toggleRowY(py) + TOGGLE_H + AFTER_TOGGLE_CLEAR_GAP;
     }
 
-    private void drawClearButton(DrawContext ctx, int px, int pw, int py, int mouseX, int mouseY) {
+    private void drawClearButton(GuiGraphicsExtractor ctx, int px, int pw, int py, int mouseX, int mouseY) {
         int x = clearButtonX(px, pw);
         int y = clearButtonY(py);
         int w = clearButtonWidth();
@@ -304,12 +310,12 @@ public class EntitySelectionScreen extends Screen {
         ctx.fill(x, y + CLEAR_BTN_H - 1, x + w, y + CLEAR_BTN_H, OVERLAY);
         ctx.fill(x, y, x + 1, y + CLEAR_BTN_H, OVERLAY);
         ctx.fill(x + w - 1, y, x + w, y + CLEAR_BTN_H, OVERLAY);
-        int lw = textRenderer.getWidth(CLEAR_BTN_LABEL);
-        ctx.drawText(textRenderer, CLEAR_BTN_LABEL, x + (w - lw) / 2, y + 3, TEAL, false);
+        int lw = font.width(CLEAR_BTN_LABEL);
+        ctx.text(font, CLEAR_BTN_LABEL, x + (w - lw) / 2, y + 3, TEAL, false);
     }
 
     private void drawBulkToggle(
-            DrawContext ctx,
+            GuiGraphicsExtractor ctx,
             int x,
             int y,
             int w,
@@ -327,13 +333,13 @@ public class EntitySelectionScreen extends Screen {
             ctx.fill(x, y, x + 1, y + TOGGLE_H, TEAL);
             ctx.fill(x + w - 1, y, x + w, y + TOGGLE_H, TEAL);
         }
-        int lw = textRenderer.getWidth(label);
+        int lw = font.width(label);
         int col = allSelected ? TEAL : TEXT_COL;
-        ctx.drawText(textRenderer, label, x + (w - lw) / 2, y + 2, col, false);
+        ctx.text(font, label, x + (w - lw) / 2, y + 2, col, false);
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         long now = System.currentTimeMillis();
         if (now - lastBlink > 530) {
             cursorVisible = !cursorVisible;
@@ -355,7 +361,7 @@ public class EntitySelectionScreen extends Screen {
 
         ctx.fill(px, py, px + pw, py + HEADER_H, 0xFF181825);
         ctx.fill(px, py + HEADER_H - 1, px + pw, py + HEADER_H, SURFACE);
-        ctx.drawTextWithShadow(textRenderer, headerTitle, px + PAD, py + 7, MAUVE);
+        ctx.text(font, headerTitle, px + PAD, py + 7, MAUVE, true);
 
         int sfY = py + SEARCH_TOP_OFF, sfX = px + PAD, sfW = pw - PAD * 2;
         ctx.fill(sfX, sfY, sfX + sfW, sfY + SEARCH_H, SURFACE);
@@ -366,12 +372,12 @@ public class EntitySelectionScreen extends Screen {
 
         int textX = sfX + 3, textY = sfY + 3;
         if (searchQuery.isEmpty()) {
-            ctx.drawText(textRenderer, "Search...", textX, textY, SUBTEXT, false);
+            ctx.text(font, "Search...", textX, textY, SUBTEXT, false);
         } else {
-            ctx.drawText(textRenderer, searchQuery, textX, textY, TEXT_COL, false);
+            ctx.text(font, searchQuery, textX, textY, TEXT_COL, false);
         }
         if (cursorVisible) {
-            int cx = textX + textRenderer.getWidth(searchQuery.substring(0, Math.min(cursorPos, searchQuery.length())));
+            int cx = textX + font.width(searchQuery.substring(0, Math.min(cursorPos, searchQuery.length())));
             ctx.fill(cx, textY - 1, cx + 1, textY + 9, TEAL);
         }
 
@@ -393,8 +399,8 @@ public class EntitySelectionScreen extends Screen {
             EntityType<?> type = shown.get(i);
             int row = i - listScroll;
             int ry = listTop + row * LINE_H;
-            String typeId = Registries.ENTITY_TYPE.getId(type).toString();
-            String displayName = Text.translatable(type.getTranslationKey()).getString();
+            String typeId = BuiltInRegistries.ENTITY_TYPE.getKey(type).toString();
+            String displayName = Component.translatable(type.getDescriptionId()).getString();
             boolean sel = selection.contains(type);
             int rx1 = px + PAD;
             int rx2 = px + pw - PAD;
@@ -410,39 +416,39 @@ public class EntitySelectionScreen extends Screen {
             }
 
             String line = ellipsize(displayName, listW - 4);
-            int lineW = textRenderer.getWidth(line);
+            int lineW = font.width(line);
             int nameX = rx1 + (listW - lineW) / 2;
-            ctx.drawText(textRenderer, line, nameX, ry + 3, sel ? TEAL : TEXT_COL, false);
+            ctx.text(font, line, nameX, ry + 3, sel ? TEAL : TEXT_COL, false);
 
             if (hov) {
-                ctx.drawTooltip(textRenderer, List.of(
-                        Text.literal(displayName).withColor(TEXT_COL),
-                        Text.literal(typeId).withColor(SUBTEXT)
+                ctx.setComponentTooltipForNextFrame(font, List.of(
+                        Component.literal(displayName).withColor(TEXT_COL),
+                        Component.literal(typeId).withColor(SUBTEXT)
                 ), mouseX, mouseY);
             }
         }
 
         String footer = selection.size() + " Selected | " + shown.size()
                 + " Shown | Scroll to Move";
-        int footerW = textRenderer.getWidth(footer);
+        int footerW = font.width(footer);
         int footerX = px + (pw - footerW) / 2;
         int listBottomEdge = listTop + visLines * LINE_H;
         int panelBottom = py + ph;
         int gap = panelBottom - listBottomEdge;
-        int fh = textRenderer.fontHeight;
+        int fh = font.lineHeight;
         int footerY;
         if (gap <= fh) {
             footerY = Math.max(listBottomEdge, panelBottom - fh - PAD);
         } else {
             footerY = listBottomEdge + (gap - fh) / 2;
         }
-        ctx.drawText(textRenderer, footer, footerX, footerY, SUBTEXT, false);
+        ctx.text(font, footer, footerX, footerY, SUBTEXT, false);
 
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         int mx = (int) click.x(), my = (int) click.y();
         int px = panelX(), pw = panelW(), py = 5, ph = height - 10;
         int visLines = visibleListLines(ph);
@@ -452,7 +458,7 @@ public class EntitySelectionScreen extends Screen {
         if (mx >= sfX && mx < sfX + sfW && my >= sfY && my < sfY + SEARCH_H) {
             int relX = mx - (sfX + 3), best = searchQuery.length(), bestDist = Integer.MAX_VALUE;
             for (int i = 0; i <= searchQuery.length(); i++) {
-                int d = Math.abs(textRenderer.getWidth(searchQuery.substring(0, i)) - relX);
+                int d = Math.abs(font.width(searchQuery.substring(0, i)) - relX);
                 if (d < bestDist) {
                     bestDist = d;
                     best = i;
@@ -515,7 +521,7 @@ public class EntitySelectionScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(net.minecraft.client.gui.Click click, double deltaX, double deltaY) {
+    public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
         if (listDragActive && click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             int px = panelX(), pw = panelW(), py = 5, ph = height - 10;
             int idx = listHitShownIndex((int) click.x(), (int) click.y(), px, pw, py, ph);
@@ -528,7 +534,7 @@ public class EntitySelectionScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(net.minecraft.client.gui.Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         listDragActive = false;
         listDragLastShownIndex = -1;
         return super.mouseReleased(click);
@@ -551,13 +557,13 @@ public class EntitySelectionScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
-        int key = input.getKeycode();
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
-            close();
+    public boolean keyPressed(KeyEvent input) {
+        int key = input.key();
+        if (key == GLFW.GLFW_KEY_ESCAPE) {
+            onClose();
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE) {
+        if (key == GLFW.GLFW_KEY_BACKSPACE) {
             if (cursorPos > 0) {
                 searchQuery = searchQuery.substring(0, cursorPos - 1) + searchQuery.substring(cursorPos);
                 cursorPos--;
@@ -565,26 +571,26 @@ public class EntitySelectionScreen extends Screen {
             }
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE) {
+        if (key == GLFW.GLFW_KEY_DELETE) {
             if (cursorPos < searchQuery.length()) {
                 searchQuery = searchQuery.substring(0, cursorPos) + searchQuery.substring(cursorPos + 1);
                 rebuildShown();
             }
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT && cursorPos > 0) {
+        if (key == GLFW.GLFW_KEY_LEFT && cursorPos > 0) {
             cursorPos--;
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT && cursorPos < searchQuery.length()) {
+        if (key == GLFW.GLFW_KEY_RIGHT && cursorPos < searchQuery.length()) {
             cursorPos++;
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_HOME) {
+        if (key == GLFW.GLFW_KEY_HOME) {
             cursorPos = 0;
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_END) {
+        if (key == GLFW.GLFW_KEY_END) {
             cursorPos = searchQuery.length();
             return true;
         }
@@ -592,9 +598,9 @@ public class EntitySelectionScreen extends Screen {
     }
 
     @Override
-    public boolean charTyped(net.minecraft.client.input.CharInput input) {
-        if (input.isValidChar()) {
-            searchQuery = searchQuery.substring(0, cursorPos) + input.asString() + searchQuery.substring(cursorPos);
+    public boolean charTyped(CharacterEvent input) {
+        if (input.isAllowedChatCharacter()) {
+            searchQuery = searchQuery.substring(0, cursorPos) + input.codepointAsString() + searchQuery.substring(cursorPos);
             cursorPos++;
             rebuildShown();
             return true;
@@ -603,14 +609,13 @@ public class EntitySelectionScreen extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         saveAction.run();
-        assert client != null;
-        client.setScreen(null);
+        if (mc != null) mc.gui.setScreen(null);
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

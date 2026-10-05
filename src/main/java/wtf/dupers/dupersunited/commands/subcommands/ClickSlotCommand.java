@@ -3,14 +3,14 @@ package wtf.dupers.dupersunited.commands.subcommands;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import wtf.dupers.dupersunited.api.command.Command;
 import wtf.dupers.dupersunited.commands.MainCommand;
-import wtf.dupers.dupersunited.features.ClickSlotManager;
+import wtf.dupers.dupersunited.features.glitchutils.ClickSlotManager;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 
 public final class ClickSlotCommand extends Command {
     public ClickSlotCommand() {
@@ -18,9 +18,9 @@ public final class ClickSlotCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
         builder.executes(c -> {
-                MainCommand.sendMessage(Text.literal("Usage: /du click-slot <slot> <count> <delayMs>").formatted(Formatting.RED), true);
+                MainCommand.sendMessage(Component.literal("Usage: /du click-slot <slot> <count> <delayMs>").withStyle(ChatFormatting.RED), true);
                 return 1;
             })
 
@@ -33,10 +33,10 @@ public final class ClickSlotCommand extends Command {
                             int delay = IntegerArgumentType.getInteger(c, "delayMs");
 
                             ClickSlotManager.start(slot, count, delay);
-                            MainCommand.sendMessage(Text.literal("Clicking slot ")
-                                .append(Text.literal(String.valueOf(slot)).formatted(Formatting.GREEN))
+                            MainCommand.sendMessage(Component.literal("Clicking slot ")
+                                .append(Component.literal(String.valueOf(slot)).withStyle(ChatFormatting.GREEN))
                                 .append(" (x")
-                                .append(Text.literal(String.valueOf(count)).formatted(Formatting.AQUA))
+                                .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.AQUA))
                                 .append(")"), true);
                             return 1;
                         }))));

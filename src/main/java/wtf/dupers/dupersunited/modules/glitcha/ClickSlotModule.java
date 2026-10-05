@@ -1,5 +1,10 @@
 package wtf.dupers.dupersunited.modules.glitcha;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.HashedStack;
+import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
@@ -8,14 +13,8 @@ import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.StringSetting;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.screen.sync.ItemStackHash;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 public class ClickSlotModule extends Module {
@@ -39,14 +38,16 @@ public class ClickSlotModule extends Module {
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
+    Minecraft mc = Minecraft.getInstance();
+
     @Override
     public void onEnable() {
         resetClicks();
 
-        MainCommand.sendMessage(Text.literal("Clicking slot ")
-                .append(Text.literal(String.valueOf(getParsedSlot())).formatted(Formatting.GREEN))
+        MainCommand.sendMessage(Component.literal("Clicking slot ")
+                .append(Component.literal(String.valueOf(getParsedSlot())).withStyle(ChatFormatting.GREEN))
                 .append(" (x")
-                .append(Text.literal(String.valueOf(getParsedCount())).formatted(Formatting.AQUA))
+                .append(Component.literal(String.valueOf(getParsedCount())).withStyle(ChatFormatting.AQUA))
                 .append(")"), true);
     }
 
@@ -87,7 +88,7 @@ public class ClickSlotModule extends Module {
         MainCommand.sendMessage("Finished clicking.", true);
     }
 
-    private void onTick(MinecraftClient client) {
+    private void onTick(Minecraft client) {
         if (!isEnabled()) return;
 
         if (clicksRemaining <= 0) {
@@ -99,39 +100,38 @@ public class ClickSlotModule extends Module {
             }
         }
 
-        if (client.getNetworkHandler() == null) {
+        if (mc.getConnection() == null) {
             setEnabled(false);
             return;
         }
 
-        ClientPlayerEntity player = client.player;
-        if (player == null) return;
+        if (mc.player == null) return;
 
         long now = System.currentTimeMillis();
         if (now < nextClickAt) return;
 
         short targetSlot = (short) getParsedSlot();
 
-        ScreenHandler handler = (player.currentScreenHandler != null)
-                ? player.currentScreenHandler
-                : player.playerScreenHandler;
+        AbstractContainerMenu handler = (mc.player.containerMenu != null)
+                ? mc.player.containerMenu
+                : mc.player.inventoryMenu;
 
         if (targetSlot < 0 || targetSlot >= handler.slots.size()) {
             setEnabled(false);
             return;
         }
 
-        ClickSlotC2SPacket packet = new ClickSlotC2SPacket(
-                handler.syncId,
-                handler.getRevision(),
+        ServerboundContainerClickPacket packet = new ServerboundContainerClickPacket(
+                handler.containerId,
+                handler.getStateId(),
                 targetSlot,
                 (byte) 0,
-                SlotActionType.PICKUP,
+                ContainerInput.PICKUP,
                 new Int2ObjectArrayMap<>(),
-                ItemStackHash.EMPTY
+                HashedStack.EMPTY
         );
 
-        client.getNetworkHandler().sendPacket(packet);
+        mc.getConnection().send(packet);
 
         clicksRemaining--;
         nextClickAt = now + Math.max(0, getParsedDelay());

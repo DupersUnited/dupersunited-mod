@@ -1,20 +1,21 @@
 package wtf.dupers.dupersunited.features;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.keybinds.JoinServerInviteKeybind;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
-import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
-import net.minecraft.client.network.ServerAddress;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
 import java.util.Locale;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public final class ServerInviteManager {
 
@@ -34,37 +35,41 @@ public final class ServerInviteManager {
         Invite invite = getActiveInvite();
         if (invite == null) return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        client.execute(() -> {
+        mc.execute(() -> {
             try {
-                ServerInfo info = new ServerInfo("Server Invite", invite.ip(), ServerInfo.ServerType.OTHER);
-                ServerAddress address = ServerAddress.parse(invite.ip());
+                ServerData info = new ServerData("Server Invite", invite.ip(), ServerData.Type.OTHER);
+                ServerAddress address = ServerAddress.parseString(invite.ip());
                 activeInvite = null;
-                ConnectScreen.connect(new MultiplayerScreen(new TitleScreen()), client, address, info, false, null);
+                ConnectScreen.startConnecting(new JoinMultiplayerScreen(new TitleScreen()), mc, address, info, false, null);
             } catch (Exception exception) {
-                MainCommand.sendMessage(Text.literal("Failed to join invited server: ")
-                        .append(Text.literal(exception.getMessage() == null ? "invalid address" : exception.getMessage()).formatted(Formatting.RED)), true);
+                MainCommand.sendMessage(Component.literal("Failed to join invited server: ")
+                        .append(Component.literal(exception.getMessage() == null ? "invalid address" : exception.getMessage()).withStyle(ChatFormatting.RED)), true);
             }
         });
     }
 
-    public static void render(DrawContext context, MinecraftClient client) {
+    public static void render(GuiGraphicsExtractor graphics) {
         Invite invite = getActiveInvite();
         if (invite == null) return;
 
         String keybindText = getJoinKeybindText();
         if (keybindText == null) return;
 
-        String message = "§b§l" + invite.inviter() + "§r §fhas invited you to join §b§l" + invite.ip() + "§r§f, click §b§l" + keybindText + "§r§f to join!";
+        Component message = Component.literal(invite.inviter()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+            .append(Component.literal(" has invited you to join ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(invite.ip()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+            .append(Component.literal(", click ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(keybindText).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+            .append(Component.literal(" to join!").withStyle(ChatFormatting.WHITE));
 
-        int width = client.getWindow().getScaledWidth();
+        int width = mc.getWindow().getGuiScaledWidth();
         int height = 22;
-        int textWidth = client.textRenderer.getWidth(message);
+        int textWidth = mc.font.width(message);
         int x = Math.max(6, (width - textWidth) / 2);
 
-        context.fill(0, 0, width, height, ColorUtil.FADED_INDIGO);
-        context.fill(0, height - 1, width, height, ColorUtil.DEEP_INDIGO);
-        context.drawText(client.textRenderer, message, x, 7, 0xFFFFFFFF, true);
+        graphics.fill(0, 0, width, height, ColorUtil.FADED_INDIGO);
+        graphics.fill(0, height - 1, width, height, ColorUtil.DEEP_INDIGO);
+        graphics.text(mc.font, message, x, 7, 0xFFFFFFFF, true);
     }
 
     private static Invite getActiveInvite() {
@@ -84,15 +89,15 @@ public final class ServerInviteManager {
     private static String getJoinKeybindText() {
         int keyCode = JoinServerInviteKeybind.INSTANCE.getKeyCode();
         if (keyCode == -1) return null;
-        if (keyCode == InputUtil.UNKNOWN_KEY.getCode()) return null;
-        return InputUtil.Type.KEYSYM.createFromCode(keyCode).getLocalizedText().getString().toUpperCase();
+        if (keyCode == InputConstants.UNKNOWN.getValue()) return null;
+        return InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString().toUpperCase(Locale.ROOT);
     }
 
     private static boolean isCurrentServer(String ip) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.getCurrentServerEntry() == null) return false;
 
-        String current = normalizeAddress(client.getCurrentServerEntry().address);
+        if (mc.getCurrentServer() == null) return false;
+
+        String current = normalizeAddress(mc.getCurrentServer().ip);
         String invited = normalizeAddress(ip);
         return current != null && current.equals(invited);
     }
@@ -100,8 +105,8 @@ public final class ServerInviteManager {
     private static String normalizeAddress(String address) {
         if (address == null || address.isBlank()) return null;
         try {
-            ServerAddress parsed = ServerAddress.parse(address.trim());
-            return (parsed.getAddress() + ":" + parsed.getPort()).toLowerCase(Locale.ROOT);
+            ServerAddress parsed = ServerAddress.parseString(address.trim());
+            return (parsed.getHost() + ":" + parsed.getPort()).toLowerCase(Locale.ROOT);
         } catch (Exception ignored) {
             return address.trim().toLowerCase(Locale.ROOT);
         }

@@ -2,16 +2,17 @@ package wtf.dupers.dupersunited.mixin.network;
 
 import com.mojang.brigadier.tree.RootCommandNode;
 import wtf.dupers.dupersunited.commands.subcommands.NewCommandsCommand;
-import wtf.dupers.dupersunited.features.PluginScanner;
-import wtf.dupers.dupersunited.features.TPSDisplay;
-import net.minecraft.client.network.ClientCommandSource;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.network.packet.s2c.play.CommandSuggestionsS2CPacket;
-import net.minecraft.network.packet.s2c.play.CommandTreeS2CPacket;
-import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.resource.featuretoggle.FeatureSet;
+import wtf.dupers.dupersunited.features.glitchutils.PluginScanner;
+import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.screens.TPSDisplay;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket;
+import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
+import net.minecraft.world.flag.FeatureFlagSet;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,31 +20,41 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ClientPlayNetworkHandler.class)
+@Mixin(ClientPacketListener.class)
 public class ClientPlayNetworkHandlerMixin {
-    @Shadow @Final private static CommandTreeS2CPacket.NodeFactory<ClientCommandSource> COMMAND_NODE_FACTORY;
-    @Shadow @Final private DynamicRegistryManager.Immutable combinedDynamicRegistries;
-    @Shadow @Final private FeatureSet enabledFeatures;
+    @Shadow @Final private static ClientboundCommandsPacket.NodeBuilder<ClientSuggestionProvider> COMMAND_NODE_BUILDER;
+    @Shadow @Final private RegistryAccess.Frozen registryAccess;
+    @Shadow @Final private FeatureFlagSet enabledFeatures;
 
-    @Inject(method = "onWorldTimeUpdate", at = @At("TAIL"))
-    private void dupersunited$onWorldTimeUpdate(WorldTimeUpdateS2CPacket packet, CallbackInfo ci) {
+    @Inject(method = "handleSetTime", at = @At("TAIL"))
+    private void dupersunited$onWorldTimeUpdate(ClientboundSetTimePacket packet, CallbackInfo ci) {
         TPSDisplay.onWorldTimeUpdate();
     }
 
-    @Inject(method = "onCommandSuggestions", at = @At("TAIL"))
-    private void dupersunited$onCommandSuggestions(CommandSuggestionsS2CPacket packet, CallbackInfo ci) {
+    @Inject(method = "handleCommandSuggestions", at = @At("TAIL"))
+    private void dupersunited$onCommandSuggestions(ClientboundCommandSuggestionsPacket packet, CallbackInfo ci) {
         PluginScanner.onCommandSuggestions(packet);
     }
 
-    @Inject(method = "onCommandTree", at = @At("TAIL"))
-    private void dupersunited$onCommandTree(CommandTreeS2CPacket packet, CallbackInfo ci) {
+    @Inject(method = "handleCommands", at = @At("TAIL"))
+    private void dupersunited$onCommandTree(ClientboundCommandsPacket packet, CallbackInfo ci) {
         // create a copy of the command tree so that fabric's client command api doesn't touch it
-        RootCommandNode<ClientCommandSource> rootNode = packet.getCommandTree(
-            CommandRegistryAccess.of(this.combinedDynamicRegistries, this.enabledFeatures),
-            COMMAND_NODE_FACTORY
+        RootCommandNode<ClientSuggestionProvider> rootNode = packet.getRoot(
+            CommandBuildContext.simple(this.registryAccess, this.enabledFeatures),
+            COMMAND_NODE_BUILDER
         );
 
         PluginScanner.onCommandTree(rootNode);
         NewCommandsCommand.onCommandTree(rootNode);
+    }
+
+    @Inject(method = "sendChat(Ljava/lang/String;)V", at = @At("HEAD"))
+    private void dupersunited$onSendChat(String message, CallbackInfo ci) {
+        GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.sendChat(message));
+    }
+
+    @Inject(method = "sendCommand(Ljava/lang/String;)V", at = @At("HEAD"))
+    private void dupersunited$onSendCommand(String command, CallbackInfo ci) {
+        GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.sendCommand(command));
     }
 }

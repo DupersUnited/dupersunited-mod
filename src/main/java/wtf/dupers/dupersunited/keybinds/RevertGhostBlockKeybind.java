@@ -1,14 +1,12 @@
 package wtf.dupers.dupersunited.keybinds;
 
 import wtf.dupers.dupersunited.api.keybind.Keybind;
-import wtf.dupers.dupersunited.features.GhostBlock;
-import net.minecraft.client.MinecraftClient;
+import wtf.dupers.dupersunited.features.glitchutils.GhostBlock;
 import org.lwjgl.glfw.GLFW;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public class RevertGhostBlockKeybind extends Keybind {
-
-    private static final MinecraftClient mc = MinecraftClient.getInstance();
-
     public RevertGhostBlockKeybind() {
         super("Revert GB", GLFW.GLFW_KEY_UNKNOWN);
     }

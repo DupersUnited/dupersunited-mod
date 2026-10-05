@@ -4,11 +4,12 @@ import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
 import org.lwjgl.glfw.GLFW;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class GuiUtilsModule extends Module {
 
@@ -24,19 +25,19 @@ public class GuiUtilsModule extends Module {
     public final BooleanSetting invTweaksSetting = register (new BooleanSetting("InvTweaks", true));
     public final BooleanSetting drawSlotIds = register(new BooleanSetting("SlotIds", false));
 
-    public void drawSlotId(DrawContext context, Slot slot) {
-        var matrices = context.getMatrices();
-        matrices.pushMatrix();
-        matrices.scale(0.5f, 0.5f);
-        context.drawText(
-                MinecraftClient.getInstance().textRenderer,
-                Text.literal(String.valueOf(slot.id)),
+    public void drawSlotId(GuiGraphicsExtractor graphics, Slot slot) {
+        var pose = graphics.pose();
+        pose.pushMatrix();
+        pose.scale(0.5f, 0.5f);
+        graphics.text(
+                mc.font,
+                Component.literal(String.valueOf(slot.index)),
                 slot.x * 2,
                 slot.y * 2,
                 0xFFFF00FF,
                 true
         );
-        matrices.popMatrix();
+        pose.popMatrix();
     }
 
     public GuiUtilsModule() {

@@ -7,6 +7,6 @@ import wtf.dupers.dupersunited.features.screens.ClickGui;
 public class ModMenuIntegration implements ModMenuApi{
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
-        return parent -> new ClickGui(parent);
+        return ClickGui::new;
     }
 }

@@ -4,24 +4,27 @@ import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.AbstractTexture;
-import net.minecraft.util.Identifier;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public class PropagandaModule extends Module {
     private static final List<AdData> AD_REGISTRY = List.of(
-        new AdData(Identifier.of("dupersunited", "textures/ads/dupes.png"),"https://discord.gg/dupes"),
-        new AdData(Identifier.of("dupersunited", "textures/ads/loko.png"),"https://instagram.com/fakefourloko"),
-        new AdData(Identifier.of("dupersunited", "textures/ads/propaganda.png"),"https://discord.gg/palantir"),
-        new AdData(Identifier.of("dupersunited", "textures/ads/larps.png"),"https://glitcha.wtf"),
-        new AdData(Identifier.of("dupersunited", "textures/ads/please-feed-crosby.png"), "https://github.com/sponsors/crosby-moe")
+        new AdData(Identifier.fromNamespaceAndPath("dupersunited", "textures/ads/dupes.png"),"https://discord.gg/dupes"),
+        new AdData(Identifier.fromNamespaceAndPath("dupersunited", "textures/ads/loko.png"),"https://instagram.com/fakefourloko"),
+        //new AdData(Identifier.fromNamespaceAndPath("dupersunited", "textures/ads/propaganda.png"),"https://discord.gg/palantir"),
+        new AdData(Identifier.fromNamespaceAndPath("dupersunited", "textures/ads/larps.png"),"https://glitcha.wtf"),
+        new AdData(Identifier.fromNamespaceAndPath("dupersunited", "textures/ads/please-feed-crosby.png"), "https://github.com/sponsors/crosby-moe")
     );
 
     private static final int SPAWN_INTERVAL = 30_000;
@@ -34,17 +37,17 @@ public class PropagandaModule extends Module {
         this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
     }
 
-    public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
-        int screenWidth = context.getScaledWindowWidth();
-        int screenHeight = context.getScaledWindowHeight();
+    public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float deltaTicks) {
+        int screenWidth = graphics.guiWidth();
+        int screenHeight = graphics.guiHeight();
 
         long now = System.currentTimeMillis();
         if (now - this.lastSpawnTime >= SPAWN_INTERVAL) {
             AdData adData = AD_REGISTRY.get(ThreadLocalRandom.current().nextInt(AD_REGISTRY.size()));
-            AbstractTexture texture = MinecraftClient.getInstance().getTextureManager().getTexture(adData.id());
+            AbstractTexture texture = mc.getTextureManager().getTexture(adData.id());
 
-            int textureWidth = texture.getGlTexture().getWidth(0);
-            int textureHeight = texture.getGlTexture().getHeight(0);
+            int textureWidth = texture.getTexture().getWidth(0);
+            int textureHeight = texture.getTexture().getHeight(0);
 
             final float targetCoverage = 0.2F;
 
@@ -75,12 +78,12 @@ public class PropagandaModule extends Module {
         }
 
         for (AdInstance ad : this.activeAds) {
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, ad.data().id(),
+            graphics.blit(RenderPipelines.GUI_TEXTURED, ad.data().id(),
                 ad.x(), ad.y(), 0, 0, ad.width(), ad.height(), ad.width(), ad.height());
         }
     }
 
-    public boolean renderTooltip(DrawContext context, int x, int y) {
+    public boolean renderTooltip(GuiGraphicsExtractor graphics, int x, int y) {
         for (AdInstance ad : this.activeAds) {
             if (ad.isMouseOver(x, y)) {
                 return true; // delete other tooltips
@@ -90,7 +93,7 @@ public class PropagandaModule extends Module {
         return false;
     }
 
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         for (var it = this.activeAds.iterator(); it.hasNext();) {
             AdInstance ad = it.next();
             if (ad.isMouseOver(click.x(), click.y())) {

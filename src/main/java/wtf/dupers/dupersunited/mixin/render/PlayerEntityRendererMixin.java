@@ -1,32 +1,33 @@
 package wtf.dupers.dupersunited.mixin.render;
 
-import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+import net.minecraft.client.model.player.PlayerModel;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import wtf.dupers.dupersunited.features.cosmetics.CosmeticsFeatureRenderer;
 
-@Mixin(PlayerEntityRenderer.class)
+@Mixin(AvatarRenderer.class)
 public abstract class PlayerEntityRendererMixin extends LivingEntityRenderer<
-        net.minecraft.client.network.AbstractClientPlayerEntity,
-        PlayerEntityRenderState,
-        PlayerEntityModel
+    AbstractClientPlayer,
+    AvatarRenderState,
+    PlayerModel
 > {
     protected PlayerEntityRendererMixin(
-            EntityRendererFactory.Context context,
-            PlayerEntityModel model,
-            float shadowRadius
+        EntityRendererProvider.Context context,
+        PlayerModel model,
+        float shadowRadius
     ) {
         super(context, model, shadowRadius);
     }
 
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void addCosmetics(EntityRendererFactory.Context context, boolean slim, CallbackInfo ci) {
-        addFeature(new CosmeticsFeatureRenderer(this));
+    private void addCosmetics(EntityRendererProvider.Context context, boolean slimSteve, CallbackInfo ci) {
+        addLayer(new CosmeticsFeatureRenderer(this));
     }
 }

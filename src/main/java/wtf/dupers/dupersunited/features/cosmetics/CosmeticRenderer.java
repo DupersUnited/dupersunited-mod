@@ -1,17 +1,17 @@
 package wtf.dupers.dupersunited.features.cosmetics;
 
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public final class CosmeticRenderer {
-    private static final Identifier TEXTURE = Identifier.of("minecraft", "textures/block/white_concrete.png");
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/block/white_concrete.png");
     private static final Map<String, GlbCosmeticModel> MODELS = new HashMap<>();
     private static final int[][] FACES = {
             {0, 1, 2, 3},
@@ -38,23 +38,22 @@ public final class CosmeticRenderer {
 
     private CosmeticRenderer() {}
 
-    public static void render(CosmeticCatalog.Item item, MatrixStack matrices,
-                              OrderedRenderCommandQueue queue, int light) {
+    public static void render(CosmeticCatalog.Item item, PoseStack poseStack, SubmitNodeCollector queue, int light) {
         if (!item.model().isBlank()) {
-            MODELS.computeIfAbsent(item.model(), GlbCosmeticModel::load).render(matrices, queue, light);
+            MODELS.computeIfAbsent(item.model(), GlbCosmeticModel::load).render(poseStack, queue, light);
             return;
         }
 
         if (item.cubes().isEmpty()) return;
 
-        queue.submitCustom(matrices, RenderLayers.entityCutoutNoCull(TEXTURE), (entry, vertices) -> {
+        queue.submitCustomGeometry(poseStack, RenderTypes.entityCutout(TEXTURE), (entry, vertices) -> {
             for (CosmeticCatalog.Cube cube : item.cubes()) {
                 renderCube(entry, vertices, cube, light);
             }
         });
     }
 
-    private static void renderCube(MatrixStack.Entry entry, VertexConsumer vertices,
+    private static void renderCube(PoseStack.Pose entry, VertexConsumer vertices,
                                    CosmeticCatalog.Cube cube, int light) {
         float[][] points = {
                 {cube.x1(), cube.y1(), cube.z1()},
@@ -75,13 +74,13 @@ public final class CosmeticRenderer {
         }
     }
 
-    private static void writeVertex(MatrixStack.Entry entry, VertexConsumer vertices, float[] point,
+    private static void writeVertex(PoseStack.Pose entry, VertexConsumer vertices, float[] point,
                                     float[] texture, float[] normal, int color, int light) {
-        vertices.vertex(entry, point[0], point[1], point[2])
-                .color(color)
-                .texture(texture[0], texture[1])
-                .overlay(OverlayTexture.DEFAULT_UV)
-                .light(light)
-                .normal(entry, normal[0], normal[1], normal[2]);
+        vertices.addVertex(entry, point[0], point[1], point[2])
+                .setColor(color)
+                .setUv(texture[0], texture[1])
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(light)
+                .setNormal(entry, normal[0], normal[1], normal[2]);
     }
 }
