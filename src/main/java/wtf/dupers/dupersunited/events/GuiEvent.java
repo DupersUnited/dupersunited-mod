@@ -3,42 +3,45 @@ package wtf.dupers.dupersunited.events;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.DeathScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.*;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.MainClient;
-import wtf.dupers.dupersunited.features.FabricatePackets;
-import wtf.dupers.dupersunited.features.GuiPacketDelayManager;
-import wtf.dupers.dupersunited.features.PacketPauseManager;
-import wtf.dupers.dupersunited.features.SaveGuiManager;
+import wtf.dupers.dupersunited.features.glitchutils.FabricatePackets;
+import wtf.dupers.dupersunited.features.glitchutils.GuiPacketDelayManager;
+import wtf.dupers.dupersunited.features.glitchutils.PacketPauseManager;
+import wtf.dupers.dupersunited.features.glitchutils.SaveGuiManager;
+import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
 import wtf.dupers.dupersunited.keybinds.PacketPauseKeybind;
 import wtf.dupers.dupersunited.mixin.accessor.HandledScreenAccessor;
 import wtf.dupers.dupersunited.mixin.accessor.ScreenAccessor;
 import wtf.dupers.dupersunited.modules.exploit.BookBotModule;
 import wtf.dupers.dupersunited.modules.glitcha.GuiUtilsModule;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.DeathScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.*;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import wtf.dupers.dupersunited.utils.ColorUtil;
+
 
 import java.util.List;
 
-public class GuiEvent {
-    private static final int MAUVE = 0xcba6f7;
-    private static final int RED   = 0xf38ba8;
+import static wtf.dupers.dupersunited.MainClient.mc;
 
+public class GuiEvent {
     public static void register() {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (MainClient.MODULE_MANAGER == null) return;
@@ -51,129 +54,129 @@ public class GuiEvent {
                 int y = 10;
 
                 if (mod.saveGuiSetting.getValue()) {
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                            ButtonWidget.builder(
-                                            Text.literal("Close Without Packet").styled(s -> s.withColor(MAUVE)),
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                            Button.builder(
+                                            Component.literal("Close Without Packet").withStyle(s -> s.withColor(ColorUtil.MAUVE2)),
                                             button -> SaveGuiManager.saveAndCloseGui()
                                     )
-                                    .dimensions(x, y, 110, 20)
-                                    .tooltip(Tooltip.of(Text.of("Closes your GUI clientside and saves it to reopen later.")))
+                                    .bounds(x, y, 110, 20)
+                                    .tooltip(Tooltip.create(Component.literal("Closes your GUI clientside and saves it to reopen later.")))
                                     .build()
                     );
                 }
 
                 if (mod.desyncSetting.getValue()) {
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                            ButtonWidget.builder(
-                                            Text.literal("Desync").styled(s -> s.withColor(MAUVE)),
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                            Button.builder(
+                                            Component.literal("Desync").withStyle(s -> s.withColor(ColorUtil.MAUVE)),
                                             btn -> {
-                                                if (client.player == null || client.getNetworkHandler() == null) return;
-                                                if (client.player.currentScreenHandler == client.player.playerScreenHandler) {
+                                                if (client.player == null || client.getConnection() == null) return;
+                                                if (client.player.containerMenu == client.player.inventoryMenu) {
                                                     MainCommand.sendMessage("No screen open to desync.", true);
                                                     return;
                                                 }
-                                                client.getNetworkHandler().sendPacket(
-                                                        new CloseHandledScreenC2SPacket(client.player.currentScreenHandler.syncId)
+                                                client.getConnection().send(
+                                                        new ServerboundContainerClosePacket(client.player.containerMenu.containerId)
                                                 );
                                                 MainCommand.sendMessage("Desynced screen.", true);
                                             }
                                     )
-                                    .dimensions(x, y + 225, 80, 20)
-                                    .tooltip(Tooltip.of(Text.literal("Tells server GUI closed but keeps it open client-side.")))
+                                    .bounds(x, y + 225, 80, 20)
+                                    .tooltip(Tooltip.create(Component.literal("Tells server GUI closed but keeps it open client-side.")))
                                     .build()
                     );
                 }
 
                 if (mod.clearGuiSetting.getValue()) {
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                            ButtonWidget.builder(
-                                            Text.literal("Clear GUI Cache").styled(s -> s.withColor(MAUVE)),
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                            Button.builder(
+                                            Component.literal("Clear GUI Cache").withStyle(s -> s.withColor(ColorUtil.MAUVE)),
                                             button -> {
                                                 Screen previousScreen = SaveGuiManager.savedScreen;
                                                 if (previousScreen != null) {
                                                     SaveGuiManager.savedScreen = null;
                                                     SaveGuiManager.deadGui = false;
-                                                    MainCommand.sendMessage(Text.literal("Removed ")
-                                                        .append(Text.literal(previousScreen.getTitle().getString()).formatted(Formatting.AQUA))
+                                                    MainCommand.sendMessage(Component.literal("Removed ")
+                                                        .append(Component.literal(previousScreen.getTitle().getString()).withStyle(ChatFormatting.AQUA))
                                                         .append(" from saved screens."), true);
                                                 } else {
                                                     MainCommand.sendMessage("You do not have a currently saved GUI!", true);
                                                 }
                                             }
                                     )
-                                    .dimensions(x, y + 25, 110, 20)
-                                    .tooltip(Tooltip.of(Text.literal("Clears your saved GUI.")))
+                                    .bounds(x, y + 25, 110, 20)
+                                    .tooltip(Tooltip.create(Component.literal("Clears your saved GUI.")))
                                     .build()
                     );
                 }
 
                 if (mod.disconnectAndSendSetting.getValue()) {
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                            ButtonWidget.builder(
-                                            Text.literal("DC & Send Packets").styled(s -> s.withColor(MAUVE)),
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                            Button.builder(
+                                            Component.literal("DC & Send Packets").withStyle(s -> s.withColor(ColorUtil.MAUVE)),
                                             btn -> {
-                                                if (client.getNetworkHandler() == null) return;
+                                                if (client.getConnection() == null) return;
                                                 if (PacketPauseManager.isPaused()) PacketPauseKeybind.handleToggle();
                                                 if (GuiPacketDelayManager.isPaused()) GuiPacketDelayManager.resume();
                                                 TickEvent.pendingDisconnectTicks = 1;
                                             }
                                     )
-                                    .dimensions(x, y + 50, 110, 20)
-                                    .tooltip(Tooltip.of(Text.literal("Sends all currently queued packets (if there's any) and disconnects you from the server.")))
+                                    .bounds(x, y + 50, 110, 20)
+                                    .tooltip(Tooltip.create(Component.literal("Sends all currently queued packets (if there's any) and disconnects you from the server.")))
                                     .build()
                     );
                 }
 
                 if (mod.delayPackets.getValue()) {
                     boolean paused = GuiPacketDelayManager.isPaused();
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                            ButtonWidget.builder(
-                                            Text.literal("Delay Packets: ").styled(s -> s.withColor(MAUVE))
-                                                    .append(Text.literal(paused ? "ON" : "OFF")
-                                                            .styled(s -> s.withColor(paused ? 0xa6e3a1 : 0xf38ba8))),
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                            Button.builder(
+                                            Component.literal("Delay Packets: ").withStyle(s -> s.withColor(ColorUtil.MAUVE))
+                                                    .append(Component.literal(paused ? "ON" : "OFF")
+                                                            .withStyle(s -> s.withColor(paused ? 0xa6e3a1 : 0xf38ba8))),
                                             btn -> {
                                                 GuiPacketDelayManager.toggle();
-                                                MinecraftClient.getInstance().setScreen(MinecraftClient.getInstance().currentScreen);
+                                                Minecraft.getInstance().gui.setScreen(Minecraft.getInstance().gui.screen());
                                             }
                                     )
-                                    .dimensions(x, y + 75, 110, 20)
-                                    .tooltip(Tooltip.of(Text.literal("ONLY pauses GUI related packets.")))
+                                    .bounds(x, y + 75, 110, 20)
+                                    .tooltip(Tooltip.create(Component.literal("ONLY pauses GUI related packets.")))
                                     .build()
                     );
                 }
 
                 if (mod.saveGuiButtonSetting.getValue()) {
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                            ButtonWidget.builder(
-                                            Text.literal("Save Gui").styled(s -> s.withColor(MAUVE)),
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                            Button.builder(
+                                            Component.literal("Save Gui").withStyle(s -> s.withColor(ColorUtil.MAUVE)),
                                             btn -> SaveGuiManager.saveGui()
                                     )
-                                    .dimensions(x, y + 100, 110, 20)
-                                    .tooltip(Tooltip.of(Text.literal("Saves the current GUI.")))
+                                    .bounds(x, y + 100, 110, 20)
+                                    .tooltip(Tooltip.create(Component.literal("Saves the current GUI.")))
                                     .build()
                     );
                 }
 
                 if (mod.commandBoxSetting.getValue()) {
                     int commandY = y + 125;
-                    TextFieldWidget chatBox = new TextFieldWidget(
-                            client.textRenderer,
+                    EditBox chatBox = new EditBox(
+                            client.font,
                             x, commandY,
                             110, 18,
-                            Text.literal("Chat")
+                            Component.literal("Chat")
                     ) {
                         @Override
-                        public boolean keyPressed(KeyInput input) {
+                        public boolean keyPressed(KeyEvent input) {
                             if (input.key() == 257 || input.key() == 335) {
-                                String text = this.getText().trim();
+                                String text = this.getValue().trim();
                                 if (text.isEmpty() || client.player == null) return false;
                                 client.execute(() -> {
                                     if (text.startsWith("/"))
-                                        client.player.networkHandler.sendChatCommand(text.substring(1));
+                                        client.player.connection.sendCommand(text.substring(1));
                                     else
-                                        client.player.networkHandler.sendChatMessage(text);
+                                        client.player.connection.sendChat(text);
                                 });
-                                this.setText("");
+                                this.setValue("");
                                 return true;
                             }
                             return super.keyPressed(input);
@@ -181,10 +184,10 @@ public class GuiEvent {
                     };
 
                     chatBox.setMaxLength(256);
-                    chatBox.setPlaceholder(Text.literal("Chat or Command").styled(s -> s.withColor(0x888888)));
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(chatBox);
+                    chatBox.setHint(Component.literal("Chat or Command").withStyle(s -> s.withColor(0x888888)));
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(chatBox);
 
-                 /*   ((ScreenAccessor) screen).dupersunited$addDrawableChild(
+                 /*   ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
                             ButtonWidget.builder(
                                             Text.literal("▶").styled(s -> s.withColor(0xa6e3a1)),
                                             btn -> {
@@ -203,53 +206,53 @@ public class GuiEvent {
 
                 if (mod.ShowFabricatePackets.getValue()) {
                     int fabY = y + 150;
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                            ButtonWidget.builder(
-                                            Text.literal("Fabricate Packet").styled(s -> s.withColor(MAUVE)),
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                            Button.builder(
+                                            Component.literal("Fabricate Packet").withStyle(s -> s.withColor(ColorUtil.MAUVE)),
                                             btn -> FabricatePackets.open()
                                     )
-                                    .dimensions(x, fabY, 110, 20)
-                                    .tooltip(Tooltip.of(Text.literal("Fabricate and send a custom ClickSlot or ButtonClick packet")))
+                                    .bounds(x, fabY, 110, 20)
+                                    .tooltip(Tooltip.create(Component.literal("Fabricate and send a custom ClickSlot or ButtonClick packet")))
                                     .build()
                     );
 
                     if (client.player != null) {
-                        ButtonWidget syncIdBtn = ButtonWidget.builder(
-                                Text.literal("Sync Id: " + client.player.currentScreenHandler.syncId),
+                        Button syncIdBtn = Button.builder(
+                                Component.literal("Sync Id: " + client.player.containerMenu.containerId),
                                 btn -> {})
-                            .dimensions(x, y + 172, 110, 12)
+                            .bounds(x, y + 172, 110, 12)
                             .build();
                         syncIdBtn.active = false;
-                        ((ScreenAccessor) screen).dupersunited$addDrawableChild(syncIdBtn);
+                        ((ScreenAccessor) screen).dupersunited$addRenderableWidget(syncIdBtn);
 
-                        ButtonWidget revisionBtn = ButtonWidget.builder(
-                            Text.literal("Revision: " + client.player.currentScreenHandler.getRevision()),
+                        Button revisionBtn = Button.builder(
+                            Component.literal("Revision: " + client.player.containerMenu.getStateId()),
                             btn -> {})
-                            .dimensions(x, y + 184, 110, 12)
+                            .bounds(x, y + 184, 110, 12)
                             .build();
                         revisionBtn.active = false;
-                        ((ScreenAccessor) screen).dupersunited$addDrawableChild(revisionBtn);
+                        ((ScreenAccessor) screen).dupersunited$addRenderableWidget(revisionBtn);
                     }
                 }
 
-                if (mod.copyGuiInfo.getValue() && screen instanceof HandledScreen<?> handledScreen) {
-                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(ButtonWidget.builder(
-                                            Text.literal("Copy GUI as JSON").styled(s -> s.withColor(MAUVE)),
+                if (mod.copyGuiInfo.getValue() && screen instanceof AbstractContainerScreen<?> handledScreen) {
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(Button.builder(
+                                            Component.literal("Copy GUI as JSON").withStyle(s -> s.withColor(ColorUtil.MAUVE2)),
                                             btn -> {
                                                 JsonObject root = new JsonObject();
                                                 root.addProperty("title", handledScreen.getTitle().getString());
 
                                                 JsonArray slots = new JsonArray();
-                                                for (Slot slot : handledScreen.getScreenHandler().slots) {
-                                                    if (!slot.hasStack()) continue;
-                                                    ItemStack stack = slot.getStack();
+                                                for (Slot slot : handledScreen.getMenu().slots) {
+                                                    if (!slot.hasItem()) continue;
+                                                    ItemStack stack = slot.getItem();
 
                                                     JsonObject slotObj = new JsonObject();
-                                                    slotObj.addProperty("index", slot.getIndex());
-                                                    slotObj.addProperty("id", Registries.ITEM.getId(stack.getItem()).toString());
+                                                    slotObj.addProperty("index", slot.getContainerSlot());
+                                                    slotObj.addProperty("id", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
 
                                                     ItemStack.CODEC.encodeStart(
-                                                            MinecraftClient.getInstance().world.getRegistryManager().getOps(NbtOps.INSTANCE), stack
+                                                            Minecraft.getInstance().level.registryAccess().createSerializationContext(NbtOps.INSTANCE), stack
                                                     ).result().ifPresent(nbt -> slotObj.addProperty("nbt", nbt.toString()));
 
                                                     slots.add(slotObj);
@@ -258,60 +261,60 @@ public class GuiEvent {
                                                 root.add("slots", slots);
 
                                                 String json = new GsonBuilder().setPrettyPrinting().create().toJson(root);
-                                                MinecraftClient.getInstance().keyboard.setClipboard(json);
+                                                mc.keyboardHandler.setClipboard(json);
 
                                                 MainCommand.sendMessage("Copied data to clipboard!", true);
                                             }
-                                    ).dimensions(x, y + 200, 110, 20)
-                                    .tooltip(Tooltip.of(Text.literal("Copies GUI NBT as JSON.")))
+                                    ).bounds(x, y + 200, 110, 20)
+                                    .tooltip(Tooltip.create(Component.literal("Copies GUI NBT as JSON.")))
                                     .build()
                     );
 
-                    if (mod.invTweaksSetting.getValue() && screen instanceof HandledScreen<?> hs && !(screen instanceof CreativeInventoryScreen)) {
+                    if (mod.invTweaksSetting.getValue() && screen instanceof AbstractContainerScreen<?> hs && !(screen instanceof CreativeModeInventoryScreen)) {
                         HandledScreenAccessor hsa = (HandledScreenAccessor) hs;
                         int guiX = hsa.dupersunited$getGuiX();
                         int guiY = hsa.dupersunited$getGuiY();
                         int tweakY = guiY - 24;
 
-                        ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                                ButtonWidget.builder(
-                                                Text.literal("Steal").styled(s -> s.withColor(0xa6e3a1)),
+                        ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                                Button.builder(
+                                                Component.literal("Steal").withStyle(s -> s.withColor(0xa6e3a1)),
                                                 btn -> {
-                                                    List<Slot> slots = hs.getScreenHandler().slots;
+                                                    List<Slot> slots = hs.getMenu().slots;
                                                     int containerSlotCount = slots.size() - 36;
                                                     for (int i = 0; i < containerSlotCount; i++) {
-                                                        if (slots.get(i).hasStack()) {
-                                                            client.interactionManager.clickSlot(
-                                                                    client.player.currentScreenHandler.syncId,
-                                                                    i, 0, SlotActionType.QUICK_MOVE, client.player
+                                                        if (slots.get(i).hasItem()) {
+                                                            client.gameMode.handleContainerInput(
+                                                                    client.player.containerMenu.containerId,
+                                                                    i, 0, ContainerInput.QUICK_MOVE, client.player
                                                             );
                                                         }
                                                     }
                                                 }
                                         )
-                                        .dimensions(guiX, tweakY, 53, 20)
-                                        .tooltip(Tooltip.of(Text.literal("Steals all items in container.")))
+                                        .bounds(guiX, tweakY, 53, 20)
+                                        .tooltip(Tooltip.create(Component.literal("Steals all items in container.")))
                                         .build()
                         );
 
-                        ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-                                ButtonWidget.builder(
-                                                Text.literal("Dump").styled(s -> s.withColor(RED)),
+                        ((ScreenAccessor) screen).dupersunited$addRenderableWidget(
+                                Button.builder(
+                                                Component.literal("Dump").withStyle(s -> s.withColor(ColorUtil.RED2)),
                                                 btn -> {
-                                                    List<Slot> slots = hs.getScreenHandler().slots;
+                                                    List<Slot> slots = hs.getMenu().slots;
                                                     int total = slots.size();
                                                     for (int i = total - 36; i < total; i++) {
-                                                        if (slots.get(i).hasStack()) {
-                                                            client.interactionManager.clickSlot(
-                                                                    client.player.currentScreenHandler.syncId,
-                                                                    i, 0, SlotActionType.QUICK_MOVE, client.player
+                                                        if (slots.get(i).hasItem()) {
+                                                            client.gameMode.handleContainerInput(
+                                                                    client.player.containerMenu.containerId,
+                                                                    i, 0, ContainerInput.QUICK_MOVE, client.player
                                                             );
                                                         }
                                                     }
                                                 }
                                         )
-                                        .dimensions(guiX + 57, tweakY, 53, 20)
-                                        .tooltip(Tooltip.of(Text.literal("Dumps all everything you have into a container.")))
+                                        .bounds(guiX + 57, tweakY, 53, 20)
+                                        .tooltip(Tooltip.create(Component.literal("Dumps all everything you have into a container.")))
                                         .build()
                         );
                     }
@@ -319,51 +322,49 @@ public class GuiEvent {
 
 
                 BookBotModule bookBot = MainClient.MODULE_MANAGER.getModule(BookBotModule.class);
-                if (bookBot != null && bookBot.isEnabled() && (screen instanceof BookEditScreen || screen instanceof BookScreen)) {
-                    if (client.player != null && client.player.getMainHandStack().isOf(Items.WRITABLE_BOOK)) {
+                if (bookBot != null && bookBot.isEnabled() && (screen instanceof BookEditScreen || screen instanceof BookViewScreen)) {
+                    if (client.player != null && client.player.getItemInHand(InteractionHand.MAIN_HAND).is(Items.WRITABLE_BOOK)) {
 
                         int buttonWidth = 110;
                         int topRightX = scaledWidth - buttonWidth - 10;
                         int topRightY = 10;
 
-                        ButtonWidget writeBookButton = ButtonWidget.builder(
-                                        Text.literal("Start Auto Write").styled(s -> s.withColor(MAUVE)),
+                        Button writeBookButton = Button.builder(
+                                        Component.literal("Start Auto Write").withStyle(s -> s.withColor(ColorUtil.MAUVE2)),
                                         btn -> {
                                             bookBot.startWriting();
                                             MainCommand.sendMessage("Starting book bot!", true);
-                                            client.setScreen(null);
+                                            client.gui.setScreen(null);
                                         }
                                 )
-                                .dimensions(topRightX, topRightY, buttonWidth, 20)
-                                .tooltip(Tooltip.of(Text.literal("Click this to start the book bot macro!")))
+                                .bounds(topRightX, topRightY, buttonWidth, 20)
+                                .tooltip(Tooltip.create(Component.literal("Click this to start the book bot macro!")))
                                 .build();
 
-                        ((ScreenAccessor) screen).dupersunited$addDrawableChild(writeBookButton);
+                        ((ScreenAccessor) screen).dupersunited$addRenderableWidget(writeBookButton);
                     }
                 }
 
-//                if (GuiMacro.isRecording) {
-//                    ((ScreenAccessor) screen).dupersunited$addDrawableChild(
-//                            ButtonWidget.builder(
-//                                            Text.literal("End MacroGUI Recording").styled(s -> s.withColor(RED)),
-//                                            btn -> {
-//                                                GuiMacro.finalizeRecording();
-//                                                MinecraftClient.getInstance().setScreen(client.currentScreen);
-//                                            }
-//                                    )
-//                                    .dimensions(x, MinecraftClient.getInstance().getWindow().getScaledHeight() - 30, 170, 20)
-//                                    .tooltip(Tooltip.of(Text.literal("Finalizes the macro you are currently recording.")))
-//                                    .build()
-//                    );
-//                }
+                if (GuiMacro.getInstance().isRecording) {
+                    Button endMacroButton = Button.builder(
+                            Component.literal("End MacroGUI Recording").withStyle(s -> s.withColor(ColorUtil.RED2)),
+                            btn -> {
+                                GuiMacro.getInstance().finalizeRecording();
+                                Minecraft.getInstance().gui.setScreen(client.gui.screen());
+                            }
+                        ).bounds(x, Minecraft.getInstance().getWindow().getGuiScaledHeight() - 30, 170, 20)
+                        .tooltip(Tooltip.create(Component.literal("Finalizes the macro you are currently recording.")))
+                        .build();
+                    ((ScreenAccessor) screen).dupersunited$addRenderableWidget(endMacroButton);
+                }
             }
         });
     }
 
     private static boolean shouldAttachToScreen(Screen screen) {
-        return screen instanceof HandledScreen<?>
+        return screen instanceof AbstractContainerScreen<?>
                 || screen instanceof SignEditScreen
-                || screen instanceof BookScreen
+                || screen instanceof BookViewScreen
                 || screen instanceof BookEditScreen
                 || screen instanceof DeathScreen;
     }

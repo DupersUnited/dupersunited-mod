@@ -2,17 +2,17 @@ package wtf.dupers.dupersunited.commands.subcommands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.crash.CrashReport;
+import net.minecraft.ChatFormatting;
+import net.minecraft.CrashReport;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import wtf.dupers.dupersunited.api.command.Command;
 import wtf.dupers.dupersunited.commands.MainCommand;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 public final class KickCommand extends Command {
     public KickCommand() {
@@ -20,66 +20,68 @@ public final class KickCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
         builder.then(literal("disconnect")
                 .executes(c -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    if (client.getNetworkHandler() == null) return 0;
+                    Minecraft client = Minecraft.getInstance();
+                    if (client.getConnection() == null) return 0;
                     client.execute(() ->
-                        client.getNetworkHandler().getConnection()
-                            .disconnect(Text.literal("Disconnected via kick command (/du kick disconnect)"))
+                        client.getConnection().getConnection()
+                            .disconnect(Component.literal("Disconnected via kick command (/du kick disconnect)"))
                     );
                     return 1;
                 })
             )
             .then(literal("pos")
                 .executes(c -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    ClientPlayerEntity player = client.player;
-                    if (player == null || client.getNetworkHandler() == null) return 0;
+                    Minecraft client = Minecraft.getInstance();
+                    LocalPlayer player = client.player;
+                    if (player == null || client.getConnection() == null) return 0;
                     client.execute(() ->
-                        client.getNetworkHandler().sendPacket(
-                            new PlayerMoveC2SPacket.PositionAndOnGround(
+                        client.getConnection().send(
+                            new ServerboundMovePlayerPacket.PosRot(
                                 Double.NaN,
                                 Double.NEGATIVE_INFINITY,
                                 Double.POSITIVE_INFINITY,
-                                !player.isOnGround(),
+                                0.0f,
+                                0.0f,
+                                !player.onGround(),
                                 player.horizontalCollision
                             )
                         )
                     );
-                    MainCommand.sendMessage(Text.literal("Sending invalid position packet...").formatted(Formatting.WHITE), true);
+                    MainCommand.sendMessage(Component.literal("Sending invalid position packet...").withStyle(ChatFormatting.WHITE), true);
                     return 1;
                 })
             )
             .then(literal("hurt")
                 .executes(c -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    ClientPlayerEntity player = client.player;
-                    if (player == null || client.getNetworkHandler() == null) return 0;
+                    Minecraft client = Minecraft.getInstance();
+                    LocalPlayer player = client.player;
+                    if (player == null || client.getConnection() == null) return 0;
                     client.execute(() -> player.setHealth(0f));
-                    MainCommand.sendMessage(Text.literal("Sending invalid health packet...").formatted(Formatting.WHITE), true);
+                    MainCommand.sendMessage(Component.literal("Sending invalid health packet...").withStyle(ChatFormatting.WHITE), true);
                     return 1;
                 })
             )
             .then(literal("chat")
                 .executes(c -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    ClientPlayerEntity player = client.player;
-                    if (player == null || client.getNetworkHandler() == null) return 0;
+                    Minecraft client = Minecraft.getInstance();
+                    LocalPlayer player = client.player;
+                    if (player == null || client.getConnection() == null) return 0;
                     client.execute(() ->
-                        player.networkHandler.sendChatMessage("§0§1§")
+                        player.connection.sendChat("§0§1§")
                     );
-                    MainCommand.sendMessage(Text.literal("Sending malformed chat packet...").formatted(Formatting.WHITE), true);
+                    MainCommand.sendMessage(Component.literal("Sending malformed chat packet...").withStyle(ChatFormatting.WHITE), true);
                     return 1;
                 })
             )
             .then(literal("crash")
                 .executes(c -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    CrashReport report = CrashReport.create(new Throwable(), "Killed by DupersUnited crash command");
+                    Minecraft client = Minecraft.getInstance();
+                    CrashReport report = CrashReport.forThrowable(new Throwable(), "Killed by DupersUnited crash command");
 
-                    client.printCrashReport(report);
+                    client.emergencySaveAndCrash(report);
 
                     System.exit(1);
                     return 1;

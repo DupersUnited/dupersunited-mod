@@ -1,15 +1,14 @@
 package wtf.dupers.dupersunited.commands.subcommands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import dev.xpple.clientarguments.arguments.CBlockInput;
+import dev.xpple.clientarguments.arguments.CBlockStateArgument;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.block.BlockState;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.argument.BlockStateArgument;
-import net.minecraft.command.argument.BlockStateArgumentType;
+import net.minecraft.commands.CommandBuildContext;
 import wtf.dupers.dupersunited.api.command.Command;
-import wtf.dupers.dupersunited.features.GhostBlock;
+import wtf.dupers.dupersunited.features.glitchutils.GhostBlock;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 
 public final class ReplaceBlockCommand extends Command {
     public ReplaceBlockCommand() {
@@ -17,12 +16,11 @@ public final class ReplaceBlockCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
-        builder.then(argument("block", BlockStateArgumentType.blockState(registryAccess))
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
+        builder.then(argument("block", CBlockStateArgument.blockState(registryAccess))
             .executes(context -> {
-                BlockStateArgument blockArg = context.getArgument("block", BlockStateArgument.class);
-                BlockState blockState = blockArg.getBlockState();
-                GhostBlock.replaceBlock(blockState);
+                CBlockInput blockInput = CBlockStateArgument.getBlockState(context, "block");
+                GhostBlock.replaceBlock(blockInput.getState());
                 return 1;
             })
         );

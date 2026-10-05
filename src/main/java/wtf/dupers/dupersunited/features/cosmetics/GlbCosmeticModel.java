@@ -4,16 +4,15 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.Identifier;
 import wtf.dupers.dupersunited.MainClient;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -25,6 +24,8 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public final class GlbCosmeticModel {
     private static final int GLB_MAGIC = 0x46546C67;
@@ -264,11 +265,11 @@ public final class GlbCosmeticModel {
         return object.has("byteOffset") ? object.get("byteOffset").getAsInt() : 0;
     }
 
-    public void render(MatrixStack matrices, OrderedRenderCommandQueue queue, int light) {
+    public void render(PoseStack poseStack, SubmitNodeCollector queue, int light) {
         if (primitives.isEmpty()) return;
 
         prepareTexture();
-        queue.submitCustom(matrices, RenderLayers.entityCutoutNoCull(textureId), (entry, vertices) -> {
+        queue.submitCustomGeometry(poseStack, RenderTypes.entityCutout(textureId), (entry, vertices) -> {
             for (Primitive primitive : primitives) {
                 primitive.render(entry, vertices, light);
             }
@@ -278,22 +279,21 @@ public final class GlbCosmeticModel {
     private void prepareTexture() {
         if (textureId != null) return;
 
-        textureId = Identifier.of("dupersunited", "cosmetics/" + name.replace('.', '_'));
+        textureId = Identifier.fromNamespaceAndPath("dupersunited", "cosmetics/" + name.replace('.', '_'));
         try {
             NativeImage image = texture == null ? new NativeImage(1, 1, false) : NativeImage.read(texture);
             if (texture == null) {
-                image.setColorArgb(0, 0, 0xFFFFFFFF);
+                image.setPixel(0, 0, 0xFFFFFFFF);
             }
-            NativeImageBackedTexture nativeTexture = new NativeImageBackedTexture(
-                    () -> "DupersUnited cosmetic " + name, image);
-            MinecraftClient.getInstance().getTextureManager().registerTexture(textureId, nativeTexture);
+            DynamicTexture nativeTexture = new DynamicTexture(() -> "DupersUnited cosmetic " + name, image);
+            mc.getTextureManager().register(textureId, nativeTexture);
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }
     }
 
     private record Primitive(float[] positions, float[] normals, float[] textureCoordinates, int[] indices) {
-        private void render(MatrixStack.Entry entry, VertexConsumer vertices, int light) {
+        private void render(PoseStack.Pose entry, VertexConsumer vertices, int light) {
             for (int index = 0; index < indices.length; index += 3) {
                 writeVertex(entry, vertices, light, indices[index]);
                 writeVertex(entry, vertices, light, indices[index + 1]);
@@ -302,15 +302,15 @@ public final class GlbCosmeticModel {
             }
         }
 
-        private void writeVertex(MatrixStack.Entry entry, VertexConsumer vertices, int light, int index) {
+        private void writeVertex(PoseStack.Pose entry, VertexConsumer vertices, int light, int index) {
             int position = index * 3;
             int texture = index * 2;
-            vertices.vertex(entry, positions[position], positions[position + 1], positions[position + 2])
-                    .color(0xFFFFFFFF)
-                    .texture(textureCoordinates[texture], textureCoordinates[texture + 1])
-                    .overlay(OverlayTexture.DEFAULT_UV)
-                    .light(light)
-                    .normal(entry, normals[position], normals[position + 1], normals[position + 2]);
+            vertices.addVertex(entry, positions[position], positions[position + 1], positions[position + 2])
+                    .setColor(0xFFFFFFFF)
+                    .setUv(textureCoordinates[texture], textureCoordinates[texture + 1])
+                    .setOverlay(OverlayTexture.NO_OVERLAY)
+                    .setLight(light)
+                    .setNormal(entry, normals[position], normals[position + 1], normals[position + 2]);
         }
     }
 }

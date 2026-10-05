@@ -1,14 +1,12 @@
 package wtf.dupers.dupersunited.keybinds;
 
 import wtf.dupers.dupersunited.api.keybind.Keybind;
-import wtf.dupers.dupersunited.features.SaveGuiManager;
-import net.minecraft.client.MinecraftClient;
+import wtf.dupers.dupersunited.features.glitchutils.SaveGuiManager;
 import org.lwjgl.glfw.GLFW;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public class SaveGuiKeybind extends Keybind {
-
-    private static final MinecraftClient mc = MinecraftClient.getInstance();
-
     public SaveGuiKeybind() {
         super("Save GUI", GLFW.GLFW_KEY_F6);
     }

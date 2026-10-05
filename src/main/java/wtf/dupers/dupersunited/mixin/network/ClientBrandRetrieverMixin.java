@@ -1,6 +1,7 @@
 package wtf.dupers.dupersunited.mixin.network;
 
-import wtf.dupers.dupersunited.features.ConfigManager;
+import wtf.dupers.dupersunited.MainClient;
+import wtf.dupers.dupersunited.modules.misc.BrandSpoofModule;
 import net.minecraft.client.ClientBrandRetriever;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,7 +13,7 @@ public class ClientBrandRetrieverMixin {
 
     @Inject(method = "getClientModName", at = @At("RETURN"), cancellable = true)
     private static void dupersunited$spoofBrand(CallbackInfoReturnable<String> cir) {
-        if (ConfigManager.brandSpoofEnabled) {
+        if (MainClient.MODULE_MANAGER.isEnabled(BrandSpoofModule.class)) {
             cir.setReturnValue("vanilla");
         }
     }

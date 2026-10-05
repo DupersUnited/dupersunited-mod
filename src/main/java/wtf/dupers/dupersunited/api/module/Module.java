@@ -4,12 +4,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.commands.MainCommand;
-import wtf.dupers.dupersunited.modules.misc.ModSettingsModule;
-import wtf.dupers.dupersunited.modules.render.HudModule;
+import wtf.dupers.dupersunited.features.ModSettings;
 import wtf.dupers.dupersunited.api.module.settings.Setting;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.network.packet.Packet;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.protocol.Packet;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -33,6 +32,10 @@ public class Module {
     protected <T extends Setting<?>> T register(T setting) {
         settings.add(setting);
         return setting;
+    }
+
+    protected void unregister(Setting<?> setting) {
+        settings.remove(setting);
     }
 
     public String getDescription() {
@@ -82,15 +85,14 @@ public class Module {
     public void toggle() {
         setEnabled(!enabled);
 
-        ModSettingsModule hud = MainClient.getModule(ModSettingsModule.class);
-        if (hud != null && hud.toggleMessageSetting.getValue()) return;
+        if (ModSettings.sendToggleMsg.getValue()) return;
 
-        Text status = enabled
-            ? Text.literal("enabled").formatted(Formatting.GREEN)
-            : Text.literal("disabled").formatted(Formatting.RED);
+        Component status = enabled
+            ? Component.literal("enabled").withStyle(ChatFormatting.GREEN)
+            : Component.literal("disabled").withStyle(ChatFormatting.RED);
 
-        MainCommand.sendMessage(Text.empty()
-            .append(Text.literal(name).formatted(Formatting.AQUA))
+        MainCommand.sendMessage(Component.empty()
+            .append(Component.literal(name).withStyle(ChatFormatting.AQUA))
             .append(" is now ")
             .append(status)
             .append("."), true);

@@ -1,72 +1,85 @@
 package wtf.dupers.dupersunited.keybinds;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
+import wtf.dupers.dupersunited.commands.MainCommand;
+import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macrogui.MacroManager;
+import wtf.dupers.dupersunited.features.screens.ClickGui;
 import wtf.dupers.dupersunited.features.screens.mainmenu.KeybindScreen;
 import wtf.dupers.dupersunited.api.module.Module;
+import wtf.dupers.dupersunited.api.module.settings.BindSetting;
+import wtf.dupers.dupersunited.api.module.settings.Setting;
 import wtf.dupers.dupersunited.mixin.accessor.KeyBindingAccessor;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public final class KeybindManager {
 
-    private static final Map<KeyBinding, KeybindAction> keybinds = new HashMap<>();
+    private static final Map<KeyMapping, KeybindAction> keybinds = new HashMap<>();
     private static final Map<String, Keybind> registeredKeybinds = new HashMap<>();
 
     private static final IntSet heldVanilla = new IntOpenHashSet();
     private static final IntSet heldModules = new IntOpenHashSet();
     private static final IntSet heldRegistered = new IntOpenHashSet();
     private static final IntSet heldMacros = new IntOpenHashSet();
+    private static final Set<BindSetting> heldBindSettings = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private KeybindManager() {}
 
     // @vinzy-dev please just make this cleaner i really cant be asked to fix it thank you
     public static void onTick() {
-        MinecraftClient client = MinecraftClient.getInstance();
-
-        Screen screen = client.currentScreen;
+        Screen screen = mc.gui.screen();
         if (screen != null) {
             if (screen instanceof KeybindScreen) {
                 heldVanilla.clear();
                 heldModules.clear();
                 heldRegistered.clear();
                 heldMacros.clear();
+                heldBindSettings.clear();
                 return;
             }
 
-            boolean isAllowedScreen = screen instanceof HandledScreen;
+            if (screen instanceof KeybindScreen || screen instanceof ClickGui) {
+                return;
+            }
 
+            boolean isAllowedScreen = screen instanceof AbstractContainerScreen;
             if (!isAllowedScreen) {
                 return;
             }
 
-            if (screen.getFocused() != null) return;
+            if (screen.getFocused() instanceof EditBox) return;
 
-            for (Element child : screen.children()) {
-                if (child instanceof TextFieldWidget tf && tf.isFocused()) return;
+            for (GuiEventListener child : screen.children()) {
+                if (child instanceof EditBox tf && tf.isFocused()) return;
             }
 
-            if (client.options.allKeys != null) {
-                for (KeyBinding kb : client.options.allKeys) {
-                    if (kb.isPressed()) return;
-                }
+            for (KeyMapping kb : keybinds.keySet()) {
+                if (kb.isDown()) return;
             }
         }
 
-        long window = client.getWindow().getHandle();
+        long window = mc.getWindow().handle();
 
-        for (Map.Entry<KeyBinding, KeybindAction> entry : keybinds.entrySet()) {
-            int glfwKey = ((KeyBindingAccessor) entry.getKey()).dupersunited$getBoundKey().getCode();
+        for (Map.Entry<KeyMapping, KeybindAction> entry : keybinds.entrySet()) {
+            int glfwKey = ((KeyBindingAccessor) entry.getKey()).dupersunited$getBoundKey().getValue();
             if (glfwKey == GLFW.GLFW_KEY_UNKNOWN) continue;
             int keyState = getInputState(window, glfwKey);
             if (keyState == GLFW.GLFW_PRESS && heldVanilla.add(glfwKey)) {
@@ -97,28 +110,23 @@ public final class KeybindManager {
                 heldRegistered.remove(glfwKey);
             }
         }
-
-//      for (GuiMacro.Macro macro : GuiMacro.getRegisteredMacros().values()) {
-//          int glfwKey = macro.key();
-//          if (glfwKey == GLFW.GLFW_KEY_UNKNOWN) continue;
-//          int keyState = getInputState(window, glfwKey);
-//          if (keyState == GLFW.GLFW_PRESS && heldMacros.add(glfwKey)) {
-//              String macroName = macro.name();
-//              if (MacroManager.isRunning() && MacroManager.getRunningName().equals(macroName)) {
-//                  MacroManager.stop();
-//                  sendMessage(Text.literal("Macro ")
-//                      .append(Text.literal(macroName).formatted(Formatting.AQUA))
-//                      .append(" stopped."), true);
-//              } else {
-//                  GuiMacro.runMacro(macro);
-//                  sendMessage(Text.literal("Macro ")
-//                      .append(Text.literal(macroName).formatted(Formatting.AQUA))
-//                      .append(" started."), true);
-//              }
-//          } else if (keyState == GLFW.GLFW_RELEASE) {
-//              heldMacros.remove(glfwKey);
-//          }
-//      }
+        //this should hopefully fix a bug that fucks the game
+        for (Module m : MainClient.MODULE_MANAGER.modules()) {
+            for (Setting<?> s : m.getSettings()) {
+                if (!(s instanceof BindSetting bs)) continue;
+                int glfwKey = bs.getValue();
+                if (glfwKey == GLFW.GLFW_KEY_UNKNOWN) {
+                    heldBindSettings.remove(bs);
+                    continue;
+                }
+                int keyState = getInputState(window, glfwKey);
+                if (keyState == GLFW.GLFW_PRESS && heldBindSettings.add(bs)) {
+                    bs.firePress();
+                } else if (keyState == GLFW.GLFW_RELEASE) {
+                    heldBindSettings.remove(bs);
+                }
+            }
+        }
     }
 
     private static int getInputState(long window, int code) {
@@ -135,7 +143,7 @@ public final class KeybindManager {
         return GLFW.glfwGetKey(window, code);
     }
 
-    public static void addKeybind(KeyBinding key, Runnable onPress) {
+    public static void addKeybind(KeyMapping key, Runnable onPress) {
         if (onPress != null) keybinds.put(key, onPress::run);
     }
 
@@ -147,7 +155,7 @@ public final class KeybindManager {
         registeredKeybinds.remove(id);
     }
 
-    public static Map<KeyBinding, KeybindAction> getKeybinds() {
+    public static Map<KeyMapping, KeybindAction> getKeybinds() {
         return keybinds;
     }
 

@@ -5,8 +5,9 @@ import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.StringSetting;
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class NickModule extends Module {
     private final StringSetting nickname = register(new StringSetting("Name", "Duper"));
@@ -22,7 +23,7 @@ public class NickModule extends Module {
 
     @Override
     protected void onEnable() {
-        username = MinecraftClient.getInstance().getSession().getUsername();
+        username = mc.getUser().getName();
     }
 
     public String replaceName(String string) {

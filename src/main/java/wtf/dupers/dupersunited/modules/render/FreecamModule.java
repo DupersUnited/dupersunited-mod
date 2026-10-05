@@ -4,16 +4,14 @@ import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.FloatSetting;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.Perspective;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.CameraType;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public class FreecamModule extends Module {
-
-    private static final MinecraftClient mc = MinecraftClient.getInstance();
-
     public final FloatSetting speed = register(new FloatSetting("Speed", 1f, 0f, 10f));
 
     public double posX, posY, posZ;
@@ -21,7 +19,7 @@ public class FreecamModule extends Module {
     public float yaw, pitch;
     public float lastYaw, lastPitch;
 
-    private Perspective prePerspective;
+    private CameraType prePerspective;
     private boolean forward, backward, left, right, up, down;
 
     public FreecamModule() {
@@ -33,46 +31,46 @@ public class FreecamModule extends Module {
     protected void onEnable() {
         if (mc.player == null) return;
 
-        yaw       = mc.player.getYaw();
-        pitch     = mc.player.getPitch();
+        yaw       = mc.player.getYRot();
+        pitch     = mc.player.getXRot();
         lastYaw   = yaw;
         lastPitch = pitch;
 
-        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+        Vec3 camPos = mc.gameRenderer.mainCamera().position();
         posX = prevPosX = camPos.x;
         posY = prevPosY = camPos.y;
         posZ = prevPosZ = camPos.z;
 
-        prePerspective = mc.options.getPerspective();
-        mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+        prePerspective = mc.options.getCameraType();
+        mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
 
         unpress();
     }
 
     @Override
     protected void onDisable() {
-        mc.options.setPerspective(prePerspective);
+        mc.options.setCameraType(prePerspective);
         forward = backward = left = right = up = down = false;
         unpress();
-        if (mc.player != null) mc.player.noClip = false;
+        if (mc.player != null) mc.player.noPhysics = false;
     }
 
     @Override
     public void onTick() {
         if (mc.player == null) return;
 
-        if (mc.options.getPerspective() != Perspective.THIRD_PERSON_BACK)
-            mc.options.setPerspective(Perspective.THIRD_PERSON_BACK);
+        if (mc.options.getCameraType() != CameraType.THIRD_PERSON_BACK)
+            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
 
-        forward  = isKeyDown(mc.options.forwardKey.getDefaultKey().getCode());
-        backward = isKeyDown(mc.options.backKey.getDefaultKey().getCode());
-        left     = isKeyDown(mc.options.leftKey.getDefaultKey().getCode());
-        right    = isKeyDown(mc.options.rightKey.getDefaultKey().getCode());
-        up       = isKeyDown(mc.options.jumpKey.getDefaultKey().getCode());
-        down     = isKeyDown(mc.options.sneakKey.getDefaultKey().getCode());
+        forward  = isKeyDown(mc.options.keyUp.getDefaultKey().getValue());
+        backward = isKeyDown(mc.options.keyDown.getDefaultKey().getValue());
+        left     = isKeyDown(mc.options.keyLeft.getDefaultKey().getValue());
+        right    = isKeyDown(mc.options.keyRight.getDefaultKey().getValue());
+        up       = isKeyDown(mc.options.keyJump.getDefaultKey().getValue());
+        down     = isKeyDown(mc.options.keyShift.getDefaultKey().getValue());
 
-        Vec3d fwd  = Vec3d.fromPolar(0, yaw);
-        Vec3d side = Vec3d.fromPolar(0, yaw + 90);
+        Vec3 fwd  = Vec3.directionFromRotation(0, yaw);
+        Vec3 side = Vec3.directionFromRotation(0, yaw + 90);
 
         double velX = 0, velY = 0, velZ = 0;
         float s = speed.getValue() * 0.5f;
@@ -103,26 +101,26 @@ public class FreecamModule extends Module {
         lastPitch = pitch;
 
         yaw   += (float) deltaX;
-        pitch -= (float) deltaY;
-        pitch  = MathHelper.clamp(pitch, -90f, 90f);
+        pitch += (float) deltaY;
+        pitch  = Mth.clamp(pitch, -90f, 90f);
     }
 
-    public double getLerpedX(float tickDelta)     { return MathHelper.lerp(tickDelta, prevPosX, posX); }
-    public double getLerpedY(float tickDelta)     { return MathHelper.lerp(tickDelta, prevPosY, posY); }
-    public double getLerpedZ(float tickDelta)     { return MathHelper.lerp(tickDelta, prevPosZ, posZ); }
-    public double getLerpedYaw(float tickDelta)   { return MathHelper.lerp(tickDelta, lastYaw,   yaw);   }
-    public double getLerpedPitch(float tickDelta) { return MathHelper.lerp(tickDelta, lastPitch, pitch); }
+    public double getLerpedX(float tickDelta)     { return Mth.lerp(tickDelta, prevPosX, posX); }
+    public double getLerpedY(float tickDelta)     { return Mth.lerp(tickDelta, prevPosY, posY); }
+    public double getLerpedZ(float tickDelta)     { return Mth.lerp(tickDelta, prevPosZ, posZ); }
+    public double getLerpedYaw(float tickDelta)   { return Mth.lerp(tickDelta, lastYaw,   yaw);   }
+    public double getLerpedPitch(float tickDelta) { return Mth.lerp(tickDelta, lastPitch, pitch); }
 
     private void unpress() {
-        mc.options.forwardKey.setPressed(false);
-        mc.options.backKey.setPressed(false);
-        mc.options.leftKey.setPressed(false);
-        mc.options.rightKey.setPressed(false);
-        mc.options.jumpKey.setPressed(false);
-        mc.options.sneakKey.setPressed(false);
+        mc.options.keyUp.setDown(false);
+        mc.options.keyDown.setDown(false);
+        mc.options.keyLeft.setDown(false);
+        mc.options.keyRight.setDown(false);
+        mc.options.keyJump.setDown(false);
+        mc.options.keyShift.setDown(false);
     }
 
     private boolean isKeyDown(int key) {
-        return GLFW.glfwGetKey(mc.getWindow().getHandle(), key) == GLFW.GLFW_PRESS;
+        return GLFW.glfwGetKey(mc.getWindow().handle(), key) == GLFW.GLFW_PRESS;
     }
 }

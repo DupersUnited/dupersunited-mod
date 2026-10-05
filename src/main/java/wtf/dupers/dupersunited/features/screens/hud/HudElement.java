@@ -15,8 +15,13 @@ public class HudElement {
         this.y = y;
     }
 
-    public int getW() { return (int)(BASE_W * scale); }
-    public int getH() { return (int)(BASE_H * scale); }
+    public int getW() {
+        return (int)(BASE_W * scale);
+    }
+
+    public int getH() {
+        return (int)(BASE_H * scale);
+    }
 
     public int getScreenX(int screenWidth) {
         return rightAligned ? screenWidth - x - getW() : x;

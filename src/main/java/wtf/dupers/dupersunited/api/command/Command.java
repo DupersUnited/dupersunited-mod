@@ -2,9 +2,9 @@ package wtf.dupers.dupersunited.api.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.SharedVariables;
 import wtf.dupers.dupersunited.commands.MainCommand;
 
@@ -22,7 +22,7 @@ public abstract class Command {
         this(command, "No description provided.");
     }
 
-    public abstract void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess);
+    public abstract void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess);
 
     /* Utils */
 
@@ -30,7 +30,7 @@ public abstract class Command {
         MainCommand.sendMessage(message, prefix);
     }
 
-    protected void sendMessage(Text message, boolean prefix) {
+    protected void sendMessage(Component message, boolean prefix) {
         MainCommand.sendMessage(message, prefix);
     }
 

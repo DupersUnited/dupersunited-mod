@@ -10,8 +10,8 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
 import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.network.ClientCommandSource;
-import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
+import net.minecraft.commands.CommandBuildContext;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.SharedVariables;
 import wtf.dupers.dupersunited.api.command.Command;
@@ -22,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.SortedSet;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 
 public final class NewCommandsCommand extends Command {
     private static final SimpleCommandExceptionType COULD_NOT_DUMP = new SimpleCommandExceptionType(new LiteralMessage("Could not dump commands, view logs for details."));
@@ -34,13 +34,13 @@ public final class NewCommandsCommand extends Command {
     public static final SortedSet<String> commandList = new ObjectRBTreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
         builder.executes(ctx -> executeDump(ctx, "commands-dump"))
             .then(argument("filename", StringArgumentType.greedyString())
                 .executes(ctx -> executeDump(ctx, StringArgumentType.getString(ctx, "filename"))));
     }
 
-    public static void onCommandTree(RootCommandNode<ClientCommandSource> rootNode) {
+    public static void onCommandTree(RootCommandNode<ClientSuggestionProvider> rootNode) {
         commandList.clear();
 
         rootNode.getChildren().stream()

@@ -5,9 +5,10 @@ import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.world.inventory.ContainerInput;
 import org.lwjgl.glfw.GLFW;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class InvDropModule extends Module {
 
@@ -42,24 +43,23 @@ public class InvDropModule extends Module {
     public void onTick() {
         if (!dropping) return;
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.interactionManager == null) return;
+        if (mc.player == null || mc.gameMode == null) return;
 
         long now = System.currentTimeMillis();
         if (now - lastDropTime < delay.getValue()) return;
 
         int maxSlot = hotbarOnly.getValue() ? 9 : 36;
 
-        while (currentSlot < maxSlot && mc.player.getInventory().getStack(currentSlot).isEmpty()) {
+        while (currentSlot < maxSlot && mc.player.getInventory().getItem(currentSlot).isEmpty()) {
             currentSlot++;
         }
 
         if (currentSlot >= maxSlot) {
             if (!hotbarOnly.getValue() && dropArmour.getValue()) {
-                dropArmorSlots(mc);
+                dropArmorSlots();
             }
             if (dropOffhand.getValue()) {
-                dropOffhandSlot(mc);
+                dropOffhandSlot();
             }
             dropping = false;
             setEnabled(false);
@@ -68,11 +68,11 @@ public class InvDropModule extends Module {
 
         int screenSlot = currentSlot < 9 ? 36 + currentSlot : currentSlot;
 
-        mc.interactionManager.clickSlot(
-                mc.player.playerScreenHandler.syncId,
+        mc.gameMode.handleContainerInput(
+                mc.player.inventoryMenu.containerId,
                 screenSlot,
                 1,
-                SlotActionType.THROW,
+                ContainerInput.THROW,
                 mc.player
         );
 
@@ -80,27 +80,27 @@ public class InvDropModule extends Module {
         currentSlot++;
     }
 
-    private void dropArmorSlots(MinecraftClient mc) {
+    private void dropArmorSlots() {
         for (int armorScreen = 5; armorScreen <= 8; armorScreen++) {
-            if (!mc.player.playerScreenHandler.getSlot(armorScreen).getStack().isEmpty()) {
-                mc.interactionManager.clickSlot(
-                        mc.player.playerScreenHandler.syncId,
+            if (!mc.player.inventoryMenu.getSlot(armorScreen).getItem().isEmpty()) {
+                mc.gameMode.handleContainerInput(
+                        mc.player.inventoryMenu.containerId,
                         armorScreen,
                         1,
-                        SlotActionType.THROW,
+                        ContainerInput.THROW,
                         mc.player
                 );
             }
         }
     }
 
-    private void dropOffhandSlot(MinecraftClient mc) {
-        if (!mc.player.playerScreenHandler.getSlot(45).getStack().isEmpty()) {
-            mc.interactionManager.clickSlot(
-                    mc.player.playerScreenHandler.syncId,
+    private void dropOffhandSlot() {
+        if (!mc.player.inventoryMenu.getSlot(45).getItem().isEmpty()) {
+            mc.gameMode.handleContainerInput(
+                    mc.player.inventoryMenu.containerId,
                     45,
                     1,
-                    SlotActionType.THROW,
+                    ContainerInput.THROW,
                     mc.player
             );
         }

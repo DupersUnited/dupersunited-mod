@@ -2,36 +2,33 @@ package wtf.dupers.dupersunited;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
+import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 import wtf.dupers.dupersunited.api.DupersUnitedAddon;
 import wtf.dupers.dupersunited.api.command.Command;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.commands.subcommands.*;
-import wtf.dupers.dupersunited.events.GuiEvent;
-import wtf.dupers.dupersunited.events.TickEvent;
-import wtf.dupers.dupersunited.events.WorldEvent;
-import wtf.dupers.dupersunited.features.ConfigManager;
-import wtf.dupers.dupersunited.features.HudOverlay;
-import wtf.dupers.dupersunited.features.OfflineAccountManager;
-import wtf.dupers.dupersunited.features.ServerAlertConfig;
-import wtf.dupers.dupersunited.features.auth.AuthManager;
-import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
-import wtf.dupers.dupersunited.features.proxies.AccountProxyLinks;
-import wtf.dupers.dupersunited.features.proxies.ProxyConfigManager;
-import wtf.dupers.dupersunited.features.screens.mainmenu.WelcomeScreen;
-import wtf.dupers.dupersunited.features.screens.mainmenu.alerts.HallOfFame;
-import wtf.dupers.dupersunited.features.screens.mainmenu.alerts.HallOfShame;
+import wtf.dupers.dupersunited.events.*;
+import wtf.dupers.dupersunited.features.*;
+import wtf.dupers.dupersunited.features.account.OfflineAccountManager;
+import wtf.dupers.dupersunited.features.auth.*;
+import wtf.dupers.dupersunited.features.chatmacros.*;
+import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.proxies.*;
+import wtf.dupers.dupersunited.features.screens.hud.HudOverlay;
+import wtf.dupers.dupersunited.features.screens.mainmenu.*;
+import wtf.dupers.dupersunited.features.screens.mainmenu.alerts.*;
 import wtf.dupers.dupersunited.keybinds.*;
 import wtf.dupers.dupersunited.modules.glitcha.*;
 import wtf.dupers.dupersunited.modules.misc.*;
 import wtf.dupers.dupersunited.modules.render.*;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import wtf.dupers.dupersunited.features.ssidLogin.SessionManager;
+import wtf.dupers.dupersunited.features.account.SessionManager;
 import wtf.dupers.dupersunited.modules.ModuleManager;
 import wtf.dupers.dupersunited.modules.exploit.AnySignModule;
 import wtf.dupers.dupersunited.modules.exploit.BookBotModule;
@@ -41,7 +38,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static wtf.dupers.dupersunited.features.ssidLogin.SessionManager.*;
+import static wtf.dupers.dupersunited.features.account.SessionManager.*;
 
 public class MainClient implements ModInitializer {
 
@@ -50,6 +47,8 @@ public class MainClient implements ModInitializer {
     public static ModuleManager MODULE_MANAGER;
     public static boolean addonsPresent = false;
     private static Map<String, Command> COMMANDS;
+
+    public static Minecraft mc = Minecraft.getInstance();
 
     @Override
     public void onInitialize() {
@@ -63,7 +62,6 @@ public class MainClient implements ModInitializer {
         registry.namespace = "dupersunited";
 
         registry.registerModules(
-            new ModSettingsModule(),
             new EspModule(),
             new FullBrightModule(),
             new AutoSprintModule(),
@@ -92,14 +90,19 @@ public class MainClient implements ModInitializer {
             new ClickSlotModule(),
             new VanillaFlyModule(),
             new NoFallModule(),
-            new SpamModule()
+            new SpamModule(),
+            new ServerAlertsModule(),
+            new AutoReconnectModule(),
+            new RpBypassModule(),
+            new BrandSpoofModule(),
+            new AutoLoginModule(),
+            new MacroGuiSettingsModule()
         );
 
         registry.registerCommands(
             new ClickSlotCommand(),
             new DropCommand(),
             new DupeCommand(),
-            new ForceOpCommand(),
             new HelpCommand(),
             new KeybindCommand(),
             new KickCommand(),
@@ -114,7 +117,8 @@ public class MainClient implements ModInitializer {
             new RestoreGhostsCommand(),
             new SetHandCommand(),
             new ToggleCommand(),
-            new WaitCommand()
+            new WaitCommand(),
+            new MacroGuiCommand()
         );
 
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
@@ -143,6 +147,9 @@ public class MainClient implements ModInitializer {
         MainCommand.register(COMMANDS = Collections.unmodifiableMap(registry.commands));
         registry.keybinds.forEach(KeybindManager::registerKeybind);
 
+        //macros
+        GuiMacro.getInstance().loadMacros();
+
         //config
         CompletableFuture<Void> proxyConfigTask = CompletableFuture.allOf(
             ProxyConfigManager.load(),
@@ -150,7 +157,7 @@ public class MainClient implements ModInitializer {
             OfflineAccountManager.load()
         ).thenAccept(nil -> {
             // auto apply proxy linked to the launch account if it exists
-            String launchUsername = SessionManager.getSession() != null ? SessionManager.getSession().getUsername() : null;
+            String launchUsername = SessionManager.getSession() != null ? SessionManager.getSession().getName() : null;
             if (launchUsername != null && AccountProxyLinks.hasLink(launchUsername) && !AccountProxyLinks.hasBypass(launchUsername)) {
                 String linkedProxy = AccountProxyLinks.getLinkedProxy(launchUsername);
                 ProxyConfigManager.activeProfileName = linkedProxy;
@@ -198,11 +205,13 @@ public class MainClient implements ModInitializer {
 
         // first launch shizz
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof TitleScreen && ConfigManager.firstLaunch) {
-                ConfigManager.firstLaunch = false;
-                ConfigManager.save();
+            if (screen instanceof TitleScreen && (ConfigManager.firstLaunch || !ConfigManager.agreedToPolicy)) {
+                if (ConfigManager.firstLaunch) {
+                    ConfigManager.firstLaunch = false;
+                    ConfigManager.save();
+                }
                 client.execute(() -> {
-                    client.setScreen(new WelcomeScreen(screen));
+                    client.gui.setScreen(new WelcomeScreen(screen));
                 });
             }
         });

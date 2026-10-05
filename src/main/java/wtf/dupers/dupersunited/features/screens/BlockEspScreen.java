@@ -3,13 +3,16 @@ package wtf.dupers.dupersunited.features.screens;
 import wtf.dupers.dupersunited.modules.render.BlockEspModule;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -51,10 +54,10 @@ public class BlockEspScreen extends Screen {
     private int gridDragLastShownIndex = -1;
 
     public BlockEspScreen() {
-        super(Text.literal("Block ESP"));
-        Registries.BLOCK.forEach(b -> {
+        super(Component.literal("Block ESP"));
+        BuiltInRegistries.BLOCK.forEach(b -> {
             if (b != Blocks.AIR && b != Blocks.VOID_AIR && b != Blocks.CAVE_AIR
-                && (!b.asItem().getDefaultStack().isEmpty() || BlockEspModule.hasMarker(b))) {
+                && (!b.asItem().getDefaultInstance().isEmpty() || BlockEspModule.hasMarker(b))) {
                 allBlocks.add(b);
             }
         });
@@ -67,7 +70,7 @@ public class BlockEspScreen extends Screen {
         for (Block b : allBlocks) {
             if (q.isEmpty()
                 || b.getName().getString().toLowerCase(Locale.ROOT).contains(q)
-                || Registries.BLOCK.getId(b).toString().contains(q)) {
+                || BuiltInRegistries.BLOCK.getKey(b).toString().contains(q)) {
                 shown.add(b);
             }
         }
@@ -133,7 +136,7 @@ public class BlockEspScreen extends Screen {
     }
 
     private int clearButtonWidth() {
-        return textRenderer.getWidth(CLEAR_BTN_LABEL) + 10;
+        return font.width(CLEAR_BTN_LABEL) + 10;
     }
 
     private int clearButtonX(int px, int pw) {
@@ -144,7 +147,7 @@ public class BlockEspScreen extends Screen {
         return py + SEARCH_TOP_OFF + SEARCH_H + AFTER_SEARCH_GAP;
     }
 
-    private void drawClearButton(DrawContext ctx, int px, int pw, int py, int mouseX, int mouseY) {
+    private void drawClearButton(GuiGraphicsExtractor ctx, int px, int pw, int py, int mouseX, int mouseY) {
         int x = clearButtonX(px, pw);
         int y = clearButtonY(py);
         int w = clearButtonWidth();
@@ -154,12 +157,12 @@ public class BlockEspScreen extends Screen {
         ctx.fill(x, y + CLEAR_BTN_H - 1, x + w, y + CLEAR_BTN_H, OVERLAY);
         ctx.fill(x, y, x + 1, y + CLEAR_BTN_H, OVERLAY);
         ctx.fill(x + w - 1, y, x + w, y + CLEAR_BTN_H, OVERLAY);
-        int lw = textRenderer.getWidth(CLEAR_BTN_LABEL);
-        ctx.drawText(textRenderer, CLEAR_BTN_LABEL, x + (w - lw) / 2, y + 3, TEAL, false);
+        int lw = font.width(CLEAR_BTN_LABEL);
+        ctx.text(font, CLEAR_BTN_LABEL, x + (w - lw) / 2, y + 3, TEAL, false);
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         long now = System.currentTimeMillis();
         if (now - lastBlink > 530) { cursorVisible = !cursorVisible; lastBlink = now; }
 
@@ -175,7 +178,7 @@ public class BlockEspScreen extends Screen {
 
         ctx.fill(px, py, px + pw, py + HEADER_H, 0xFF181825);
         ctx.fill(px, py + HEADER_H - 1, px + pw, py + HEADER_H, SURFACE);
-        ctx.drawTextWithShadow(textRenderer, "Block ESP - Select Blocks", px + PAD, py + 7, MAUVE);
+        ctx.text(font, "Block ESP - Select Blocks", px + PAD, py + 7, MAUVE, true);
 
         int sfY = py + SEARCH_TOP_OFF, sfX = px + PAD, sfW = pw - PAD * 2;
         ctx.fill(sfX, sfY, sfX + sfW, sfY + SEARCH_H, SURFACE);
@@ -186,12 +189,12 @@ public class BlockEspScreen extends Screen {
 
         int textX = sfX + 3, textY = sfY + 3;
         if (searchQuery.isEmpty()) {
-            ctx.drawText(textRenderer, "Search...", textX, textY, SUBTEXT, false);
+            ctx.text(font, "Search...", textX, textY, SUBTEXT, false);
         } else {
-            ctx.drawText(textRenderer, searchQuery, textX, textY, TEXT_COL, false);
+            ctx.text(font, searchQuery, textX, textY, TEXT_COL, false);
         }
         if (cursorVisible) {
-            int cx = textX + textRenderer.getWidth(searchQuery.substring(0, Math.min(cursorPos, searchQuery.length())));
+            int cx = textX + font.width(searchQuery.substring(0, Math.min(cursorPos, searchQuery.length())));
             ctx.fill(cx, textY - 1, cx + 1, textY + 9, TEAL);
         }
 
@@ -214,7 +217,7 @@ public class BlockEspScreen extends Screen {
             int row = (i - startIdx) / COLS;
             int cx = px + PAD + col * CELL;
             int cy = gridY + PAD + row * CELL;
-            String blockId = Registries.BLOCK.getId(block).toString();
+            String blockId = BuiltInRegistries.BLOCK.getKey(block).toString();
             boolean sel = BlockEspModule.selectedBlocks.contains(block);
             boolean hov = mouseX >= cx && mouseX < cx + CELL - 2
                 && mouseY >= cy && mouseY < cy + CELL - 2;
@@ -230,41 +233,41 @@ public class BlockEspScreen extends Screen {
 
             if (hov) ctx.fill(cx, cy, cx + CELL - 2, cy + CELL - 2, 0x33CDD6F4);
 
-            ItemStack stack = block.asItem().getDefaultStack();
+            ItemStack stack = block.asItem().getDefaultInstance();
             if (stack.isEmpty()) {
-                ctx.drawCenteredTextWithShadow(textRenderer, "?", cx + 17, cy + 13, TEXT_COL);
+                ctx.text(font, "?", cx + 17, cy + 13, TEXT_COL, true);
             } else {
-                ctx.drawItem(stack, cx + 9, cy + 9);
+                ctx.item(stack, cx + 9, cy + 9);
             }
 
             if (hov) {
-                ctx.drawTooltip(textRenderer, List.of(
-                    Text.literal(block.getName().getString()).withColor(TEXT_COL),
-                    Text.literal(blockId).withColor(SUBTEXT)
+                ctx.setComponentTooltipForNextFrame(font, List.of(
+                    Component.literal(block.getName().getString()).withColor(TEXT_COL),
+                    Component.literal(blockId).withColor(SUBTEXT)
                 ), mouseX, mouseY);
             }
         }
 
         String footer = BlockEspModule.selectedBlocks.size() + " Selected | " + shown.size()
             + " Shown | Scroll to Navigate";
-        int footerW = textRenderer.getWidth(footer);
+        int footerW = font.width(footer);
         int footerX = px + (pw - footerW) / 2;
         int panelBottom = py + ph;
         int gap = panelBottom - gridBottomEdge;
-        int fh = textRenderer.fontHeight;
+        int fh = font.lineHeight;
         int footerY;
         if (gap <= fh) {
             footerY = Math.max(gridBottomEdge, panelBottom - fh - PAD);
         } else {
             footerY = gridBottomEdge + (gap - fh) / 2;
         }
-        ctx.drawText(textRenderer, footer, footerX, footerY, SUBTEXT, false);
+        ctx.text(font, footer, footerX, footerY, SUBTEXT, false);
 
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         int mx = (int) click.x(), my = (int) click.y();
         int px = panelX(), pw = panelW(), py = 5, ph = height - 10;
         int gridY   = py + HEADER_H;
@@ -274,7 +277,7 @@ public class BlockEspScreen extends Screen {
         if (mx >= sfX && mx < sfX + sfW && my >= sfY && my < sfY + SEARCH_H) {
             int relX = mx - (sfX + 3), best = searchQuery.length(), bestDist = Integer.MAX_VALUE;
             for (int i = 0; i <= searchQuery.length(); i++) {
-                int d = Math.abs(textRenderer.getWidth(searchQuery.substring(0, i)) - relX);
+                int d = Math.abs(font.width(searchQuery.substring(0, i)) - relX);
                 if (d < bestDist) { bestDist = d; best = i; }
             }
             cursorPos = best;
@@ -313,7 +316,7 @@ public class BlockEspScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(net.minecraft.client.gui.Click click, double deltaX, double deltaY) {
+    public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
         if (gridDragActive && click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             int px = panelX(), pw = panelW(), py = 5, ph = height - 10;
             int idx = gridHitShownIndex((int) click.x(), (int) click.y(), px, pw, py, ph);
@@ -326,7 +329,7 @@ public class BlockEspScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(net.minecraft.client.gui.Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         gridDragActive = false;
         gridDragLastShownIndex = -1;
         return super.mouseReleased(click);
@@ -349,10 +352,10 @@ public class BlockEspScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
-        int key = input.getKeycode();
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) { close(); return true; }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE) {
+    public boolean keyPressed(KeyEvent input) {
+        int key = input.key();
+        if (key == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true; }
+        if (key == GLFW.GLFW_KEY_BACKSPACE) {
             if (cursorPos > 0) {
                 searchQuery = searchQuery.substring(0, cursorPos - 1) + searchQuery.substring(cursorPos);
                 cursorPos--;
@@ -360,24 +363,24 @@ public class BlockEspScreen extends Screen {
             }
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE) {
+        if (key == GLFW.GLFW_KEY_DELETE) {
             if (cursorPos < searchQuery.length()) {
                 searchQuery = searchQuery.substring(0, cursorPos) + searchQuery.substring(cursorPos + 1);
                 rebuildShown();
             }
             return true;
         }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT  && cursorPos > 0) { cursorPos--; return true; }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT && cursorPos < searchQuery.length()) { cursorPos++; return true; }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_HOME) { cursorPos = 0; return true; }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_END)  { cursorPos = searchQuery.length(); return true; }
+        if (key == GLFW.GLFW_KEY_LEFT  && cursorPos > 0) { cursorPos--; return true; }
+        if (key == GLFW.GLFW_KEY_RIGHT && cursorPos < searchQuery.length()) { cursorPos++; return true; }
+        if (key == GLFW.GLFW_KEY_HOME) { cursorPos = 0; return true; }
+        if (key == GLFW.GLFW_KEY_END)  { cursorPos = searchQuery.length(); return true; }
         return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(net.minecraft.client.input.CharInput input) {
-        if (input.isValidChar()) {
-            searchQuery = searchQuery.substring(0, cursorPos) + input.asString() + searchQuery.substring(cursorPos);
+    public boolean charTyped(CharacterEvent input) {
+        if (input.isAllowedChatCharacter()) {
+            searchQuery = searchQuery.substring(0, cursorPos) + input.codepointAsString() + searchQuery.substring(cursorPos);
             cursorPos++;
             rebuildShown();
             return true;
@@ -386,12 +389,11 @@ public class BlockEspScreen extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         ConfigManager.save();
-        assert client != null;
-        client.setScreen(null);
+        minecraft.gui.setScreen(null);
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean isPauseScreen() { return false; }
 }

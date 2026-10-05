@@ -6,13 +6,15 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.world.GameMode;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.world.level.GameType;
 import org.lwjgl.glfw.GLFW;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class BetterTabModule extends Module {
     public final IntSetting tabSize = register(new IntSetting("TablistSize", 500, 1, 1000));
@@ -24,8 +26,6 @@ public class BetterTabModule extends Module {
     public final BooleanSetting showPingIcon = register(new BooleanSetting("PingIcon", true));
 
     public int scrollOffset = 0;
-
-    MinecraftClient mc = MinecraftClient.getInstance();
 
     public BetterTabModule() {
         super("BetterTab", "Allows you to configure your tab list.", Category.misc);
@@ -48,26 +48,26 @@ public class BetterTabModule extends Module {
         super.onDisable();
     }
 
-    public Text getPlayerName(PlayerListEntry entry) {
-        Text name = entry.getDisplayName();
-        if (name == null) name = Text.literal(entry.getProfile().name());
+    public Component getPlayerName(PlayerInfo entry) {
+        Component name = entry.getTabListDisplayName();
+        if (name == null) name = Component.literal(entry.getProfile().name());
 
         if (highlightSelf.getValue() && entry.getProfile().id().toString()
                 .equals(mc.player.getGameProfile().id().toString())) {
-            name = Text.literal(name.getString()).setStyle(name.getStyle().withColor(TextColor.fromRgb(ColorUtil.GREEN)));
+            name = Component.literal(name.getString()).setStyle(name.getStyle().withColor(TextColor.fromRgb(ColorUtil.GREEN)));
         }
 
         if (showGamemode.getValue()) {
-            GameMode gm = entry.getGameMode();
+            GameType gm = entry.getGameMode();
             String gmText = gm == null ? "?" : switch (gm) {
                 case SPECTATOR -> "Sp";
                 case SURVIVAL -> "S";
                 case CREATIVE -> "C";
                 case ADVENTURE -> "A";
             };
-            MutableText text = Text.empty();
+            MutableComponent text = Component.empty();
             text.append(name);
-            text.append(Text.literal(" [" + gmText + "]").setStyle(net.minecraft.text.Style.EMPTY.withColor(TextColor.fromRgb(0xAAAAAA))));
+            text.append(Component.literal(" [" + gmText + "]").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xAAAAAA))));
             name = text;
         }
 

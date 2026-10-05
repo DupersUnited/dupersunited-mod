@@ -1,6 +1,5 @@
 package wtf.dupers.dupersunited.modules.render;
 
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
@@ -15,6 +14,8 @@ import wtf.dupers.dupersunited.features.screens.CosmeticsPickerScreen;
 
 import java.util.List;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
+
 public class CosmeticsModule extends Module {
     private static final String[] HEADS = CosmeticCatalog.forSlot(CosmeticCatalog.Slot.HEAD).stream()
             .map(CosmeticCatalog.Item::name)
@@ -25,7 +26,7 @@ public class CosmeticsModule extends Module {
 
     public final ButtonSetting browse = register(new ButtonSetting(
             "Browse Cosmetics",
-            () -> MinecraftClient.getInstance().setScreen(new CosmeticsPickerScreen(this))
+            () -> mc.gui.setScreen(new CosmeticsPickerScreen(this))
     ));
     public final ModeSetting head = register(new ModeSetting("Head", "None", HEADS));
     public final ModeSetting tail = register(new ModeSetting("Tail", "None", TAILS));

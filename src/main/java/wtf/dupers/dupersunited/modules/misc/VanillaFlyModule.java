@@ -4,8 +4,9 @@ import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.FloatSetting;
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class VanillaFlyModule extends Module {
     private final FloatSetting speed = register(new FloatSetting("Speed", 1.0f, 0.1f, 10.0f));
@@ -17,31 +18,28 @@ public class VanillaFlyModule extends Module {
 
     @Override
     protected void onEnable() {
-        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
-        mc.player.getAbilities().allowFlying = true;
-        mc.player.getAbilities().setFlySpeed(speed.getValue() / 20f);
-        mc.player.sendAbilitiesUpdate();
+        mc.player.getAbilities().mayfly = true;
+        mc.player.getAbilities().setFlyingSpeed(speed.getValue() / 20f);
+        mc.player.onUpdateAbilities();
     }
 
     @Override
     protected void onDisable() {
-        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
         if (!mc.player.isCreative() && !mc.player.isSpectator()) {
-            mc.player.getAbilities().allowFlying = false;
+            mc.player.getAbilities().mayfly = false;
             mc.player.getAbilities().flying = false;
-            mc.player.getAbilities().setFlySpeed(0.05f);
-            mc.player.sendAbilitiesUpdate();
+            mc.player.getAbilities().setFlyingSpeed(0.05f);
+            mc.player.onUpdateAbilities();
         }
     }
 
     @Override
     public void onTick() {
-        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
-        mc.player.getAbilities().allowFlying = true;
-        mc.player.getAbilities().setFlySpeed(speed.getValue() / 20f);
-        mc.player.sendAbilitiesUpdate();
+        mc.player.getAbilities().mayfly = true;
+        mc.player.getAbilities().setFlyingSpeed(speed.getValue() / 20f);
+        mc.player.onUpdateAbilities();
     }
 }

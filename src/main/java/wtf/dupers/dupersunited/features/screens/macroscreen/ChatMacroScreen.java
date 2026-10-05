@@ -1,15 +1,18 @@
 package wtf.dupers.dupersunited.features.screens.macroscreen;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacro;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import java.util.*;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class ChatMacroScreen extends Screen {
     private final Screen parent;
@@ -20,7 +23,7 @@ public class ChatMacroScreen extends Screen {
     private static final int LIST_BOTTOM_MARGIN = 10;
 
     public ChatMacroScreen(Screen parent) {
-        super(Text.literal("Macro Manager"));
+        super(Component.literal("Macro Manager"));
         this.parent = parent;
     }
 
@@ -35,20 +38,20 @@ public class ChatMacroScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.renderInGameBackground(ctx);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractMenuBackground(graphics);
         int w = 300, x = (width - w) / 2;
 
-        ctx.fill(x, 10, x + w, height - 10, ColorUtil.DEEP_SAPPHIRE);
-        ctx.drawCenteredTextWithShadow(textRenderer, "§lCHATMACRO MANAGER", x + w/2, 20, 0xFFFFFFFF);
+        graphics.fill(x, 10, x + w, height - 10, ColorUtil.DEEP_SAPPHIRE);
+        graphics.centeredText(font, Component.literal("CHATMACRO MANAGER").withStyle(ChatFormatting.BOLD), x + w/2, 20, 0xFFFFFFFF);
 
         boolean hovNew = mouseX >= x + PAD && mouseX <= x + w - PAD && mouseY >= 40 && mouseY <= 60;
-        ctx.fill(x + PAD, 40, x + w - PAD, 60, hovNew ? 0x66CDD6F4 : ColorUtil.FADED_INDIGO);
-        ctx.drawCenteredTextWithShadow(textRenderer, "§bCreate New Macro", x + w/2, 45, 0xFFFFFFFF);
+        graphics.fill(x + PAD, 40, x + w - PAD, 60, hovNew ? 0x66CDD6F4 : ColorUtil.FADED_INDIGO);
+        graphics.centeredText(font, Component.literal("Create New Macro").withStyle(ChatFormatting.AQUA), x + w/2, 45, 0xFFFFFFFF);
 
         List<ChatMacro> macros = new ArrayList<>(ChatMacroManager.getMacros().values());
 
-        ctx.enableScissor(x + PAD, LIST_TOP, x + w - PAD, getListBottom());
+        graphics.enableScissor(x + PAD, LIST_TOP, x + w - PAD, getListBottom());
 
         for (int i = 0; i < macros.size(); i++) {
             int ry = (int) (LIST_TOP + (i * CELL) - scrollOffset);
@@ -58,12 +61,12 @@ public class ChatMacroScreen extends Screen {
             ChatMacro m = macros.get(i);
             boolean hov = mouseX >= x + PAD && mouseX <= x + w - PAD && mouseY >= ry && mouseY <= ry + CELL - 5;
 
-            ctx.fill(x + PAD, ry, x + w - PAD, ry + CELL - 5, hov ? 0x44CDD6F4 : ColorUtil.DEEP_INDIGO);
-            ctx.drawTextWithShadow(textRenderer, m.getName(), x + PAD + 10, ry + 6, 0xFFFFFFFF);
-            ctx.drawTextWithShadow(textRenderer, "§7" + getBindName(m.getKeyCode()), x + w - 70, ry + 6, 0xFFFFFFFF);
+            graphics.fill(x + PAD, ry, x + w - PAD, ry + CELL - 5, hov ? 0x44CDD6F4 : ColorUtil.DEEP_INDIGO);
+            graphics.text(font, m.getName(), x + PAD + 10, ry + 6, 0xFFFFFFFF);
+            graphics.text(font, Component.literal(getBindName(m.getKeyCode())).withStyle(ChatFormatting.GRAY), x + w - 70, ry + 6, 0xFFFFFFFF);
         }
 
-        ctx.disableScissor();
+        graphics.disableScissor();
     }
 
     private String getBindName(int code) {
@@ -82,7 +85,7 @@ public class ChatMacroScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean secondary) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean secondary) {
         int w = 300, x = (width - w) / 2;
         double mx = click.x(), my = click.y();
 
@@ -98,7 +101,7 @@ public class ChatMacroScreen extends Screen {
 
             ChatMacro newMacro = new ChatMacro(finalName, new ArrayList<>(), GLFW.GLFW_KEY_UNKNOWN);
             ChatMacroManager.addMacro(newMacro.getName(), newMacro.getMessages(), newMacro.getKeyCode(), true);
-            client.setScreen(new ChatMacroConfigScreen(this, newMacro));
+            mc.gui.setScreen(new ChatMacroConfigScreen(this, newMacro));
             return true;
         }
 
@@ -108,7 +111,7 @@ public class ChatMacroScreen extends Screen {
             if (ry + CELL - 5 < LIST_TOP || ry > getListBottom()) continue;
 
             if (mx >= x + PAD && mx <= x + w - PAD && my >= ry && my <= ry + CELL - 5) {
-                client.setScreen(new ChatMacroConfigScreen(this, macros.get(i)));
+                mc.gui.setScreen(new ChatMacroConfigScreen(this, macros.get(i)));
                 return true;
             }
         }
@@ -116,9 +119,9 @@ public class ChatMacroScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
+    public boolean keyPressed(KeyEvent input) {
         if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
-            client.setScreen(parent);
+            mc.gui.setScreen(parent);
             return true;
         }
         return super.keyPressed(input);

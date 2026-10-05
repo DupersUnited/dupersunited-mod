@@ -2,47 +2,45 @@ package wtf.dupers.dupersunited.features.screens;
 
 import wtf.dupers.dupersunited.modules.glitcha.PacketDelayModule;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static wtf.dupers.dupersunited.MainClient.mc;
 import static wtf.dupers.dupersunited.utils.ColorUtil.*;
 
 public class PacketDelayScreen extends Screen {
     private final Screen parent;
     private final PacketDelayModule module;
     private int scrollOffset = 0;
-    private TextFieldWidget searchField;
+    private EditBox searchField;
 
     private record PacketPair(BooleanSetting s1, Class<?> c1, BooleanSetting s2, Class<?> c2) {}
     private final List<PacketPair> rows = new ArrayList<>();
 
     public PacketDelayScreen(Screen parent, PacketDelayModule module) {
-        super(Text.literal("DelayPacket Settings"));
+        super(Component.literal("DelayPacket Settings"));
         this.parent = parent;
         this.module = module;
     }
 
     @Override
     protected void init() {
-        searchField = new TextFieldWidget(textRenderer, width / 2 - 150, 62, 300, 16, Text.literal("Search packets..."));
-        searchField.setChangedListener(s -> {
+        searchField = new EditBox(this.font, width / 2 - 150, 62, 300, 16, Component.literal("Search packets..."));
+        searchField.setResponder(s -> {
             scrollOffset = 0;
             updateRows();
         });
 
-        this.addSelectableChild(searchField);
+        this.addRenderableWidget(searchField);
         searchField.setFocused(true);
 
         updateRows();
@@ -50,8 +48,8 @@ public class PacketDelayScreen extends Screen {
 
     private void updateRows() {
         rows.clear();
-        String query = searchField.getText().toLowerCase(Locale.ROOT);
-        Map<BooleanSetting, Class<? extends net.minecraft.network.packet.Packet<?>>> fullMap = module.getPacketSettings();
+        String query = searchField.getValue().toLowerCase(Locale.ROOT);
+        Map<BooleanSetting, Class<? extends Packet<?>>> fullMap = module.getPacketSettings();
 
         List<BooleanSetting> filtered = fullMap.entrySet().stream()
                 .filter(entry -> {
@@ -71,12 +69,12 @@ public class PacketDelayScreen extends Screen {
     }
 
     private void rebuild() {
-        this.clearChildren();
-        this.addSelectableChild(searchField);
+        this.clearWidgets();
+        this.addRenderableWidget(searchField);
         int midX = width / 2;
 
-        this.addDrawableChild(ButtonWidget.builder(
-                        Text.literal(module.isSelectiveMode() ? "SELECT PACKETS" : "DELAY ALL PACKETS").withColor(module.isSelectiveMode() ? GREEN : RED),
+        this.addRenderableWidget(Button.builder(
+                        Component.literal(module.isSelectiveMode() ? "SELECT PACKETS" : "DELAY ALL PACKETS").withColor(module.isSelectiveMode() ? GREEN : RED),
                         btn -> {
                             module.toggleSelectiveMode();
                             if (!module.isSelectiveMode()) {
@@ -84,16 +82,16 @@ public class PacketDelayScreen extends Screen {
                             }
                             updateRows();
                         }
-                ).dimensions(midX - 105, 40, 130, 18)
-                .tooltip(Tooltip.of(module.isSelectiveMode()
-                        ? Text.literal("Selective Mode\n").copy().append(Text.literal("Only packets marked PAUSE are held.\nEverything else sends normally.").formatted(Formatting.GREEN))
-                        : Text.literal("Blink All Mode\n").copy().append(Text.literal("Every packet is held regardless of\nthe ALLOW / PAUSE settings below.").formatted(Formatting.RED))
+                ).bounds(midX - 105, 40, 130, 18)
+                .tooltip(Tooltip.create(module.isSelectiveMode()
+                        ? Component.literal("Selective Mode\n").copy().append(Component.literal("Only packets marked PAUSE are held.\nEverything else sends normally.").withStyle(ChatFormatting.GREEN))
+                        : Component.literal("Blink All Mode\n").copy().append(Component.literal("Every packet is held regardless of\nthe ALLOW / PAUSE settings below.").withStyle(ChatFormatting.RED))
                 )).build());
 
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Clear Packets").withColor(SUBTEXT),
+        this.addRenderableWidget(Button.builder(
+                Component.literal("Clear Packets").withColor(SUBTEXT),
                 btn -> { module.resetSettings(); updateRows(); }
-        ).dimensions(midX + 30, 40, 100, 18).build());
+        ).bounds(midX + 30, 40, 100, 18).build());
 
         int startY = 85;
         int visibleCount = (height - 120) / 22;
@@ -109,35 +107,35 @@ public class PacketDelayScreen extends Screen {
             if (e.s2 != null) addBtn(midX + 10, y, e.s2);
         }
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Done"), btn -> close())
-                .dimensions(midX - 50, height - 28, 100, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Done"), btn -> onClose())
+                .bounds(midX - 50, height - 28, 100, 20).build());
     }
 
     private void addBtn(int x, int y, BooleanSetting s) {
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal(s.getValue() ? "ALLOW" : "PAUSE").withColor(s.getValue() ? GREEN : YELLOW),
+        this.addRenderableWidget(Button.builder(
+                Component.literal(s.getValue() ? "ALLOW" : "PAUSE").withColor(s.getValue() ? GREEN : YELLOW),
                 btn -> {
                     s.setValue(!s.getValue());
                     rebuild();
-                }).dimensions(x + 95, y + 2, 45, 14).build());
+                }).bounds(x + 95, y + 2, 45, 14).build());
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        this.renderInGameBackground(ctx);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        this.extractMenuBackground(ctx);
 
         ctx.fill(0, 0, width, height, DEEP_SAPPHIRE);
         ctx.fill(0, 0, width, 38, MANTLE);
 
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("DELAY PACKETS").formatted(Formatting.BOLD), width / 2, 8, LAVENDER);
+        ctx.centeredText(font, Component.literal("DELAY PACKETS").withStyle(ChatFormatting.BOLD), width / 2, 8, LAVENDER);
 
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("Configure which packets are held while blink is active").withColor(SUBTEXT),
+        ctx.centeredText(font,
+                Component.literal("Configure which packets are held while blink is active").withColor(SUBTEXT),
                 width / 2, 20, SUBTEXT);
 
         ctx.fill(width / 2 - 160, 80, width / 2 + 160, height - 36, MANTLE);
 
-        searchField.render(ctx, mouseX, mouseY, delta);
+        searchField.extractRenderState(ctx, mouseX, mouseY, delta);
         int startY = 85;
         int visibleCount = (height - 120) / 22;
 
@@ -152,13 +150,13 @@ public class PacketDelayScreen extends Screen {
             if (e.s2 != null) renderPacketLabel(ctx, width / 2 + 15, y, e.s2, e.c2, mouseX, mouseY);
         }
 
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
     }
 
-    private void renderPacketLabel(DrawContext ctx, int x, int y, BooleanSetting s, Class<?> clazz, int mx, int my) {
-        ctx.drawTextWithShadow(textRenderer, s.getName(), x, y + 5, s.getValue() ? PALE_NAVY : SUBTEXT);
+    private void renderPacketLabel(GuiGraphicsExtractor ctx, int x, int y, BooleanSetting s, Class<?> clazz, int mx, int my) {
+        ctx.text(font, s.getName(), x, y + 5, s.getValue() ? PALE_NAVY : SUBTEXT);
         if (mx >= x && mx <= x + 90 && my >= y && my <= y + 20) {
-            ctx.drawTooltip(textRenderer, Text.literal(clazz.getSimpleName()).withColor(MAUVE), mx, my);
+            ctx.setComponentTooltipForNextFrame(font, Collections.singletonList(Component.literal(clazz.getSimpleName()).withColor(MAUVE)), mx, my);
         }
     }
 
@@ -171,8 +169,8 @@ public class PacketDelayScreen extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         module.syncTargets();
-        MinecraftClient.getInstance().setScreen(parent);
+        mc.gui.setScreen(parent);
     }
 }

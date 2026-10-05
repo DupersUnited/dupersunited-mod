@@ -25,6 +25,9 @@ repositories {
         name = "TerraformersMC"
         url = uri("https://maven.terraformersmc.com/releases/")
     }
+    maven {
+        url = uri("https://maven.xpple.dev/maven2")
+    }
 }
 
 configurations {
@@ -40,11 +43,13 @@ configurations {
 
 dependencies {
     minecraft(libs.minecraft)
-    mappings(variantOf(libs.yarn) { classifier("v2") })
-    modImplementation(libs.fabric.loader)
-    modImplementation(libs.fabric.api)
+    implementation(libs.fabric.loader)
+    implementation(libs.fabric.api)
 
-    modCompileOnly(libs.modmenu)
+    implementation(libs.clientarguments)
+    include(libs.clientarguments)
+
+    compileOnly(libs.modmenu)
 
     val library = configurations.named("library")
 
@@ -69,7 +74,7 @@ tasks {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
+            languageVersion.set(JavaLanguageVersion.of(25))
         }
 
         withSourcesJar()
@@ -86,7 +91,9 @@ tasks {
 
     withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
-        options.release.set(21)
+        options.release.set(25)
+        // REMOVE BEFORE PUSHING TO MAIN, chatgpt told me this will help
+        options.compilerArgs.addAll(listOf("-Xmaxerrs", "5000"))
     }
 }
 

@@ -6,12 +6,13 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import wtf.dupers.dupersunited.api.module.settings.StringSetting;
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class SpamModule extends Module {
 
@@ -60,7 +61,6 @@ public class SpamModule extends Module {
 
     @Override
     public void onTick() {
-        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
 
         if (limited.getValue() && sentCount >= getCountValue()) {
@@ -79,7 +79,7 @@ public class SpamModule extends Module {
         String msg = active.get(messageIndex);
         if (bypass.getValue()) msg = msg + " " + randomSuffix();
 
-        mc.player.networkHandler.sendChatMessage(msg);
+        mc.player.connection.sendChat(msg);
 
         messageIndex = (messageIndex + 1) % active.size();
         lastSendTime = now;

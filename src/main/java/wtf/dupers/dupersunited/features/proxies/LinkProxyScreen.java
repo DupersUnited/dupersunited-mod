@@ -1,9 +1,10 @@
 package wtf.dupers.dupersunited.features.proxies;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,26 +18,28 @@ public class LinkProxyScreen extends Screen {
     private static final int LIST_TOP = 50;
     private static final int LIST_BOTTOM_MARGIN = 10;
 
-    private final List<ButtonWidget> proxyButtons = new ArrayList<>();
+    private final List<Button> proxyButtons = new ArrayList<>();
     private double scrollOffset = 0;
     private int maxScroll = 0;
 
     public LinkProxyScreen(Screen parent, String accountName) {
-        super(Text.literal("Link Proxy to " + accountName));
+        super(Component.literal("Link Proxy to " + accountName));
         this.parent = parent;
         this.accountName = accountName;
     }
 
     @Override
     protected void init() {
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), btn ->
-                client.setScreen(parent)
-        ).dimensions(5, 8, 50, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Back"), btn -> {
+            assert this.minecraft != null;
+            this.minecraft.gui.setScreen(parent);
+        }).bounds(5, 8, 50, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("§cUnlink Proxy"), btn -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Unlink Proxy").withStyle(ChatFormatting.RED), btn -> {
             AccountProxyLinks.unlink(accountName);
-            client.setScreen(parent);
-        }).dimensions(this.width - 110, 8, 100, 20).build());
+            assert this.minecraft != null;
+            this.minecraft.gui.setScreen(parent);
+        }).bounds(this.width - 110, 8, 100, 20).build());
 
         proxyButtons.clear();
         List<ProxyProfiles> profiles = ProxyConfigManager.profiles;
@@ -46,12 +49,12 @@ public class LinkProxyScreen extends Screen {
             boolean isLinked = p.name.equals(AccountProxyLinks.getLinkedProxy(accountName));
             String label = (isLinked ? "§a " : "") + p.name + " §7(" + p.address + ")";
 
-            ButtonWidget button = ButtonWidget.builder(Text.literal(label), btn -> {
+            Button button = Button.builder(Component.literal(label), btn -> {
                 AccountProxyLinks.link(accountName, p.name);
-                client.setScreen(parent);
-            }).dimensions(this.width / 2 - 150, y, 300, 20).build();
-
-            this.addDrawableChild(button);
+                assert this.minecraft != null;
+                this.minecraft.gui.setScreen(parent);
+            }).bounds(this.width / 2 - 150, y, 300, 20).build();
+            this.addRenderableWidget(button);
             proxyButtons.add(button);
 
             y += ENTRY_HEIGHT;
@@ -69,7 +72,7 @@ public class LinkProxyScreen extends Screen {
         int listBottom = this.height - LIST_BOTTOM_MARGIN;
         int y = LIST_TOP - (int) scrollOffset;
 
-        for (ButtonWidget button : proxyButtons) {
+        for (Button button : proxyButtons) {
             button.setY(y);
 
             boolean visible = y + button.getHeight() > LIST_TOP && y < listBottom;
@@ -92,30 +95,35 @@ public class LinkProxyScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fill(0, 0, this.width, this.height, 0xFF101010);
-    }
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        graphics.fill(0, 0, this.width, this.height, 0xFF101010);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("Link a proxy to §b" + accountName), this.width / 2, 20, 0xFFFFFFFF);
+        graphics.centeredText(font,
+            Component.literal("Link a proxy to ").withStyle(ChatFormatting.RESET)
+                .append(Component.literal(accountName).withStyle(ChatFormatting.AQUA)),
+            this.width / 2, 20, 0xFFFFFFFF);
 
         String current = AccountProxyLinks.getLinkedProxy(accountName);
-        context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal(current != null ? "§7Current Profile Linked: §a" + current : "§7No proxy linked"),
-                this.width / 2, 35, 0xFFFFFFFF);
+        Component currentStatusComponent;
+        if (current != null) {
+            currentStatusComponent = Component.literal("Current Profile Linked: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(current).withStyle(ChatFormatting.GREEN));
+        } else {
+            currentStatusComponent = Component.literal("No proxy linked").withStyle(ChatFormatting.GRAY);
+        }
+
+        graphics.centeredText(font, currentStatusComponent, this.width / 2, 35, 0xFFFFFFFF);
 
         if (ProxyConfigManager.profiles.isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("§cNo proxy profiles found! Please remember to add some in Proxy Manager first. :)"),
-                    this.width / 2, this.height / 2, 0xFFFFFFFF);
+            graphics.centeredText(font,
+                Component.literal("No proxy profiles found! Please remember to add some in Proxy Manager first. :)").withStyle(ChatFormatting.RED),
+                this.width / 2, this.height / 2, 0xFFFFFFFF);
         }
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

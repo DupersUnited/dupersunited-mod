@@ -1,27 +1,21 @@
 package wtf.dupers.dupersunited.mixin.render;
 
+import net.minecraft.client.renderer.state.level.ParticlesRenderState;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.modules.render.NoRenderModule;
-import net.minecraft.client.particle.ParticleManager;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.Frustum;
-import net.minecraft.client.render.SubmittableBatch;
+import net.minecraft.client.particle.ParticleEngine;
+import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.culling.Frustum;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ParticleManager.class)
+@Mixin(ParticleEngine.class)
 public class ParticleManagerMixin {
 
-    @Inject(method = "addToBatch", at = @At("HEAD"), cancellable = true)
-    private void dupersunited$skipParticlesWhenDisabled(
-            SubmittableBatch batch,
-            Frustum frustum,
-            Camera camera,
-            float tickDelta,
-            CallbackInfo ci
-    ) {
+    @Inject(method = "extract", at = @At("HEAD"), cancellable = true)
+    private void dupersunited$skipParticlesWhenDisabled(ParticlesRenderState particlesRenderState, Frustum frustum, Camera camera, float partialTickTime, CallbackInfo ci) {
         NoRenderModule mod = MainClient.MODULE_MANAGER.getModule(NoRenderModule.class);
         if (mod == null || !mod.isEnabled()) {
             return;

@@ -3,10 +3,11 @@ package wtf.dupers.dupersunited.commands.subcommands;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.command.CommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.api.command.Command;
 import wtf.dupers.dupersunited.api.command.arguments.ModuleArgumentType;
@@ -14,7 +15,8 @@ import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.*;
 import wtf.dupers.dupersunited.commands.MainCommand;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
+
 
 public final class ModuleCommand extends Command {
     public ModuleCommand() {
@@ -22,29 +24,29 @@ public final class ModuleCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
         builder.then(argument("module", ModuleArgumentType.module())
             .executes(context -> {
                 Module module = ModuleArgumentType.get(context);
 
                 var settings = module.getSettings();
                 if (settings.isEmpty()) {
-                    MainCommand.sendMessage(Text.empty()
-                        .append(Text.literal(module.getName()).formatted(Formatting.AQUA))
+                    MainCommand.sendMessage(Component.empty()
+                        .append(Component.literal(module.getName()).withStyle(ChatFormatting.AQUA))
                         .append(" has no settings."), true);
 
                     return 1;
                 }
 
-                MainCommand.sendMessage(Text.literal("Settings for ")
-                    .append(Text.literal(module.getName()).formatted(Formatting.AQUA))
+                MainCommand.sendMessage(Component.literal("Settings for ")
+                    .append(Component.literal(module.getName()).withStyle(ChatFormatting.AQUA))
                     .append(":"), true);
 
                 for (var setting : settings) {
-                    MainCommand.sendMessage(Text.literal(" - ").formatted(Formatting.GRAY)
-                        .append(Text.literal(setting.getName()).formatted(Formatting.DARK_AQUA))
+                    MainCommand.sendMessage(Component.literal(" - ").withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal(setting.getName()).withStyle(ChatFormatting.DARK_AQUA))
                         .append(": ")
-                        .append(Text.literal(String.valueOf(setting.getValue())).formatted(Formatting.AQUA)), true);
+                        .append(Component.literal(String.valueOf(setting.getValue())).withStyle(ChatFormatting.AQUA)), true);
                 }
                 return 1;
             })
@@ -52,7 +54,7 @@ public final class ModuleCommand extends Command {
                 .suggests((context, suggestions) -> {
                     String moduleName = StringArgumentType.getString(context, "module");
                     Module module = MainClient.MODULE_MANAGER.getModuleByName(moduleName);
-                    return CommandSource.suggestMatching(module.getSettings().stream().map(Setting::getName), suggestions);
+                    return SharedSuggestionProvider.suggest(module.getSettings().stream().map(Setting::getName), suggestions);
                 })
                 .then(argument("value", StringArgumentType.greedyString())
                     .executes(context -> {
@@ -63,7 +65,7 @@ public final class ModuleCommand extends Command {
                         Module module = MainClient.MODULE_MANAGER.getModuleByName(moduleName);
                         if (module == null) {
                             MainCommand.sendMessage(
-                                Text.literal("Module not found.").formatted(Formatting.RED),
+                                Component.literal("Module not found.").withStyle(ChatFormatting.RED),
                                 true
                             );
                             return 0;
@@ -71,11 +73,11 @@ public final class ModuleCommand extends Command {
 
                         var setting = module.getSettingByName(settingName);
                         if (setting == null) {
-                            MainCommand.sendMessage(Text.literal("Setting ")
-                                .append(Text.literal(settingName).formatted(Formatting.AQUA))
-                                .append(Text.literal(" not found").formatted(Formatting.RED))
+                            MainCommand.sendMessage(Component.literal("Setting ")
+                                .append(Component.literal(settingName).withStyle(ChatFormatting.AQUA))
+                                .append(Component.literal(" not found").withStyle(ChatFormatting.RED))
                                 .append(" on ")
-                                .append(Text.literal(moduleName).formatted(Formatting.AQUA))
+                                .append(Component.literal(moduleName).withStyle(ChatFormatting.AQUA))
                                 .append("."), true);
 
                             return 0;
@@ -90,27 +92,27 @@ public final class ModuleCommand extends Command {
                                 case StringSetting ss -> ss.setValue(value);
                                 default -> {
                                     MainCommand.sendMessage(
-                                        Text.literal("Unsupported setting type.").formatted(Formatting.RED),
+                                        Component.literal("Unsupported setting type.").withStyle(ChatFormatting.RED),
                                         true
                                     );
                                     return 0;
                                 }
                             }
 
-                            MainCommand.sendMessage(Text.empty()
-                                .append(Text.literal(moduleName).formatted(Formatting.AQUA))
+                            MainCommand.sendMessage(Component.empty()
+                                .append(Component.literal(moduleName).withStyle(ChatFormatting.AQUA))
                                 .append(" setting ")
-                                .append(Text.literal(settingName).formatted(Formatting.AQUA))
+                                .append(Component.literal(settingName).withStyle(ChatFormatting.AQUA))
                                 .append(" set to ")
-                                .append(Text.literal(String.valueOf(setting.getValue())).formatted(Formatting.AQUA))
+                                .append(Component.literal(String.valueOf(setting.getValue())).withStyle(ChatFormatting.AQUA))
                                 .append("."), true);
 
                             return 1;
                         } catch (NumberFormatException e) {
-                            MainCommand.sendMessage(Text.literal("Invalid value ").formatted(Formatting.RED)
-                                .append(Text.literal(value).formatted(Formatting.WHITE))
+                            MainCommand.sendMessage(Component.literal("Invalid value ").withStyle(ChatFormatting.RED)
+                                .append(Component.literal(value).withStyle(ChatFormatting.WHITE))
                                 .append(" for setting ")
-                                .append(Text.literal(settingName).formatted(Formatting.AQUA))
+                                .append(Component.literal(settingName).withStyle(ChatFormatting.AQUA))
                                 .append("."), true);
 
                             return 0;

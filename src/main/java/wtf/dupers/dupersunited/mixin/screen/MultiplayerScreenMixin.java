@@ -1,31 +1,33 @@
 package wtf.dupers.dupersunited.mixin.screen;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NonNull;
+import org.spongepowered.asm.mixin.Shadow;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.commands.subcommands.DupeCommand;
 import wtf.dupers.dupersunited.compat.MeteorCompat;
-import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.features.ServerAlertConfig;
 import wtf.dupers.dupersunited.features.proxies.ProxyConfigManager;
 import wtf.dupers.dupersunited.features.proxies.ProxyProfiles;
 import wtf.dupers.dupersunited.features.screens.mainmenu.alerts.HallOfFame;
 import wtf.dupers.dupersunited.features.screens.mainmenu.alerts.HallOfShame;
-import wtf.dupers.dupersunited.features.screens.DupersUnitedScreen;
 import wtf.dupers.dupersunited.features.screens.mainmenu.alerts.NoProxyWarningScreen;
 import wtf.dupers.dupersunited.features.screens.mainmenu.alerts.UnsafeModuleWarningScreen;
-import wtf.dupers.dupersunited.features.ssidLogin.AccountsScreen;
+import wtf.dupers.dupersunited.features.account.AccountsScreen;
+import wtf.dupers.dupersunited.features.screens.ClickGui;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.modules.misc.InvDropModule;
 import wtf.dupers.dupersunited.modules.misc.NoFallModule;
+import wtf.dupers.dupersunited.modules.misc.ServerAlertsModule;
 import wtf.dupers.dupersunited.modules.misc.VanillaFlyModule;
 import wtf.dupers.dupersunited.modules.misc.WarnUnsafeModule;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,17 +36,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
-@Mixin(MultiplayerScreen.class)
+import static wtf.dupers.dupersunited.MainClient.mc;
+
+@Mixin(JoinMultiplayerScreen.class)
 public abstract class MultiplayerScreenMixin extends Screen {
+    @Shadow
+    public abstract void join(ServerData data);
 
-    protected MultiplayerScreenMixin(Text title) { super(title); }
+    protected MultiplayerScreenMixin(Component title) { super(title); }
 
-    @Unique private ButtonWidget dupersunited$configsButton;
-    @Unique private ButtonWidget dupersunited$accountsButton;
-    @Unique private ButtonWidget dupersunited$autoReconnectButton;
-    @Unique private ButtonWidget dupersunited$rpBypassButton;
-    @Unique private ButtonWidget dupersunited$brandSpoofButton;
-    @Unique private ButtonWidget dupersunited$hallOfShameButton;
+    @Unique private Button dupersunited$accountsButton;
+    @Unique private Button dupersunited$settingsButton;
     @Unique private int dupersunited$lastWidth = -1;
     @Unique private int dupersunited$lastHeight = -1;
 
@@ -60,90 +62,42 @@ public abstract class MultiplayerScreenMixin extends Screen {
     }
 
     @Unique
+    private int dupersunited$accountsButtonX() {
+        String currentUsername = mc.getUser().getName();
+        int textWidth = this.font.width(
+            Component.literal("IGN: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(currentUsername).withStyle(ChatFormatting.AQUA))
+        );
+        return Math.max(90, 5 + textWidth + 10);
+    }
+
+    @Unique
     private void dupersunited$updateButtonPositions() {
-        boolean show = this.width >= 600;
-        if (dupersunited$brandSpoofButton != null) {
-            dupersunited$brandSpoofButton.visible = show;
-            dupersunited$brandSpoofButton.setPosition(this.width - 200, this.height - 50);
-        }
-        if (dupersunited$configsButton != null) {
-            dupersunited$configsButton.visible = show;
-            dupersunited$configsButton.setPosition(this.width - 85, this.height - 50);
-        }
         if (dupersunited$accountsButton != null) {
-            dupersunited$accountsButton.visible = show;
-            dupersunited$accountsButton.setPosition(this.width - 220, this.height - 25);
+            dupersunited$accountsButton.visible = this.width >= 600;
+            dupersunited$accountsButton.setPosition(dupersunited$accountsButtonX(), 3);
         }
-        if (dupersunited$autoReconnectButton != null) {
-            dupersunited$autoReconnectButton.visible = show;
-            dupersunited$autoReconnectButton.setPosition(5, this.height - 50);
-        }
-        if (dupersunited$rpBypassButton != null) {
-            dupersunited$rpBypassButton.visible = show;
-            dupersunited$rpBypassButton.setPosition(110, this.height - 25);
-        }
-        if (dupersunited$hallOfShameButton != null) {
-            dupersunited$hallOfShameButton.visible = show;
-            dupersunited$hallOfShameButton.setPosition(5, this.height - 25);
+        if (dupersunited$settingsButton != null) {
+            dupersunited$settingsButton.visible = this.width >= 600;
+            dupersunited$settingsButton.setPosition(this.width - 85, this.height - 25);
         }
     }
 
     @Inject(at = @At("TAIL"), method = "init")
     private void dupersunited$addProxyButton(CallbackInfo ci) {
-        if (!MeteorCompat.isPresent()) {
-            dupersunited$brandSpoofButton = this.addDrawableChild(ButtonWidget.builder(
-                Text.literal(ConfigManager.brandSpoofEnabled ? "Brand Spoof: §aVanilla" : "Brand Spoof: §cOFF"),
-                btn -> {
-                    ConfigManager.brandSpoofEnabled = !ConfigManager.brandSpoofEnabled;
-                    btn.setMessage(Text.literal(ConfigManager.brandSpoofEnabled ? "Brand Spoof: §aVanilla" : "Brand Spoof: §cOFF"));
-                    ConfigManager.save();
-                }
-            ).dimensions(this.width - 200, this.height - 50, 110, 20).build());
-            dupersunited$autoReconnectButton = this.addDrawableChild(ButtonWidget.builder(
-                Text.literal(ConfigManager.autoReconnectEnabled ? "AutoReconnect: §aON" : "AutoReconnect: §cOFF"),
-                btn -> {
-                    ConfigManager.autoReconnectEnabled = !ConfigManager.autoReconnectEnabled;
-                    ConfigManager.save();
-                    btn.setMessage(Text.literal(ConfigManager.autoReconnectEnabled ? "AutoReconnect: §aON" : "AutoReconnect: §cOFF"));
-                }
-            ).dimensions(5, this.height - 50, 130, 20).build());
+        dupersunited$accountsButton = this.addRenderableWidget(Button.builder(
+                Component.literal("Accounts"),
+                _ -> mc.gui.setScreen(new AccountsScreen(this))
+        ).bounds(dupersunited$accountsButtonX(), 3, 80, 20).build());
 
-            dupersunited$rpBypassButton = this.addDrawableChild(ButtonWidget.builder(
-                Text.literal(ConfigManager.rpBypassEnabled ? "RP Bypass: §aON" : "RP Bypass: §cOFF"),
-                btn -> {
-                    ConfigManager.rpBypassEnabled = !ConfigManager.rpBypassEnabled;
-                    btn.setMessage(Text.literal(ConfigManager.rpBypassEnabled ? "RP Bypass: §aON" : "RP Bypass: §cOFF"));
-                    ConfigManager.save();
-                }
-            ).dimensions(110, this.height - 25, 100, 20).build());
-        }
+        dupersunited$accountsButton.visible = this.width >= 600;
 
-        dupersunited$configsButton = this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Settings"),
-                btn -> this.client.setScreen(new DupersUnitedScreen(this))
-        ).dimensions(this.width - 85, this.height - 50, 80, 20).build());
+        dupersunited$settingsButton = this.addRenderableWidget(Button.builder(
+            Component.literal("Settings"),
+            _ -> mc.gui.setScreen(new ClickGui(this))
+        ).bounds(this.width - 85, this.height - 25, 80, 20).build());
 
-        dupersunited$accountsButton = this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Account Manager"),
-                btn -> this.client.setScreen(new AccountsScreen(this))
-        ).dimensions(this.width - 220, this.height - 25, 215, 20).build());
-
-        dupersunited$hallOfShameButton = this.addDrawableChild(ButtonWidget.builder(
-                Text.literal(ConfigManager.serverAlertsEnabled ? "Server Alert: §aON" : "Server Alert: §cOFF"),
-                btn -> {
-                    ConfigManager.serverAlertsEnabled = !ConfigManager.serverAlertsEnabled;
-                    btn.setMessage(Text.literal(ConfigManager.serverAlertsEnabled ? "Server Alert: §aON" : "Server Alert: §cOFF"));
-                    ConfigManager.save();
-                }
-        ).dimensions(5, this.height - 25, 100, 20).build());
-
-        boolean show = this.width >= 600;
-        dupersunited$configsButton.visible = show;
-        dupersunited$accountsButton.visible = show;
-        dupersunited$hallOfShameButton.visible = show;
-        if (dupersunited$brandSpoofButton != null) dupersunited$brandSpoofButton.visible = show;
-        if (dupersunited$autoReconnectButton != null) dupersunited$autoReconnectButton.visible = show;
-        if (dupersunited$rpBypassButton != null) dupersunited$rpBypassButton.visible = show;
+        dupersunited$settingsButton.visible = this.width >= 600;
 
         dupersunited$lastWidth = this.width;
         dupersunited$lastHeight = this.height;
@@ -151,80 +105,84 @@ public abstract class MultiplayerScreenMixin extends Screen {
         AccountsScreen.preloadAccounts();
     }
 
-    @Inject(method = "connect(Lnet/minecraft/client/network/ServerInfo;)V", at = @At("HEAD"), cancellable = true)
-    private void dupersunited$checkProxy(ServerInfo serverInfo, CallbackInfo ci) {
-        if (DupeCommand.amILarpingItUp) ClientTickEvents.END_CLIENT_TICK.register(c -> {
-            throw new RuntimeException("Failed to establish a connection with the Hygot backend!");
+    @Inject(method = "join", at = @At("HEAD"), cancellable = true)
+    private void dupersunited$checkProxy(ServerData serverData, CallbackInfo ci) {
+        if (DupeCommand.amILarpingItUp) ClientTickEvents.END_CLIENT_TICK.register(_ -> {
+            throw new RuntimeException("Failed to establish a connection with the Hygot backend!");//ouuu shii @vinzy-dev this is a cold error
         });
 
         if (MainClient.MODULE_MANAGER.isEnabled(WarnUnsafeModule.class) && hasUnsafeModulesEnabled()) {
-            MinecraftClient.getInstance().setScreen(new UnsafeModuleWarningScreen(this, serverInfo));
+            mc.gui.setScreen(new UnsafeModuleWarningScreen(this, serverData));
             ci.cancel();
             return;
         }
 
-        if (ConfigManager.serverAlertsEnabled && !dupersunited$bypassHosCheck) {
-            if (!ServerAlertConfig.isDismissed(serverInfo.address)) {
-                if (HallOfShame.lookupCached(serverInfo.address)) {
-                    MinecraftClient.getInstance().setScreen(new HallOfShame.WarningScreen(this, serverInfo));
+        if (MainClient.MODULE_MANAGER.isEnabled(ServerAlertsModule.class) && !dupersunited$bypassHosCheck) {
+            if (!ServerAlertConfig.isDismissed(serverData.ip)) {
+                if (HallOfShame.lookupCached(serverData.ip)) {
+                    mc.gui.setScreen(new HallOfShame.WarningScreen(this, serverData));
                     ci.cancel();
                     return;
                 }
-
-                if (HallOfFame.lookupCached(serverInfo.address)) {
-                    MinecraftClient.getInstance().setScreen(new HallOfFame.NoticeScreen(this, serverInfo));
+                if (HallOfFame.lookupCached(serverData.ip)) {
+                    mc.gui.setScreen(new HallOfFame.NoticeScreen(this, serverData));
                     ci.cancel();
                     return;
                 }
 
                 ci.cancel();
-                HallOfShame.checkAsync(serverInfo.address).thenAccept(flagged -> {
-                    MinecraftClient.getInstance().execute(() -> {
-                        if (flagged && !ServerAlertConfig.isDismissed(serverInfo.address)) {
-                            MinecraftClient.getInstance().setScreen(new HallOfShame.WarningScreen(this, serverInfo));
+                HallOfShame.checkAsync(serverData.ip).thenAccept(flagged ->
+                    mc.execute(() -> {
+                        if (flagged && !ServerAlertConfig.isDismissed(serverData.ip)) {
+                            mc.gui.setScreen(new HallOfShame.WarningScreen(this, serverData));
                         } else {
                             dupersunited$bypassHosCheck = true;
-                            ((MultiplayerScreen) (Object) this).connect(serverInfo);
+                            this.join(serverData);
                             dupersunited$bypassHosCheck = false;
                         }
-                    });
-                });
+                    })
+                );
                 return;
             }
 
             if (ProxyConfigManager.proxyWarningEnabled && ProxyConfigManager.shouldWarn()) {
-                MinecraftClient.getInstance().setScreen(new NoProxyWarningScreen(this, serverInfo));
+                mc.gui.setScreen(new NoProxyWarningScreen(this, serverData));
                 ci.cancel();
             }
         }
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (this.width != dupersunited$lastWidth || this.height != dupersunited$lastHeight) {
             dupersunited$lastWidth = this.width;
             dupersunited$lastHeight = this.height;
-            dupersunited$updateButtonPositions();
         }
+        dupersunited$updateButtonPositions();
 
-        super.render(context, mouseX, mouseY, delta);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         if (this.width < 600) return;
 
-        String currentUsername = MinecraftClient.getInstance().getSession().getUsername();
-        context.drawTextWithShadow(
-                this.textRenderer,
-                Text.literal("§7IGN: §b" + currentUsername), 5, 7, 0xFFFFFFFF
+        String currentUsername = mc.getUser().getName();
+        graphics.text(
+            font,
+            Component.literal("IGN: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(currentUsername).withStyle(ChatFormatting.AQUA)),
+            5, 7, 0xFFFFFFFF
         );
 
         ProxyProfiles active = ProxyConfigManager.getActiveProfile();
-        String proxyText = "§cnone";
+        Component proxyComponent = Component.literal("none").withStyle(ChatFormatting.RED);
         if (ProxyConfigManager.globalEnabled && active != null) {
-            proxyText = "§a" + active.name;
+            proxyComponent = Component.literal(active.name).withStyle(ChatFormatting.GREEN);
         }
-        context.drawTextWithShadow(
-                this.textRenderer,
-                Text.literal("§7Proxy: " + proxyText), 5, 18, 0xFFFFFFFF
+
+        graphics.text(
+            font,
+            Component.literal("Proxy: ").withStyle(ChatFormatting.GRAY)
+                .append(proxyComponent),
+            5, 18, 0xFFFFFFFF
         );
     }
 }

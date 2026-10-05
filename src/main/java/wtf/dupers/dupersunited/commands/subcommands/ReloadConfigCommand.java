@@ -2,7 +2,7 @@ package wtf.dupers.dupersunited.commands.subcommands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.commands.CommandBuildContext;
 import wtf.dupers.dupersunited.api.command.Command;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.features.ConfigManager;
@@ -13,7 +13,7 @@ public final class ReloadConfigCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandRegistryAccess registryAccess) {
+    public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
         builder.executes(c -> {
             ConfigManager.load().join();
             MainCommand.sendMessage("Reloaded config.", true);

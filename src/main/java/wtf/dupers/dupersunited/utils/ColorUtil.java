@@ -1,9 +1,9 @@
 package wtf.dupers.dupersunited.utils;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +37,8 @@ public class ColorUtil {
     public static final int SET_BG = 0xCC11111B;
     public static final int SET_LINE = 0xFF262637;
     public static final int SELECTION = 0x6689B4FA;
+    public static final int MAUVE2 = 0xcba6f7;
+    public static final int RED2 = 0xf38ba8;
 
     public static Color toAwtColor(int argb) {
         return new Color(argb, true);
@@ -50,15 +52,15 @@ public class ColorUtil {
         return applyFormattingCodes(base, '&');
     }
 
-    public static Text generateColoredText(String raw) {
+    public static Component generateColoredText(String raw) {
         String first = raw.replaceAll("&#[0-9a-fA-F]{6}.*","");
         Pattern rgbPattern = Pattern.compile("&#([0-9a-fA-F]{6})(.*?)(?=&#[0-9a-fA-F]{6}|$)");
         Matcher matcher = rgbPattern.matcher(raw);
-        MutableText coloredText = Text.literal(applyFormattingCodes(first)).withColor(MAUVE);
+        MutableComponent coloredText = Component.literal(applyFormattingCodes(first)).withColor(MAUVE);
         while (matcher.find()) {
             String rgb = matcher.group(1);
             String text = matcher.group(2);
-            coloredText.append(Text.literal(applyFormattingCodes(text)).withColor(0xFF000000+Integer.parseInt(rgb, 16)));
+            coloredText.append(Component.literal(applyFormattingCodes(text)).withColor(0xFF000000+Integer.parseInt(rgb, 16)));
         }
         return coloredText;
     }

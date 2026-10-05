@@ -9,6 +9,10 @@ import wtf.dupers.dupersunited.features.screens.hud.HudElement;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import wtf.dupers.dupersunited.api.module.Module;
+import wtf.dupers.dupersunited.modules.misc.AutoReconnectModule;
+import wtf.dupers.dupersunited.modules.misc.BrandSpoofModule;
+import wtf.dupers.dupersunited.modules.misc.RpBypassModule;
+import wtf.dupers.dupersunited.modules.misc.ServerAlertsModule;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.joml.Vector2i;
 
@@ -23,21 +27,18 @@ public class ConfigManager {
 
     private static final List<HudElement> HUD_ELEMENTS = List.of(
         HudEditorScreen.WATERMARK,
-        //HudEditorScreen.MACRO,
+        HudEditorScreen.MACRO,
         HudEditorScreen.SAVED_GUI,
         HudEditorScreen.TPS,
         HudEditorScreen.HUD_LIST
     );
 
-    public static boolean autoReconnectEnabled = false;
-    public static boolean rpBypassEnabled = false;
-    public static boolean brandSpoofEnabled = false;
-    public static boolean serverAlertsEnabled = true;
     public static String addonToken = "";
     public static String addonApiBaseUrl = "https://dupersunited-server.dupers.wtf";
     public static String addonWsBaseUrl = "wss://dupersunited-server.dupers.wtf/ws/private";
 
     public static boolean firstLaunch = true;
+    public static boolean agreedToPolicy = false;
 
     private static final JsonObject unregisteredData = new JsonObject();
 
@@ -53,13 +54,11 @@ public class ConfigManager {
         JsonObject root = new JsonObject();
 
         root.addProperty("firstLaunch", firstLaunch);
-        root.addProperty("autoReconnectEnabled", autoReconnectEnabled);
-        root.addProperty("rpBypassEnabled", rpBypassEnabled);
-        root.addProperty("brandSpoofEnabled", brandSpoofEnabled);
-        root.addProperty("serverAlertsEnabled", serverAlertsEnabled);
+        root.addProperty("agreedToPolicy", agreedToPolicy);
         root.addProperty("addonToken", addonToken);
         root.addProperty("addonApiBaseUrl", addonApiBaseUrl);
         root.addProperty("addonWsBaseUrl", addonWsBaseUrl);
+        root.add("modSettings", ModSettings.writeJson());
 
         JsonObject hudObj = new JsonObject();
         for (HudElement el : HUD_ELEMENTS) {
@@ -124,22 +123,27 @@ public class ConfigManager {
         return root;
     }
 
+    private static void migrateToggle(JsonObject root, boolean hadEntry, String legacyKey, Class<? extends Module> moduleClass) {
+        if (hadEntry || !root.has(legacyKey)) {
+            return;
+        }
+        Module module = MainClient.MODULE_MANAGER.getModule(moduleClass);
+        if (module == null) {
+            return;
+        }
+        try {
+            module.setEnabled(root.get(legacyKey).getAsBoolean());
+        } catch (Exception ignored) {
+        }
+    }
+
     public static CompletableFuture<Void> load() {
         return AsyncConfigs.load(JsonObject.class, CONFIG_FILE, "config").thenAccept(root -> {
             if (root.has("firstLaunch")) {
                 firstLaunch = root.get("firstLaunch").getAsBoolean();
             }
-            if (root.has("autoReconnectEnabled")) {
-                autoReconnectEnabled = root.get("autoReconnectEnabled").getAsBoolean();
-            }
-            if (root.has("rpBypassEnabled")) {
-                rpBypassEnabled = root.get("rpBypassEnabled").getAsBoolean();
-            }
-            if (root.has("brandSpoofEnabled")) {
-                brandSpoofEnabled = root.get("brandSpoofEnabled").getAsBoolean();
-            }
-            if (root.has("serverAlertsEnabled ")) {
-                serverAlertsEnabled = root.get("serverAlertsEnabled ").getAsBoolean();
+            if (root.has("agreedToPolicy")) {
+                agreedToPolicy = root.get("agreedToPolicy").getAsBoolean();
             }
             if (root.has("addonToken")) {
                 addonToken = root.get("addonToken").getAsString().trim();
@@ -169,6 +173,23 @@ public class ConfigManager {
             boolean backwardsCompat = !root.has("modules");
             JsonObject modulesObj = backwardsCompat ? root : root.getAsJsonObject("modules");
 
+            if (root.has("modSettings")) {
+                ModSettings.readJson(root.get("modSettings"));
+            } else {
+                // moved out of the Mod Settings module, keep the old value
+                for (String key : List.of("dupersunited:Mod Settings", "Mod Settings")) {
+                    if (modulesObj.has(key) && modulesObj.get(key).isJsonObject()) {
+                        ModSettings.migrateFromModuleEntry(modulesObj.remove(key).getAsJsonObject());
+                        break;
+                    }
+                }
+            }
+
+            boolean hadAutoReconnect = modulesObj.has("dupersunited:AutoReconnect") || modulesObj.has("AutoReconnect");
+            boolean hadRpBypass = modulesObj.has("dupersunited:RpBypass") || modulesObj.has("RpBypass");
+            boolean hadBrandSpoof = modulesObj.has("dupersunited:BrandSpoof") || modulesObj.has("BrandSpoof");
+            boolean hadServerAlerts = modulesObj.has("dupersunited:ServerAlerts") || modulesObj.has("ServerAlerts");
+
             for (Module module : MainClient.MODULE_MANAGER.modules()) {
                 boolean useIdentifier = modulesObj.has(module.getIdentifier());
                 if (!useIdentifier && !modulesObj.has(module.getName())) continue;
@@ -176,6 +197,11 @@ public class ConfigManager {
                 JsonElement moduleData = modulesObj.remove(useIdentifier ? module.getIdentifier() : module.getName());
                 module.readJson(moduleData);
             }
+
+            migrateToggle(root, hadAutoReconnect, "autoReconnectEnabled", AutoReconnectModule.class);
+            migrateToggle(root, hadRpBypass, "rpBypassEnabled", RpBypassModule.class);
+            migrateToggle(root, hadBrandSpoof, "brandSpoofEnabled", BrandSpoofModule.class);
+            migrateToggle(root, hadServerAlerts, "serverAlertsEnabled", ServerAlertsModule.class);
 
             if (!backwardsCompat) {
                 unregisteredData.add("modules", modulesObj.deepCopy());

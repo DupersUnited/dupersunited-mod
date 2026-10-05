@@ -3,8 +3,9 @@ package wtf.dupers.dupersunited.modules.render;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class NoTextureRotationsModule extends Module {
 
@@ -24,8 +25,13 @@ public class NoTextureRotationsModule extends Module {
     }
 
     private static void refreshTerrain() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null) return;
-        client.worldRenderer.reload();
+        if (mc.level == null) return;
+
+        mc.levelRenderer.invalidateCompiledGeometry(
+            mc.level,
+            mc.options,
+            mc.gameRenderer.mainCamera(),
+            mc.getBlockColors()
+        );
     }
 }

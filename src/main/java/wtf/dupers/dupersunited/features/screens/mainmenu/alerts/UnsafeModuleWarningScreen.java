@@ -1,72 +1,70 @@
 package wtf.dupers.dupersunited.features.screens.mainmenu.alerts;
 
+import net.minecraft.ChatFormatting;
 import wtf.dupers.dupersunited.features.screens.ClickGui;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.network.ServerAddress;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
-import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.network.chat.Component;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class UnsafeModuleWarningScreen extends Screen {
 
     private final Screen parent;
-    private final ServerInfo serverInfo;
+    private final ServerData serverInfo;
 
-    public UnsafeModuleWarningScreen(Screen parent, ServerInfo serverInfo) {
-        super(Text.literal("Unsafe Module Warning"));
+    public UnsafeModuleWarningScreen(Screen parent, ServerData serverInfo) {
+        super(Component.literal("Unsafe Module Warning"));
         this.parent = parent;
         this.serverInfo = serverInfo;
     }
 
     @Override
     protected void init() {
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("§aConnect Anyway"), btn -> {
-            ServerAddress address = ServerAddress.parse(serverInfo.address);
-            ConnectScreen.connect(new MultiplayerScreen(new TitleScreen()), client, address, serverInfo, false, null);
-        }).dimensions(this.width / 2 - 155, this.height / 2 + 20, 150, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Connect Anyway").withStyle(ChatFormatting.GREEN), btn -> {
+            ServerAddress address = ServerAddress.parseString(serverInfo.ip);
+            ConnectScreen.startConnecting(new JoinMultiplayerScreen(new TitleScreen()), mc, address, serverInfo, false, null);
+        }).bounds(this.width / 2 - 155, this.height / 2 + 20, 150, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("§cGo Back"), btn ->
-                client.setScreen(parent)
-        ).dimensions(this.width / 2 + 5, this.height / 2 + 20, 150, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Go Back").withStyle(ChatFormatting.RED), btn ->
+            mc.gui.setScreen(parent)
+        ).bounds(this.width / 2 + 5, this.height / 2 + 20, 150, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Open Click GUI"), btn ->
-                client.setScreen(new ClickGui(this))
-        ).dimensions(this.width / 2 - 100, this.height / 2 + 45, 200, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Open Click GUI"), btn ->
+            mc.gui.setScreen(new ClickGui(this))
+        ).bounds(this.width / 2 - 100, this.height / 2 + 45, 200, 20).build());
 
     }
 
     @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.renderBackground(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+
+        graphics.centeredText(font,
+            Component.literal("Unsafe Modules Active!").withStyle(ChatFormatting.RED),
+            this.width / 2, this.height / 2 - 40, 0xFFFFFFFF);
+
+        graphics.centeredText(font,
+            Component.literal("Hold on! You are about to connect to").withStyle(ChatFormatting.GRAY),
+            this.width / 2, this.height / 2 - 20, 0xFFFFFFFF);
+
+        graphics.centeredText(font,
+            Component.literal(serverInfo.ip).withStyle(ChatFormatting.WHITE),
+            this.width / 2, this.height / 2 - 8, 0xFFFFFFFF);
+
+        graphics.centeredText(font,
+            Component.literal("with a unsafe module enabled.").withStyle(ChatFormatting.GRAY),
+            this.width / 2, this.height / 2 + 4, 0xFFFFFFFF);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-
-        context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("§cUnsafe Modules Active!"),
-                this.width / 2, this.height / 2 - 40, 0xFFFFFFFF);
-
-        context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("§7Hold on! You are about to connect to"),
-                this.width / 2, this.height / 2 - 20, 0xFFFFFFFF);
-
-        context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("§f" + serverInfo.address),
-                this.width / 2, this.height / 2 - 8, 0xFFFFFFFF);
-
-        context.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("§7with a unsafe module enabled."),
-                this.width / 2, this.height / 2 + 4, 0xFFFFFFFF);
-    }
-
-    @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

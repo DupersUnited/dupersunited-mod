@@ -1,13 +1,14 @@
 package wtf.dupers.dupersunited.utils;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+//import net.minecraft.client.MinecraftClient;
+//import net.minecraft.scoreboard.Scoreboard;
+//import net.minecraft.scoreboard.ScoreboardObjective;
+//import net.minecraft.scoreboard.ScoreboardDisplaySlot;
+//import net.minecraft.scoreboard.Team;
+//import net.minecraft.text.Text;
 
-import java.util.List;
+//import java.util.List;
 import java.util.Locale;
 
 
@@ -39,13 +40,13 @@ public class ServerUtils {
     }*/
 
     public static boolean isDonut() {
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
 
-        var serverInfo = mc.getCurrentServerEntry();
-        if (serverInfo == null || serverInfo.address == null) {
+        var serverInfo = mc.getCurrentServer();
+        if (serverInfo == null || serverInfo.ip == null) {
             return false;
         }
 
-        return serverInfo.address.toLowerCase(Locale.ROOT).contains("donutsmp.net");
+        return serverInfo.ip.toLowerCase(Locale.ROOT).contains("donutsmp.net");
     }
 }

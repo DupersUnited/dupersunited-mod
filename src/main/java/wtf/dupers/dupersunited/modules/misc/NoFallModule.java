@@ -3,9 +3,10 @@ package wtf.dupers.dupersunited.modules.misc;
 import wtf.dupers.dupersunited.mixin.accessor.PlayerMoveC2SPacketAccessor;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+
+import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class NoFallModule extends Module {
     public NoFallModule() {
@@ -14,12 +15,11 @@ public class NoFallModule extends Module {
 
     @Override
     public void onPacketSend(Packet<?> packet) {
-        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
-        if (!(packet instanceof PlayerMoveC2SPacket)) return;
-        if (mc.player.getAbilities().creativeMode) return;
-        if (mc.player.isGliding()) return;
-        if (mc.player.getVelocity().y > -0.5) return;
+        if (!(packet instanceof ServerboundMovePlayerPacket)) return;
+        if (mc.player.getAbilities().instabuild) return;
+        if (mc.player.isFallFlying()) return;
+        if (mc.player.getDeltaMovement().y > -0.5) return;
 
         ((PlayerMoveC2SPacketAccessor) packet).dupersunited$setOnGround(true);
     }

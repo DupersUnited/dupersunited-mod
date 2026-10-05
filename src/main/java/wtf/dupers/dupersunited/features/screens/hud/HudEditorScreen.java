@@ -1,28 +1,30 @@
 package wtf.dupers.dupersunited.features.screens.hud;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.MainClient;
-import wtf.dupers.dupersunited.features.SaveGuiManager;
-import wtf.dupers.dupersunited.features.TPSDisplay;
+import wtf.dupers.dupersunited.features.glitchutils.SaveGuiManager;
+import wtf.dupers.dupersunited.features.macrogui.MacroManager;
+import wtf.dupers.dupersunited.features.screens.TPSDisplay;
 import wtf.dupers.dupersunited.modules.glitcha.TpsCounterModule;
 import wtf.dupers.dupersunited.modules.render.HudModule;
 import wtf.dupers.dupersunited.modules.render.WatermarkModule;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
 
 import java.util.List;
 
 public class HudEditorScreen extends Screen {
 
     public static final HudElement WATERMARK = new HudElement("Watermark", 4, 4);
-    //public static final HudElement MACRO = new HudElement("Macro", 4, 21);
+    public static final HudElement MACRO = new HudElement("Macro", 4, 21);
     public static final HudElement SAVED_GUI = new HudElement("Saved GUI", 4, 69);
     public static final HudElement TPS = new HudElement("TPS Counter", 4, 93);
     public static final HudElement HUD_LIST = new HudElement("HUD", 4, 117);
 
-    private static final List<HudElement> ELEMENTS = List.of(WATERMARK, SAVED_GUI, TPS, HUD_LIST);
+    private static final List<HudElement> ELEMENTS = List.of(WATERMARK, SAVED_GUI, TPS, HUD_LIST, MACRO);
     private static final int GRID = 4;
     private static final float SCALE_STEP = 0.25f;
     private static final float SCALE_MIN  = 0.5f;
@@ -34,7 +36,7 @@ public class HudEditorScreen extends Screen {
     private int offX, offY;
 
     public HudEditorScreen() {
-        super(Text.literal("HUD Editor"));
+        super(Component.literal("HUD Editor"));
     }
 
     private int snap(int value) {
@@ -42,8 +44,8 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        ctx.fill(0, 0, width, height, 0x80000000);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        graphics.fill(0, 0, width, height, 0x80000000);
 
         for (HudElement el : ELEMENTS) {
             int sx = el.getScreenX(width);
@@ -52,38 +54,42 @@ public class HudEditorScreen extends Screen {
             boolean hovered = el.isHovered(mouseX, mouseY, width);
             int border = hovered ? 0xFFDA70D6 : 0xFF888888;
 
-            ctx.fill(sx, el.y, sx + w, el.y + h, 0x55000000);
-            ctx.fill(sx, el.y, sx + w, el.y + 1, border);
-            ctx.fill(sx, el.y + h - 1, sx + w, el.y + h, border);
-            ctx.fill(sx, el.y, sx + 1, el.y + h, border);
-            ctx.fill(sx + w - 1, el.y, sx + w, el.y + h, border);
+            graphics.fill(sx, el.y, sx + w, el.y + h, 0x55000000);
+            graphics.fill(sx, el.y, sx + w, el.y + 1, border);
+            graphics.fill(sx, el.y + h - 1, sx + w, el.y + h, border);
+            graphics.fill(sx, el.y, sx + 1, el.y + h, border);
+            graphics.fill(sx + w - 1, el.y, sx + w, el.y + h, border);
 
-            var matrices = ctx.getMatrices();
+            var matrices = graphics.pose();
             matrices.pushMatrix();
             matrices.translate((float) sx + 2.0f, (float) el.y + 1.0f);
             matrices.scale(el.scale, el.scale);
-            ctx.drawText(textRenderer, getPreview(el), 0, 0, 0xFFFFFFFF, true);
+            graphics.text(font, getPreview(el), 0, 0, 0xFFFFFFFF, true);
             matrices.popMatrix();
 
             if (hovered) {
                 String alignIcon = el.rightAligned ? "◀" : "▶";
                 String scaleLabel = String.format("%.1fx %s", el.scale, alignIcon);
-                int labelX = sx + w - textRenderer.getWidth(scaleLabel) - 2;
-                ctx.drawText(textRenderer, scaleLabel, labelX, el.y + 1, 0xFFCBA6F7, true);
+                int labelX = sx + w - font.width(scaleLabel) - 2;
+                graphics.text(font, scaleLabel, labelX, el.y + 1, 0xFFCBA6F7, true);
             }
         }
 
         int btnX = width / 2 - RESET_W / 2;
         int btnY = height - 28;
         boolean btnHovered = mouseX >= btnX && mouseX <= btnX + RESET_W && mouseY >= btnY && mouseY <= btnY + RESET_H;
-        ctx.fill(btnX, btnY, btnX + RESET_W, btnY + RESET_H, btnHovered ? 0xFFAA0000 : 0xFF880000);
-        ctx.drawCenteredTextWithShadow(textRenderer, "§cReset HUD", btnX + RESET_W / 2, btnY + 2, 0xFFFFFFFF);
+        graphics.fill(btnX, btnY, btnX + RESET_W, btnY + RESET_H, btnHovered ? 0xFFAA0000 : 0xFF880000);
+        graphics.centeredText(font, Component.literal("Reset HUD").withStyle(ChatFormatting.RED), btnX + RESET_W / 2, btnY + 2, 0xFFFFFFFF);
 
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                "§7Drag to move  |  §dScroll §7to resize  |  §cESC §7to close",
-                width / 2, height - 14, 0xFFFFFFFF);
+        graphics.centeredText(font,
+            Component.literal("Drag to move  |  ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("Scroll").withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal(" to resize  |  ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("ESC").withStyle(ChatFormatting.RED))
+                .append(Component.literal(" to close").withStyle(ChatFormatting.GRAY)),
+            width / 2, height - 14, 0xFFFFFFFF);
 
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     @Override
@@ -99,7 +105,7 @@ public class HudEditorScreen extends Screen {
 
     // IGNORE THE HORRIBLE CODE IT DOES THE JOB FUCK YOU VINZY
     @Override
-    public boolean mouseClicked(Click click, boolean bl) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean bl) {
         if (click.button() == 0) {
             int btnX = width / 2 - RESET_W / 2;
             int btnY = height - 28;
@@ -124,7 +130,7 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
+    public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         if (dragging != null) {
             int rawX = (int) click.x() - offX;
             int rawY = (int) click.y() - offY;
@@ -137,7 +143,7 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         if (dragging != null) {
             int centerX = dragging.x + dragging.getW() / 2;
             if (centerX > width / 2) {
@@ -157,7 +163,7 @@ public class HudEditorScreen extends Screen {
             el.rightAligned = false;
         }
         WATERMARK.x = 4; WATERMARK.y = 4;
-        //MACRO.x = 4; MACRO.y = 21;
+        MACRO.x = 4; MACRO.y = 21;
         SAVED_GUI.x = 4; SAVED_GUI.y = 69;
         TPS.x = 4; TPS.y = 93;
         HUD_LIST.x = 4; HUD_LIST.y = 117;
@@ -167,34 +173,34 @@ public class HudEditorScreen extends Screen {
         switch (el.id) {
             case "Watermark": {
                 WatermarkModule wm = MainClient.MODULE_MANAGER.getModule(WatermarkModule.class);
-                return (wm != null && wm.isEnabled()) ? wm.watermarkText.getValue().replace("&", "§") : "§7Watermark §8(disabled)";
+                return (wm != null && wm.isEnabled()) ? wm.watermarkText.getValue().replace('&', '§') : ChatFormatting.GRAY + "Watermark " + ChatFormatting.DARK_GRAY + "(disabled)";
             }
-//            case "Macro": {
-//                return MacroManager.isRunning() ? "§dActive Macro: §5" + MacroManager.getRunningName() : "§dActive GUI Macro";
-//            }
+            case "Macro": {
+                return MacroManager.isRunning() ? ChatFormatting.LIGHT_PURPLE + "Active Macro: " + ChatFormatting.DARK_PURPLE + MacroManager.getRunningName() : ChatFormatting.LIGHT_PURPLE + "Active GUI Macro";
+            }
             case "Saved GUI": {
-                return (SaveGuiManager.savedScreen != null) ? "§dSaved: " + (SaveGuiManager.deadGui ? "§c" : "§3") + SaveGuiManager.guiName : "§dSaved GUI";
+                return (SaveGuiManager.savedScreen != null) ? ChatFormatting.LIGHT_PURPLE + "Saved: " + (SaveGuiManager.deadGui ? ChatFormatting.RED : ChatFormatting.DARK_AQUA) + SaveGuiManager.guiName : ChatFormatting.LIGHT_PURPLE + "Saved GUI";
             }
             case "TPS Counter": {
-                if (!MainClient.MODULE_MANAGER.isEnabled(TpsCounterModule.class)) return "§7TPS Counter §8(disabled)";
-                if (TPSDisplay.lastPacketTime == -1) return "§dServer TPS: §7--";
-                return String.format("§dServer TPS: %s%.1f", TPSDisplay.getTpsColorCode(TPSDisplay.tps), TPSDisplay.tps);
+                if (!MainClient.MODULE_MANAGER.isEnabled(TpsCounterModule.class)) return ChatFormatting.GRAY + "TPS Counter " + ChatFormatting.DARK_GRAY + "(disabled)";
+                if (TPSDisplay.lastPacketTime == -1) return ChatFormatting.LIGHT_PURPLE + "Server TPS: " + ChatFormatting.GRAY + "--";
+                return String.format("%sServer TPS: %%s%%.1f", ChatFormatting.LIGHT_PURPLE, TPSDisplay.getTpsColorCode(TPSDisplay.tps), TPSDisplay.tps);
             }
             case "HUD": {
-                return !MainClient.MODULE_MANAGER.isEnabled(HudModule.class) ? "§7Module List §8(disabled)" : "§dModule List";
+                return !MainClient.MODULE_MANAGER.isEnabled(HudModule.class) ? ChatFormatting.GRAY + "Module List " + ChatFormatting.DARK_GRAY + "(disabled)" : ChatFormatting.LIGHT_PURPLE + "Module List";
             }
             default: return el.id;
         }
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         ConfigManager.save();
-        super.close();
+        super.onClose();
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }
