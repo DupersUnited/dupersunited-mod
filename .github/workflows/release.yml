@@ -18,7 +18,7 @@ jobs:
 
       - name: Tag matches mod version
         run: |
-          tag="${GITHUB_REF_NAME}"
+          tag="${GITHUB_REF_NAME#v}"
           version="$(grep '^version=' gradle.properties | cut -d= -f2)"
           [ "$tag" = "$version" ] || { echo "tag $tag != version $version from gradle.properties"; exit 1; }
 
