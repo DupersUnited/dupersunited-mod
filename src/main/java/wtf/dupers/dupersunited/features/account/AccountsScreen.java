@@ -1,7 +1,6 @@
 package wtf.dupers.dupersunited.features.account;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.util.UndashedUuid;
@@ -29,12 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.FileReader;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -52,11 +46,6 @@ public class AccountsScreen extends DuScreen {
     private static final Map<String, UUID> HEAD_UUIDS = new HashMap<>();
     private static final Set<String> HEAD_FETCHING = new HashSet<>();
     private static final Map<String, Long> HEAD_RETRY_AT = new HashMap<>();
-
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .followRedirects(HttpClient.Redirect.ALWAYS)
-        .build();
 
     private static final int ROW_HEIGHT = 24;
     private static final int START_Y = 74;
@@ -109,7 +98,7 @@ public class AccountsScreen extends DuScreen {
                     JsonArray arr = root.getAsJsonArray("accounts");
                     if (arr == null) continue;
 
-                    for (JsonElement el : arr) {
+                    for (var el : arr) {
                         JsonObject acc = el.getAsJsonObject();
                         JsonObject profile = acc.has("profile") ? acc.getAsJsonObject("profile") : null;
                         JsonObject ygg = acc.has("ygg") ? acc.getAsJsonObject("ygg") : null;
@@ -199,7 +188,7 @@ public class AccountsScreen extends DuScreen {
         );
         searchField.setMaxLength(100);
         searchField.setHint(Component.literal("search accounts...").withStyle(ChatFormatting.DARK_GRAY));
-        searchField.setResponder(query -> {
+        searchField.setResponder(_ -> {
             applyFilter();
             rebuildList();
         });
@@ -256,6 +245,16 @@ public class AccountsScreen extends DuScreen {
             int index = i + scrollOffset;
             AccountEntry entry = filteredAccounts.get(index);
             int y = START_Y + i * ROW_HEIGHT;
+
+            if (!entry.isOffline()) {
+                this.addRenderableWidget(Button.builder(
+                        Component.literal("Skin"),
+                        _ -> mc.gui.setScreen(new ChangeSkinScreen(this, entry))
+                    ).bounds(this.width - 305, y, 50, 20)
+                    .tooltip(Tooltip.create(
+                        Component.literal("Change this account's skin")
+                    )).build());
+            }
 
             this.addRenderableWidget(Button.builder(
                 Component.literal("Login"),
@@ -353,6 +352,16 @@ public class AccountsScreen extends DuScreen {
         rebuildList();
     }
 
+    static void setHeadSkin(String name, String url) {
+        HEAD_SKINS.put(name, url);
+        HEAD_RETRY_AT.remove(name);
+    }
+
+    static void refreshHead(String name) {
+        HEAD_SKINS.remove(name);
+        HEAD_RETRY_AT.remove(name);
+    }
+
     void addSsidAccount(String name, String token, String uuidString) {
         ACCOUNTS.removeIf(e -> e.name.equals(name) && e.source.equals("SSID"));
         ACCOUNTS.add(new AccountEntry(name, token, "SSID"));
@@ -382,12 +391,11 @@ public class AccountsScreen extends DuScreen {
                 if (linkedProxy != null) {
                     ProxyConfigManager.activeProfileName = linkedProxy;
                     ProxyConfigManager.globalEnabled = true;
-                    ProxyConfigManager.save();
                 } else {
                     ProxyConfigManager.globalEnabled = false;
                     ProxyConfigManager.activeProfileName = "";
-                    ProxyConfigManager.save();
                 }
+                ProxyConfigManager.save();
 
                 String[] info = SessionAPI.getProfileInfo(entry.token);
                 if (info == null) throw new Exception("Invalid token");
@@ -487,7 +495,7 @@ public class AccountsScreen extends DuScreen {
             int y = START_Y + i * ROW_HEIGHT;
 
             int rowBg = (index % 2 == 0) ? border : header;
-            graphics.fill(5, y - 2, this.width - 255, y + 22, rowBg);
+            graphics.fill(5, y - 2, this.width - 310, y + 22, rowBg);
 
             boolean hasLink = AccountProxyLinks.hasLink(entry.name);
             graphics.fill(5, y - 2, 7, y + 22, hasLink ? good : edge);
@@ -506,7 +514,6 @@ public class AccountsScreen extends DuScreen {
                 isLoggedIn ? value : text,
                 true
             );
-
             graphics.text(
                 this.font,
                 Component.literal("[" + entry.source + "]"),
@@ -598,32 +605,16 @@ public class AccountsScreen extends DuScreen {
     @Nullable
     private static String fetchSkinUrl(UUID uuid) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString().replace("-", "") + "?unsigned=false"))
-                .timeout(Duration.ofSeconds(10))
-                .GET()
-                .build();
-            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) return null;
-
-            JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
+            String json = SessionAPI.getJson("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString().replace("-", "") + "?unsigned=false");
+            JsonObject root = JsonParser.parseString(json).getAsJsonObject();
             JsonArray properties = root.has("properties") ? root.getAsJsonArray("properties") : null;
             if (properties == null) return null;
 
-            for (JsonElement element : properties) {
-                JsonObject prop = element.getAsJsonObject();
-                if (!prop.has("name") || !"textures".equals(prop.get("name").getAsString())) continue;
-                String decoded = new String(Base64.getDecoder().decode(prop.get("value").getAsString()), StandardCharsets.UTF_8);
-                JsonObject textures = JsonParser.parseString(decoded).getAsJsonObject();
-                if (!textures.has("textures")) continue;
-                JsonObject all = textures.getAsJsonObject("textures");
-                if (!all.has("SKIN")) continue;
-                JsonObject skin = all.getAsJsonObject("SKIN");
-                if (skin != null && skin.has("url")) return skin.get("url").getAsString();
-            }
+            SessionAPI.SkinInfo skinInfo = SessionAPI.extractSkinInfoFromProperties(properties);
+            return skinInfo != null ? skinInfo.url() : null;
         } catch (Exception ignored) {
+            return null;
         }
-        return null;
     }
 
     public record AccountEntry(String name, String token, String source, boolean isOffline) {
