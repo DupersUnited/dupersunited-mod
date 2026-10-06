@@ -9,6 +9,8 @@ public final class ModSettings {
     public static final BooleanSetting sendToggleMsg = new BooleanSetting("Send Toggle Msg", false);
     public static final BooleanSetting showModCapes = new BooleanSetting("Show Mod Capes", true);
     public static final BooleanSetting showDebugMessages = new BooleanSetting("Show Debug Messages", false);
+    public static final BooleanSetting showBroadcasts = new BooleanSetting("Show Broadcasts", true);
+    public static final BooleanSetting showServerInvites = new BooleanSetting("Show Server Invites", true);
 
     private ModSettings() {}
 
@@ -18,6 +20,8 @@ public final class ModSettings {
         root.add(sendToggleMsg.getName(), sendToggleMsg.writeJson());
         root.add(showModCapes.getName(), showModCapes.writeJson());
         root.add(showDebugMessages.getName(), showDebugMessages.writeJson());
+        root.add(showBroadcasts.getName(), showBroadcasts.writeJson());
+        root.add(showServerInvites.getName(), showServerInvites.writeJson());
         return root;
     }
 
@@ -40,6 +44,18 @@ public final class ModSettings {
         if (root.has(showDebugMessages.getName())) {
             try {
                 showDebugMessages.readJson(root.get(showDebugMessages.getName()));
+            } catch (Exception ignored) {
+            }
+        }
+        if (root.has(showBroadcasts.getName())) {
+            try {
+                showBroadcasts.readJson(root.get(showBroadcasts.getName()));
+            } catch (Exception ignored) {
+            }
+        }
+        if (root.has(showServerInvites.getName())) {
+            try {
+                showServerInvites.readJson(root.get(showServerInvites.getName()));
             } catch (Exception ignored) {
             }
         }
