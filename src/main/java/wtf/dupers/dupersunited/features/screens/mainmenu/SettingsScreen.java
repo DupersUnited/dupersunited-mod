@@ -26,7 +26,7 @@ public class SettingsScreen extends DuScreen {
     }
 
     private List<BooleanSetting> settings() {
-        return List.of(ModSettings.sendToggleMsg, ModSettings.showModCapes, ModSettings.showDebugMessages);
+        return List.of(ModSettings.sendToggleMsg, ModSettings.showModCapes, ModSettings.showDebugMessages, ModSettings.showBroadcasts, ModSettings.showServerInvites);
     }
 
     private int panelLeft() {

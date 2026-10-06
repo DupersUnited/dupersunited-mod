@@ -10,6 +10,7 @@ import com.mojang.authlib.exceptions.AuthenticationException;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.User;
 import wtf.dupers.dupersunited.features.cosmetics.CapeManager;
+import wtf.dupers.dupersunited.features.ModSettings;
 import wtf.dupers.dupersunited.features.ServerInviteManager;
 import wtf.dupers.dupersunited.features.account.SessionAPI;
 import wtf.dupers.dupersunited.features.account.SessionManager;
@@ -390,6 +391,7 @@ public final class AuthManager {
     }
 
     private static void handleBroadcast(JsonObject root) {
+        if (!ModSettings.showBroadcasts.getValue()) return;
         String message = getNullableString(root, "msg");
         if (message == null) return;
 
@@ -406,6 +408,7 @@ public final class AuthManager {
     }
 
     private static void handleServerInvite(JsonObject root) {
+        if (!ModSettings.showServerInvites.getValue()) return;
         String ip = getNullableString(root, "ip");
         String inviter = getNullableString(root, "from");
         String sentAt = getNullableString(root, "sentAt");
