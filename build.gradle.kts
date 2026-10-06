@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.fabric.api)
 
     compileOnly(libs.clientarguments)
+    runtimeOnly(libs.clientarguments)
     include(libs.clientarguments)
 
     compileOnly(libs.modmenu)
