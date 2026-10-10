@@ -125,7 +125,7 @@ public class AddAccountScreen extends DuScreen {
         } catch (NumberFormatException ignored) {}
         for (int i = 0; i < qty; i++) OfflineAccountManager.createRandom();
         status = Component.literal("Added " + qty + " random account" + (qty == 1 ? "" : "s")).withStyle(ChatFormatting.YELLOW);
-        AccountsScreen.loadAccounts(this::goBack);
+        accounts.refreshAccounts(this::goBack);
     }
 
     @Override
