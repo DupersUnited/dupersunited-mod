@@ -56,6 +56,7 @@ dependencies {
 
     library(libs.netty.handler.proxy) { isTransitive = false }
     library(libs.netty.codec.socks) { isTransitive = false }
+    library(libs.java.websocket)
 }
 
 tasks {
@@ -95,6 +96,21 @@ tasks {
         options.release.set(25)
         // REMOVE BEFORE PUSHING TO MAIN, chatgpt told me this will help
         options.compilerArgs.addAll(listOf("-Xmaxerrs", "5000"))
+    }
+}
+
+// remove before merge plz ty. if these tasks don't work then make a runs folder, i'm not sure if they are created for you
+loom {
+    runs {
+        create("client2") {
+            runDir("runs/client2")
+            client()
+        }
+
+        create("client3") {
+            runDir("runs/client3")
+            client()
+        }
     }
 }
 
