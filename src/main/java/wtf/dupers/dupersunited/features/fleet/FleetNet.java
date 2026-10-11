@@ -5,6 +5,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import wtf.dupers.dupersunited.MainClient;
+import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.features.ModSettings;
 import wtf.dupers.dupersunited.features.fleet.net.FleetClient;
 import wtf.dupers.dupersunited.features.fleet.net.FleetPackets;
@@ -38,11 +39,11 @@ public final class FleetNet {
 
     public static boolean host(int port) {
         if (state == State.HOSTING) {
-            ModuleManager.moduleLog("Fleet", "you're already hosting.");
+            Module.moduleLog("Fleet", "you're already hosting.");
             return false;
         }
         if (state == State.CONNECTED) {
-            ModuleManager.moduleLog("Fleet", "disconnect from your host before hosting.");
+            Module.moduleLog("Fleet", "disconnect from your host before hosting.");
             return false;
         }
         try {
@@ -53,30 +54,30 @@ public final class FleetNet {
             state = State.HOSTING;
             return true;
         } catch (Exception e) {
-            ModuleManager.moduleLog("Fleet", "failed to host: " + e.getMessage());
+            Module.moduleLog("Fleet", "failed to host: " + e.getMessage());
             return false;
         }
     }
 
     public static void onHostStarted(int port) {
         if (state != State.HOSTING) return;
-        ModuleManager.moduleLog("Fleet", "hosting on port " + port + ".");
+        Module.moduleLog("Fleet", "hosting on port " + port + ".");
     }
 
     public static void onHostFailed(String reason) {
         if (state != State.HOSTING) return;
-        ModuleManager.moduleLog("Fleet", "failed to host: " + reason);
+        Module.moduleLog("Fleet", "failed to host: " + reason);
         stop();
     }
 
     public static boolean connect(int port) {
         if (state == State.HOSTING) {
-            ModuleManager.moduleLog("Fleet", "stop hosting before joining another host.");
+            Module.moduleLog("Fleet", "stop hosting before joining another host.");
             return false;
         }
 
         if (state == State.CONNECTED) {
-            ModuleManager.moduleLog("Fleet", "you're already connected to a host.");
+            Module.moduleLog("Fleet", "you're already connected to a host.");
             return false;
         }
 
@@ -115,7 +116,7 @@ public final class FleetNet {
         } else if (state == State.CONNECTED && client != null) {
             client.send(FleetPackets.encodeW2H(new FleetPackets.SayAllW2H(message)));
         } else {
-            ModuleManager.moduleLog("Fleet", "not hosting or connected.");
+            Module.moduleLog("Fleet", "not hosting or connected.");
         }
     }
 
@@ -137,13 +138,13 @@ public final class FleetNet {
     public static void onConnected() {
         state = State.CONNECTED;
         roster.clear();
-        ModuleManager.moduleLog("Fleet", "connected to host.");
+        Module.moduleLog("Fleet", "connected to host.");
         client.send(FleetPackets.encodeW2H(new FleetPackets.HelloW2H(
             mc.getUser().getName(), mc.getUser().getProfileId())));
     }
 
     public static void onDisconnected(boolean wasConnected) {
-        if (wasConnected) ModuleManager.moduleLog("Fleet", "lost the host.");
+        if (wasConnected) Module.moduleLog("Fleet", "lost the host.");
         stop();
     }
 
@@ -159,7 +160,7 @@ public final class FleetNet {
             FleetPackets.Worker worker = new FleetPackets.Worker(name, id);
             connectionMap.put(conn, worker);
             roster.add(worker);
-            ModuleManager.moduleLog("Fleet", statusMessage(worker, "joined", roster.size()));
+            Module.moduleLog("Fleet", statusMessage(worker, "joined", roster.size()));
             if (server != null) {
                 server.sendAll(FleetPackets.encodeH2W(new FleetPackets.WorkersH2W(workers())));
             }
@@ -175,7 +176,7 @@ public final class FleetNet {
         FleetPackets.Worker gone = connectionMap.remove(conn);
         if (gone != null) roster.remove(gone);
         if (gone != null && state == State.HOSTING) {
-            ModuleManager.moduleLog("Fleet", statusMessage(gone, "left", roster.size()));
+            Module.moduleLog("Fleet", statusMessage(gone, "left", roster.size()));
             if (server != null) server.sendAll(FleetPackets.encodeH2W(new FleetPackets.WorkersH2W(workers())));
         }
     }
@@ -190,12 +191,12 @@ public final class FleetNet {
         }
 
         if (packet instanceof FleetPackets.SayH2W(String message, long delayMs)) {
-            if (ModSettings.logFleetActions.getValue()) ModuleManager.moduleLog("Fleet", "host made you say: " + message);
+            if (ModSettings.logFleetActions.getValue()) Module.moduleLog("Fleet", "host made you say: " + message);
             FleetScheduler.after(() -> mc.execute(() -> sendChatNow(message)), delayMs);
         } else if (packet instanceof FleetPackets.WorkersH2W(List<FleetPackets.Worker> workerList)) {
             roster.clear();
             roster.addAll(workerList);
-            ModuleManager.moduleLog("Fleet", "workers (" + roster.size() + "): " + workerNames());
+            Module.moduleLog("Fleet", "workers (" + roster.size() + "): " + workerNames());
         }
     }
 

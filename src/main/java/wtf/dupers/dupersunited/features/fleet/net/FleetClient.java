@@ -2,6 +2,7 @@ package wtf.dupers.dupersunited.features.fleet.net;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.features.fleet.FleetNet;
 import wtf.dupers.dupersunited.modules.ModuleManager;
 
@@ -38,7 +39,7 @@ public class FleetClient extends WebSocketClient {
 
     @Override
     public void onError(Exception e) {
-        if (!opened) ModuleManager.moduleLog("Fleet", "couldn't reach a host on that port, is it hosting?");
-        else ModuleManager.moduleLog("Fleet", "connection error: " + e.getMessage());
+        if (!opened) Module.moduleLog("Fleet", "couldn't reach a host on that port, is it hosting?");
+        else Module.moduleLog("Fleet", "connection error: " + e.getMessage());
     }
 }

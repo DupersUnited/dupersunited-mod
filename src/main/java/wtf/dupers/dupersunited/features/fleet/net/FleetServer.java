@@ -3,6 +3,7 @@ package wtf.dupers.dupersunited.features.fleet.net;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.features.fleet.FleetNet;
 import wtf.dupers.dupersunited.modules.ModuleManager;
 
@@ -46,7 +47,7 @@ public class FleetServer extends WebSocketServer {
     @Override
     public void onError(WebSocket conn, Exception e) {
         if (!started) FleetNet.onHostFailed(e.getMessage());
-        else ModuleManager.moduleLog("Fleet", "host error: " + e.getMessage());
+        else Module.moduleLog("Fleet", "host error: " + e.getMessage());
     }
 
     public void sendTo(WebSocket conn, ByteBuffer payload) {

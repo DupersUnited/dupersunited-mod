@@ -6,6 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.commands.CommandBuildContext;
 import wtf.dupers.dupersunited.api.command.Command;
+import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.features.fleet.FleetNet;
 import wtf.dupers.dupersunited.modules.ModuleManager;
 
@@ -25,7 +26,8 @@ public final class FleetCommand extends Command {
                 case CONNECTED -> "currently connected.";
                 case IDLE -> "currently idle.";
             };
-            ModuleManager.moduleLog("Fleet", msg);
+
+            Module.moduleLog("Fleet", msg);
             return 1;
         })
         .then(literal("connect")
@@ -41,10 +43,10 @@ public final class FleetCommand extends Command {
         .then(literal("disconnect")
             .executes(_ -> {
                 if (FleetNet.state() == FleetNet.State.IDLE) {
-                    ModuleManager.moduleLog("Fleet", "not running.");
+                    Module.moduleLog("Fleet", "not running.");
                 } else {
                     FleetNet.stop();
-                    ModuleManager.moduleLog("Fleet", "stopped.");
+                    Module.moduleLog("Fleet", "stopped.");
                 }
                 return 1;
             }))
@@ -57,8 +59,8 @@ public final class FleetCommand extends Command {
         .then(literal("list")
             .executes(_ -> {
                 var workers = FleetNet.workers();
-                if (workers.isEmpty()) ModuleManager.moduleLog("Fleet", "no workers.");
-                else ModuleManager.moduleLog("Fleet", "workers (" + workers.size() + "): " + FleetNet.workerNames());
+                if (workers.isEmpty()) Module.moduleLog("Fleet", "no workers.");
+                else Module.moduleLog("Fleet", "workers (" + workers.size() + "): " + FleetNet.workerNames());
                 return 1;
             }));
     }

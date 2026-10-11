@@ -1,11 +1,7 @@
 package wtf.dupers.dupersunited.modules;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.Setting;
-import wtf.dupers.dupersunited.commands.MainCommand;
 
 import java.util.*;
 
@@ -57,27 +53,5 @@ public record ModuleManager(List<Module> modules) {
                 module.onTick();
             }
         }
-    }
-
-    // there is probably, 1. a better way to do this, 2. a better place to put this
-    public static void moduleLog(String module, String message) {
-        moduleLog(Component.literal(module), Component.literal(message));
-    }
-
-    public static void moduleLog(Component module, String message) {
-        moduleLog(module.copy(), Component.literal(message));
-    }
-
-    public static void moduleLog(String module, Component message) {
-        moduleLog(Component.literal(module), message);
-    }
-
-    public static void moduleLog(MutableComponent moduleName, Component message) {
-        MainCommand.sendMessage(Component.empty()
-            .append(Component.literal("[").withStyle(ChatFormatting.GRAY))
-            .append(moduleName.withStyle(ChatFormatting.DARK_RED))
-            .append(Component.literal("]").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(" "))
-            .append(message), true);
     }
 }
