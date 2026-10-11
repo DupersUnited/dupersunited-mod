@@ -6,7 +6,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -38,7 +38,9 @@ public class SaveGuiManager {
                 MainCommand.sendMessage("Saved " + classSimpleName + " GUI.", true);
                 guiName = classSimpleName;
             }
-            GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.saveAndCloseGui());
+            Macros.getInstance().recordAction(Macros.MacroAction.saveGui());
+            // made actions a bit more generic by not combining them, gonna have to document this
+            Macros.getInstance().recordAction(Macros.MacroAction.closeGui());
         }}
 
     public static void saveGui() {
@@ -56,7 +58,7 @@ public class SaveGuiManager {
                 MainCommand.sendMessage("Saved " + classSimpleName + " GUI.", true);
                 guiName = classSimpleName;
             }
-            GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.saveGui());
+            Macros.getInstance().recordAction(Macros.MacroAction.saveGui());
         } else {
             MainCommand.sendMessage(Component.literal("No GUI found to save.").withStyle(ChatFormatting.RED), true);
         }
@@ -72,7 +74,7 @@ public class SaveGuiManager {
             MainCommand.sendMessage(Component.literal("Restored ")
                 .append(Component.literal(guiName).withStyle(ChatFormatting.AQUA))
                 .append(" GUI."), true);
-            GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.restoreGui());
+            Macros.getInstance().recordAction(Macros.MacroAction.restoreGui());
         } else {
             MainCommand.sendMessage(Component.literal("No saved GUI.").withStyle(ChatFormatting.RED), true);
         }

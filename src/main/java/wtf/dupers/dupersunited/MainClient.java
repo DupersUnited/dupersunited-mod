@@ -13,8 +13,7 @@ import wtf.dupers.dupersunited.events.*;
 import wtf.dupers.dupersunited.features.*;
 import wtf.dupers.dupersunited.features.account.OfflineAccountManager;
 import wtf.dupers.dupersunited.features.auth.*;
-import wtf.dupers.dupersunited.features.chatmacros.*;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import wtf.dupers.dupersunited.features.proxies.*;
 import wtf.dupers.dupersunited.features.screens.hud.HudOverlay;
 import wtf.dupers.dupersunited.features.screens.mainmenu.*;
@@ -96,7 +95,7 @@ public class MainClient implements ModInitializer {
             new RpBypassModule(),
             new BrandSpoofModule(),
             new AutoLoginModule(),
-            new MacroGuiSettingsModule()
+            new MacroSettingsModule()
         );
 
         registry.registerCommands(
@@ -118,7 +117,7 @@ public class MainClient implements ModInitializer {
             new SetHandCommand(),
             new ToggleCommand(),
             new WaitCommand(),
-            new MacroGuiCommand()
+            new MacroCommand()
         );
 
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
@@ -148,7 +147,7 @@ public class MainClient implements ModInitializer {
         registry.keybinds.forEach(KeybindManager::registerKeybind);
 
         //macros
-        GuiMacro.getInstance().loadMacros();
+        Macros.getInstance().loadMacros();
 
         //config
         CompletableFuture<Void> proxyConfigTask = CompletableFuture.allOf(
@@ -176,8 +175,7 @@ public class MainClient implements ModInitializer {
         CompletableFuture<Void> configLoadTask = CompletableFuture.allOf(
             proxyConfigTask,
             ConfigManager.load(),
-            ServerAlertConfig.load(),
-            ChatMacroManager.load()
+            ServerAlertConfig.load()
         );
 
         HallOfShame.prefetch();

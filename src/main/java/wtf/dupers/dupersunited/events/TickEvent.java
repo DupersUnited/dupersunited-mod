@@ -5,8 +5,8 @@ import wtf.dupers.dupersunited.features.glitchutils.ClickSlotManager;
 import wtf.dupers.dupersunited.features.glitchutils.PayAllManager;
 import wtf.dupers.dupersunited.features.glitchutils.PluginScanner;
 import wtf.dupers.dupersunited.features.auth.AuthManager;
-import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
-import wtf.dupers.dupersunited.features.macrogui.MacroManager;
+import wtf.dupers.dupersunited.features.macros.Macros;
+import wtf.dupers.dupersunited.features.macros.MacroManager;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.network.chat.Component;
@@ -30,6 +30,7 @@ public class TickEvent {
             }
 
             MacroManager.tick();
+            Macros.getInstance().recordTick();
             if (screenToOpen != null) {
                 client.gui.setScreen(screenToOpen);
                 screenToOpen = null;
@@ -43,7 +44,6 @@ public class TickEvent {
             }
 
             AuthManager.onTick();
-            ChatMacroManager.onTick();
             ClickSlotManager.onTick();
             KeybindManager.onTick();
             PayAllManager.onTick();
