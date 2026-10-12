@@ -131,7 +131,8 @@ public class MainClient implements ModInitializer {
             new PacketPauseKeybind(),
             new RestoreGuiKeybind(),
             new RevertGhostBlockKeybind(),
-            new SaveGuiKeybind()
+            new SaveGuiKeybind(),
+            new RestoreDialogKeybind()
         );
 
         // addon initialization

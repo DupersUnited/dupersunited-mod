@@ -1,5 +1,6 @@
 package wtf.dupers.dupersunited.features.glitchutils;
 
+import net.minecraft.client.gui.screens.dialog.DialogScreen;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -13,6 +14,7 @@ import static wtf.dupers.dupersunited.MainClient.mc;
 public class SaveGuiManager {
     public static String guiName;
     public static Screen savedScreen = null;
+    public static DialogScreen<?> savedDialog = null;
     public static AbstractContainerMenu savedScreenHandler = null;
     public static boolean deadGui;
 
@@ -20,12 +22,18 @@ public class SaveGuiManager {
 
     public static void saveAndCloseGui() {
         if (mc.player != null) {
-            savedScreen = mc.gui.screen();
-            savedScreenHandler = mc.player.containerMenu;
-            if (savedScreen == null) {
+            if (mc.gui.screen() == null) {
                 MainCommand.sendMessage(Component.literal("No GUI found to save.").withStyle(ChatFormatting.RED), true);
                 return;
             }
+            if (mc.gui.screen() instanceof DialogScreen<?>) {
+                savedDialog = (DialogScreen<?>)mc.gui.screen();
+                MainCommand.sendMessage("Saved Dialog.", true);
+                mc.gui.setScreen(null);
+                return;
+            }
+            savedScreen = mc.gui.screen();
+            savedScreenHandler = mc.player.containerMenu;
             deadGui = false;
             mc.gui.setScreen(null);
             if (savedScreen instanceof AbstractContainerScreen<?> handled) {
@@ -43,6 +51,11 @@ public class SaveGuiManager {
 
     public static void saveGui() {
         if (mc.player != null && mc.gui.screen() != null) {
+            if (mc.gui.screen() instanceof DialogScreen<?>) {
+                savedDialog = (DialogScreen<?>)mc.gui.screen();
+                MainCommand.sendMessage("Saved Dialog.", true);
+                return;
+            }
             savedScreen = mc.gui.screen();
             savedScreenHandler = mc.player.containerMenu;
             deadGui = false;
@@ -75,6 +88,18 @@ public class SaveGuiManager {
             GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.restoreGui());
         } else {
             MainCommand.sendMessage(Component.literal("No saved GUI.").withStyle(ChatFormatting.RED), true);
+        }
+    }
+
+    public static void restoreDialog() {
+        if (savedDialog != null && mc.player != null) {
+            mc.gui.setScreen(savedDialog);
+            savedDialog = null;
+            MainCommand.sendMessage(Component.literal("Restored ")
+                .append(Component.literal("Dialog").withStyle(ChatFormatting.AQUA))
+                .append(" GUI."), true);
+        } else {
+            MainCommand.sendMessage(Component.literal("No saved Dialog.").withStyle(ChatFormatting.RED), true);
         }
     }
 }
