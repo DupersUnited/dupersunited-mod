@@ -26,6 +26,9 @@ public class AccountProxyLinks {
 
     public static CompletableFuture<Void> load() {
         return AsyncConfigs.load(ConfigData.class, FILE, "account proxy links").thenAccept(data -> {
+            if (data == null) {
+                return;
+            }
             links = data.links != null ? data.links : new HashMap<>();
             bypassAccounts = data.bypassAccounts != null ? data.bypassAccounts : new ObjectOpenHashSet<>();
             accountOrder = data.accountOrder != null ? data.accountOrder : new ArrayList<>();
