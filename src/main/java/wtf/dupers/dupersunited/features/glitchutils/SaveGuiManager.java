@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import wtf.dupers.dupersunited.features.ModSettings;
 import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
@@ -20,6 +21,21 @@ public class SaveGuiManager {
 
     private SaveGuiManager() {}
 
+    private static void saveNotifyMessage(Screen screen) {
+        Component title = screen instanceof AbstractContainerScreen<?> handled
+            ? handled.getTitle()
+            : Component.literal(screen.getClass().getSimpleName());
+        guiName = title.getString();
+
+        if (ModSettings.showGuiName.getValue()) {
+            MainCommand.sendMessage(Component.literal("Saved ")
+                .append(title)
+                .append(" GUI."), true);
+        } else {
+            MainCommand.sendMessage("Saved GUI.", true);
+        }
+    }
+
     public static void saveAndCloseGui() {
         if (mc.player != null) {
             if (mc.gui.screen() == null) {
@@ -28,24 +44,17 @@ public class SaveGuiManager {
             }
             if (mc.gui.screen() instanceof DialogScreen<?>) {
                 savedDialog = (DialogScreen<?>)mc.gui.screen();
-                MainCommand.sendMessage("Saved Dialog.", true);
+                MainCommand.sendMessage("Saved Dialog Menu.", true);
                 mc.gui.setScreen(null);
                 return;
             }
+            //TODO: add macrogui support to saving Dialog Menus, not touching this as khaos redoing macro systems or smthing
+
             savedScreen = mc.gui.screen();
             savedScreenHandler = mc.player.containerMenu;
             deadGui = false;
             mc.gui.setScreen(null);
-            if (savedScreen instanceof AbstractContainerScreen<?> handled) {
-                MainCommand.sendMessage(Component.literal("Saved ")
-                    .append(handled.getTitle())
-                    .append(" GUI."), true);
-                guiName = handled.getTitle().getString();
-            } else {
-                String classSimpleName = savedScreen.getClass().getSimpleName();
-                MainCommand.sendMessage("Saved " + classSimpleName + " GUI.", true);
-                guiName = classSimpleName;
-            }
+            saveNotifyMessage(savedScreen);
             GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.saveAndCloseGui());
         }}
 
@@ -59,16 +68,7 @@ public class SaveGuiManager {
             savedScreen = mc.gui.screen();
             savedScreenHandler = mc.player.containerMenu;
             deadGui = false;
-            if (savedScreen instanceof AbstractContainerScreen<?> handled) {
-                MainCommand.sendMessage(Component.literal("Saved ")
-                    .append(handled.getTitle())
-                    .append(" GUI."), true);
-                guiName = handled.getTitle().getString();
-            } else {
-                String classSimpleName = savedScreen.getClass().getSimpleName();
-                MainCommand.sendMessage("Saved " + classSimpleName + " GUI.", true);
-                guiName = classSimpleName;
-            }
+            saveNotifyMessage(savedScreen);
             GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.saveGui());
         } else {
             MainCommand.sendMessage(Component.literal("No GUI found to save.").withStyle(ChatFormatting.RED), true);
@@ -82,9 +82,13 @@ public class SaveGuiManager {
             mc.player.containerMenu = savedScreenHandler;
             savedScreen = null;
             savedScreenHandler = null;
-            MainCommand.sendMessage(Component.literal("Restored ")
-                .append(Component.literal(guiName).withStyle(ChatFormatting.AQUA))
-                .append(" GUI."), true);
+            if (ModSettings.showGuiName.getValue()) {
+                MainCommand.sendMessage(Component.literal("Restored ")
+                    .append(Component.literal(guiName).withStyle(ChatFormatting.AQUA))
+                    .append(" GUI."), true);
+            } else {
+                MainCommand.sendMessage("Restored GUI.", true);
+            }
             GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.restoreGui());
         } else {
             MainCommand.sendMessage(Component.literal("No saved GUI.").withStyle(ChatFormatting.RED), true);
