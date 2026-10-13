@@ -22,6 +22,9 @@ public class OfflineAccountManager {
 
     public static CompletableFuture<Void> load() {
         return AsyncConfigs.load(ConfigData.class, FILE, "offline accounts").thenAccept(data -> {
+            if (data == null) {
+                return;
+            }
             accounts = data.accounts != null ? data.accounts : new ArrayList<>();
         });
     }
