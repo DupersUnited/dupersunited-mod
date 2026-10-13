@@ -11,6 +11,7 @@ public final class ModSettings {
     public static final BooleanSetting showDebugMessages = new BooleanSetting("Show Debug Messages", false);
     public static final BooleanSetting showBroadcasts = new BooleanSetting("Show Broadcasts", true);
     public static final BooleanSetting showServerInvites = new BooleanSetting("Show Server Invites", true);
+    public static final BooleanSetting logFleetActions = new BooleanSetting("Log Fleet Actions", false);
 
     private ModSettings() {}
 
@@ -22,6 +23,7 @@ public final class ModSettings {
         root.add(showDebugMessages.getName(), showDebugMessages.writeJson());
         root.add(showBroadcasts.getName(), showBroadcasts.writeJson());
         root.add(showServerInvites.getName(), showServerInvites.writeJson());
+        root.add(logFleetActions.getName(), logFleetActions.writeJson());
         return root;
     }
 
@@ -56,6 +58,12 @@ public final class ModSettings {
         if (root.has(showServerInvites.getName())) {
             try {
                 showServerInvites.readJson(root.get(showServerInvites.getName()));
+            } catch (Exception ignored) {
+            }
+        }
+        if (root.has(logFleetActions.getName())) {
+            try {
+                logFleetActions.readJson(root.get(logFleetActions.getName()));
             } catch (Exception ignored) {
             }
         }
