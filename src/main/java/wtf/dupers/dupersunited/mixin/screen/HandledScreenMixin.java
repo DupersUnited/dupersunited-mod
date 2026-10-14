@@ -1,10 +1,9 @@
 package wtf.dupers.dupersunited.mixin.screen;
 
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.ContainerInput;
 import wtf.dupers.dupersunited.MainClient;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import wtf.dupers.dupersunited.modules.glitcha.GuiUtilsModule;
 import wtf.dupers.dupersunited.modules.misc.PropagandaModule;
 import net.minecraft.client.Minecraft;
@@ -34,14 +33,14 @@ public abstract class HandledScreenMixin {
     private void dupersunited$onMouseClick(
         Slot slot,
         int slotId,
-        int button,
-        ContainerInput input,
+        int buttonNum,
+        ContainerInput containerInput,
         CallbackInfo ci
     ) {
-        if (!GuiMacro.getInstance().isRecording) return;
+        if (!Macros.getInstance().isRecording) return;
         if (slot == null) return;
 
-        GuiMacro.getInstance().recordClick(slot.index, input, button);
+        Macros.getInstance().recordClick(slot.index, containerInput, buttonNum);
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)

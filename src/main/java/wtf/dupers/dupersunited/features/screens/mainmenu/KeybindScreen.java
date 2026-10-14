@@ -12,8 +12,7 @@ import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.NonNull;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.ConfigManager;
-import wtf.dupers.dupersunited.features.chatmacros.ChatMacro;
-import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import wtf.dupers.dupersunited.features.screens.ui.DuScreen;
@@ -30,7 +29,6 @@ public class KeybindScreen extends DuScreen {
     private Module listeningModule = null;
     private Keybind listeningKeybind = null;
     private String listeningMacro = null;
-    private String listeningChatMacro = null;
 
     private String searchQuery = "";
     private EditBox searchField;
@@ -40,7 +38,7 @@ public class KeybindScreen extends DuScreen {
     private static final int BTN_WIDTH  = 90;
     private static final int BTN_HEIGHT = 18;
 
-    private sealed interface Row permits Row.Category, Row.ModuleRow, Row.KeybindRow, Row.MacroRow, Row.ChatMacroRow {
+    private sealed interface Row permits Row.Category, Row.ModuleRow, Row.KeybindRow, Row.MacroRow {
         record Category(String label) implements Row {
         }
 
@@ -50,10 +48,7 @@ public class KeybindScreen extends DuScreen {
         record KeybindRow(Keybind keybind) implements Row {
         }
 
-        record MacroRow(String name, int key) implements Row {
-        }
-
-        record ChatMacroRow(String name, int key) implements Row {
+        record MacroRow(Macros.Macro macro) implements Row {
         }
     }
 
@@ -88,7 +83,7 @@ public class KeybindScreen extends DuScreen {
     }
 
     private boolean isListening() {
-        return listeningModule != null || listeningKeybind != null || listeningMacro != null || listeningChatMacro != null;
+        return listeningModule != null || listeningKeybind != null || listeningMacro != null;
     }
 
 
@@ -116,8 +111,7 @@ public class KeybindScreen extends DuScreen {
         return switch (row) {
             case Row.ModuleRow(Module m) -> m.getName().toLowerCase(Locale.ROOT).contains(searchQuery) || m.getIdentifier().toLowerCase(Locale.ROOT).contains(searchQuery);
             case Row.KeybindRow(Keybind kb) -> kb.getName().toLowerCase(Locale.ROOT).contains(searchQuery);
-            case Row.MacroRow(String name, _) -> name.toLowerCase(Locale.ROOT).contains(searchQuery);
-            case Row.ChatMacroRow(String name, _) -> name.toLowerCase(Locale.ROOT).contains(searchQuery);
+            case Row.MacroRow(Macros.Macro macro) -> macro.name().toLowerCase(Locale.ROOT).contains(searchQuery);
             default -> false;
         };
     }
@@ -130,7 +124,6 @@ public class KeybindScreen extends DuScreen {
         listeningModule = null;
         listeningKeybind = null;
         listeningMacro = null;
-        listeningChatMacro = null;
 
         Map<String, List<Module>> grouped = new LinkedHashMap<>();
         for (Module m : MainClient.MODULE_MANAGER.modules()) {
@@ -143,19 +136,19 @@ public class KeybindScreen extends DuScreen {
             }
         }
 
-        Set<String> chatMacroIds = ChatMacroManager.getMacros().keySet();
         List<Keybind> filteredKeybinds = KeybindManager.getRegisteredKeybinds().values().stream()
-            .filter(kb -> !chatMacroIds.contains(kb.getName()))
+            .filter(kb -> !kb.getName().startsWith("Macro: "))
             .toList();
         if (!filteredKeybinds.isEmpty()) {
             rows.add(new Row.Category("Keybinds"));
             for (Keybind kb : filteredKeybinds) rows.add(new Row.KeybindRow(kb));
         }
 
-        if (!ChatMacroManager.getMacros().isEmpty()) {
-            rows.add(new Row.Category("Chat Macros"));
-            for (ChatMacro cm : ChatMacroManager.getMacros().values()) {
-                rows.add(new Row.ChatMacroRow(cm.getName(), cm.getKeyCode()));
+        var macros = Macros.getInstance().getRegisteredMacros();
+        if (!macros.isEmpty()) {
+            rows.add(new Row.Category("Macros"));
+            for (Macros.Macro macro : macros.values()) {
+                rows.add(new Row.MacroRow(macro));
             }
         }
 
@@ -202,7 +195,6 @@ public class KeybindScreen extends DuScreen {
                         listeningModule = (listeningModule == module) ? null : module;
                         listeningKeybind = null;
                         listeningMacro = null;
-                        listeningChatMacro = null;
                         rebuildButtons();
                     }
                 ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
@@ -223,7 +215,6 @@ public class KeybindScreen extends DuScreen {
                         listeningKeybind = (listeningKeybind == keybind) ? null : keybind;
                         listeningModule = null;
                         listeningMacro = null;
-                        listeningChatMacro = null;
                         rebuildButtons();
                     }
                 ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
@@ -236,42 +227,21 @@ public class KeybindScreen extends DuScreen {
                     }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
 
-            } else if (row instanceof Row.MacroRow(String name, int key)) {
-                boolean listening = name.equals(listeningMacro);
+            } else if (row instanceof Row.MacroRow(Macros.Macro macro)) {
+                boolean listening = macro.name().equals(listeningMacro);
                 this.addRenderableWidget(Button.builder(
-                    listening ? Component.literal("[ press a key ]") : getKeyText(key),
+                    listening ? Component.literal("[ press a key ]") : getKeyText(macro.key()),
                     _ -> {
-                        listeningMacro = listening ? null : name;
+                        listeningMacro = listening ? null : macro.name();
                         listeningModule = null;
                         listeningKeybind = null;
-                        listeningChatMacro = null;
                         rebuildButtons();
                     }
                 ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
-                if (key != GLFW.GLFW_KEY_UNKNOWN && !listening) {
+                if (macro.key() != GLFW.GLFW_KEY_UNKNOWN && !listening) {
                     this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
-                        //saveMacroKey(name, GLFW.GLFW_KEY_UNKNOWN);
-                        init();
-                    }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
-                }
-
-            } else if (row instanceof Row.ChatMacroRow(String name, int key)) {
-                boolean listening = name.equals(listeningChatMacro);
-                this.addRenderableWidget(Button.builder(
-                    listening ? Component.literal("[ press a key ]") : getKeyText(key),
-                    _ -> {
-                        listeningChatMacro = listening ? null : name;
-                        listeningModule = null;
-                        listeningKeybind = null;
-                        listeningMacro = null;
-                        rebuildButtons();
-                    }
-                ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
-
-                if (key != GLFW.GLFW_KEY_UNKNOWN && !listening) {
-                    this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
-                        ChatMacroManager.rebind(name, GLFW.GLFW_KEY_UNKNOWN);
+                        Macros.getInstance().setMacroKey(macro, GLFW.GLFW_KEY_UNKNOWN);
                         init();
                     }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
@@ -300,7 +270,6 @@ public class KeybindScreen extends DuScreen {
                 listeningModule = null;
                 listeningKeybind = null;
                 listeningMacro = null;
-                listeningChatMacro = null;
                 rebuildButtons();
                 return true;
             }
@@ -313,9 +282,10 @@ public class KeybindScreen extends DuScreen {
                 listeningKeybind.setKeyCode(button);
                 ConfigManager.save();
                 listeningKeybind = null;
-            } else if (listeningChatMacro != null) {
-                ChatMacroManager.rebind(listeningChatMacro, button);
-                listeningChatMacro = null;
+            } else if (listeningMacro != null) {
+                Macros.Macro macro = Macros.getInstance().getMacro(listeningMacro);
+                if (macro != null) Macros.getInstance().setMacroKey(macro, button);
+                listeningMacro = null;
             }
 
             init();
@@ -342,11 +312,12 @@ public class KeybindScreen extends DuScreen {
             rebuildButtons();
             return true;
         }
-        if (listeningChatMacro != null) {
+        if (listeningMacro != null) {
             int keyCode = input.key();
-            ChatMacroManager.rebind(listeningChatMacro,
+            Macros.Macro macro = Macros.getInstance().getMacro(listeningMacro);
+            if (macro != null) Macros.getInstance().setMacroKey(macro,
                 keyCode == GLFW.GLFW_KEY_ESCAPE ? GLFW.GLFW_KEY_UNKNOWN : keyCode);
-            listeningChatMacro = null;
+            listeningMacro = null;
             init();
             return true;
         }
@@ -417,8 +388,8 @@ public class KeybindScreen extends DuScreen {
                     listening ? value : hasBind ? accent : edge);
                 graphics.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, border);
 
-            } else if (row instanceof Row.MacroRow(String name, int key)) {
-                boolean listening = name.equals(listeningMacro);
+            } else if (row instanceof Row.MacroRow(Macros.Macro macro)) {
+                boolean listening = macro.name().equals(listeningMacro);
                 boolean hovered   = mouseX >= panelLeft() && mouseX <= panelRight()
                     && mouseY >= y && mouseY < y + ROW_HEIGHT;
 
@@ -426,30 +397,11 @@ public class KeybindScreen extends DuScreen {
                 else if (i % 2 == 0) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
 
                 graphics.text(this.font,
-                    Component.literal(name),
+                    Component.literal(macro.name()),
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
                     listening ? value : text);
 
-                boolean hasBind = key != GLFW.GLFW_KEY_UNKNOWN;
-                graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
-                    panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
-                    listening ? value : hasBind ? accent : edge);
-                graphics.fill(panelLeft(), y + ROW_HEIGHT - 1, panelRight(), y + ROW_HEIGHT, border);
-
-            } else if (row instanceof Row.ChatMacroRow(String name, int key)) {
-                boolean listening = name.equals(listeningChatMacro);
-                boolean hovered   = mouseX >= panelLeft() && mouseX <= panelRight()
-                    && mouseY >= y && mouseY < y + ROW_HEIGHT;
-
-                if (hovered || listening) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, border);
-                else if (i % 2 == 0) graphics.fill(panelLeft(), y, panelRight(), y + ROW_HEIGHT, 0x08FFFFFF);
-
-                graphics.text(this.font,
-                    Component.literal(name),
-                    panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
-                    listening ? value : text);
-
-                boolean hasBind = key != GLFW.GLFW_KEY_UNKNOWN;
+                boolean hasBind = macro.key() != GLFW.GLFW_KEY_UNKNOWN;
                 graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
                     listening ? value : hasBind ? accent : edge);

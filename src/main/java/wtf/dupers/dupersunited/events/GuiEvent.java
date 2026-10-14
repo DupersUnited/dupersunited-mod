@@ -27,7 +27,7 @@ import wtf.dupers.dupersunited.features.glitchutils.FabricatePackets;
 import wtf.dupers.dupersunited.features.glitchutils.GuiPacketDelayManager;
 import wtf.dupers.dupersunited.features.glitchutils.PacketPauseManager;
 import wtf.dupers.dupersunited.features.glitchutils.SaveGuiManager;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import wtf.dupers.dupersunited.keybinds.PacketPauseKeybind;
 import wtf.dupers.dupersunited.mixin.accessor.HandledScreenAccessor;
 import wtf.dupers.dupersunited.mixin.accessor.ScreenAccessor;
@@ -346,14 +346,14 @@ public class GuiEvent {
                     }
                 }
 
-                if (GuiMacro.getInstance().isRecording) {
+                if (Macros.getInstance().isRecording) {
                     Button endMacroButton = Button.builder(
-                            Component.literal("End MacroGUI Recording").withStyle(s -> s.withColor(ColorUtil.RED2)),
+                            Component.literal("End Macro Recording").withStyle(s -> s.withColor(ColorUtil.RED2)),
                             btn -> {
-                                GuiMacro.getInstance().finalizeRecording();
-                                Minecraft.getInstance().gui.setScreen(client.gui.screen());
+                                Macros.getInstance().finalizeRecording();
+                                mc.gui.setScreen(client.gui.screen());
                             }
-                        ).bounds(x, Minecraft.getInstance().getWindow().getGuiScaledHeight() - 30, 170, 20)
+                        ).bounds(x, mc.getWindow().getGuiScaledHeight() - 30, 170, 20)
                         .tooltip(Tooltip.create(Component.literal("Finalizes the macro you are currently recording.")))
                         .build();
                     ((ScreenAccessor) screen).dupersunited$addRenderableWidget(endMacroButton);

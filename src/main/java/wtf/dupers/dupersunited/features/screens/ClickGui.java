@@ -10,7 +10,7 @@ import org.jspecify.annotations.NonNull;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.features.screens.hud.HudEditorScreen;
-import wtf.dupers.dupersunited.features.screens.macroscreen.ChatMacroScreen;
+import wtf.dupers.dupersunited.features.screens.macroscreen.MacroScreen;
 import wtf.dupers.dupersunited.features.screens.mainmenu.KeybindScreen;
 import wtf.dupers.dupersunited.features.screens.ui.DuScreen;
 import wtf.dupers.dupersunited.features.screens.ui.Theme;
@@ -248,7 +248,7 @@ public class ClickGui extends DuScreen {
             ry += MOD_H;
             hudRow(graphics, "Keybinds", Theme.info, ry, mx, my);
             ry += MOD_H;
-            hudRow(graphics, "ChatMacros", Theme.info, ry, mx, my);
+            hudRow(graphics, "Macros", Theme.info, ry, mx, my);
 
             Keybind kb = KeybindManager.getRegisteredKeybinds().get("keybinds");
             if (kb != null) {
@@ -292,7 +292,7 @@ public class ClickGui extends DuScreen {
             }
             ry += MOD_H;
             if (my >= ry && my < ry + MOD_H && btn == 0) {
-                mc.gui.setScreen(new ChatMacroScreen(ClickGui.this));
+                mc.gui.setScreen(new MacroScreen(ClickGui.this));
                 return true;
             }
             return false;
