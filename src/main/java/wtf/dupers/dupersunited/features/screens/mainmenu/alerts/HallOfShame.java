@@ -14,11 +14,12 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Util;
+import com.mojang.blaze3d.Blaze3D;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.Locale;
 import java.util.Set;
@@ -174,7 +175,7 @@ public class HallOfShame {
             }).bounds(this.width / 2 - 155, this.height / 2 + 40, 150, 20).build());
 
             this.addRenderableWidget(Button.builder(Component.literal("Download ExploitPreventer").withStyle(ChatFormatting.AQUA), btn -> {
-                Util.getPlatform().openUri("https://modrinth.com/mod/exploitpreventer");
+                Blaze3D.openUri(URI.create("https://modrinth.com/mod/exploitpreventer"));
             }).bounds(this.width / 2 + 5, this.height / 2 + 40, 150, 20).build());
         }
 

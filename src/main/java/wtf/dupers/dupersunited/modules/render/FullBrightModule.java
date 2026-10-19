@@ -6,7 +6,7 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.ModeSetting;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -15,7 +15,7 @@ public class FullBrightModule extends Module {
 
     public FullBrightModule() {
         super("FullBright","Makes the bright full.", Category.render);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 
     @Override

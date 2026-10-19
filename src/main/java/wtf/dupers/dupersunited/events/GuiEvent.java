@@ -3,6 +3,7 @@ package wtf.dupers.dupersunited.events;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -167,7 +168,7 @@ public class GuiEvent {
                     ) {
                         @Override
                         public boolean keyPressed(KeyEvent input) {
-                            if (input.key() == 257 || input.key() == 335) {
+                            if (input.key() == InputConstants.KEY_RETURN || input.key() == InputConstants.KEY_NUMPADENTER) {
                                 String text = this.getValue().trim();
                                 if (text.isEmpty() || client.player == null) return false;
                                 client.execute(() -> {

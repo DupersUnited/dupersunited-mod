@@ -3,15 +3,10 @@ package wtf.dupers.dupersunited.modules.render;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.LayeringTransform;
-import net.minecraft.client.renderer.rendertype.OutputTarget;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -36,7 +31,7 @@ import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.ButtonSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -84,25 +79,11 @@ public class BlockEspModule extends Module {
             new ButtonSetting("SelectBlocks", this::openScreen)
     );
 
-    private static final RenderPipeline ESP_LINES_PIPELINE = RenderPipelines.register(
-            RenderPipeline.builder(RenderPipelines.LINES_SNIPPET)
-                    .withLocation(Identifier.fromNamespaceAndPath("dupersunited", "pipeline/esp_lines"))
-// TODO: I couldn't fucking figure out what this is. - khao 2026
-                    .withDepthStencilState(Optional.empty())
-                    .build()
-    );
-
-    public static final RenderType ESP_LINES = RenderType.create(
-        "dupersunited_esp_lines",
-        RenderSetup.builder(ESP_LINES_PIPELINE)
-            .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-            .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
-            .createRenderSetup()
-    );
+    public static final RenderType ESP_LINES = RenderTypes.LINES_TRANSLUCENT_NO_DEPTH_WRITE;
 
     public BlockEspModule() {
         super("BlockESP", "Outlines blocks through blocks.", Category.render);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
         instance = this;
     }
 

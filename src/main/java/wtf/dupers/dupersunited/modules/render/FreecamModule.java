@@ -7,7 +7,7 @@ import wtf.dupers.dupersunited.api.module.settings.FloatSetting;
 import net.minecraft.client.CameraType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -24,7 +24,7 @@ public class FreecamModule extends Module {
 
     public FreecamModule() {
         super("Freecam", "Detaches your camera from your player.", Category.render);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 
     @Override
@@ -121,6 +121,6 @@ public class FreecamModule extends Module {
     }
 
     private boolean isKeyDown(int key) {
-        return GLFW.glfwGetKey(mc.getWindow().handle(), key) == GLFW.GLFW_PRESS;
+        return InputConstants.isKeyDown(key);
     }
 }

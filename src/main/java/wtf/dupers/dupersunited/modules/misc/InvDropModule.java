@@ -6,7 +6,7 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import net.minecraft.world.inventory.ContainerInput;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -23,7 +23,7 @@ public class InvDropModule extends Module {
 
     public InvDropModule() {
         super("DropAll", "Drops every item in your inventory with a configurable delay.", Category.misc);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 
     @Override

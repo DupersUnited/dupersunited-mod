@@ -11,7 +11,7 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.features.autologin.AutoLoginManager;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.security.SecureRandom;
 import java.util.regex.Pattern;
@@ -31,7 +31,7 @@ public class AutoLoginModule extends Module {
 
     public AutoLoginModule() {
         super("AutoLogin", "Automatically registers and logs into cracked servers.", Category.glitcha);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
         this.register(autoRegister);
         this.register(autoLogin);
 

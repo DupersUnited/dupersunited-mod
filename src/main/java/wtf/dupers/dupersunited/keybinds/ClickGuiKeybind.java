@@ -9,7 +9,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import com.mojang.blaze3d.platform.InputConstants;
-import org.lwjgl.glfw.GLFW;
 import wtf.dupers.dupersunited.mixin.accessor.KeyBindingAccessor;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
@@ -22,14 +21,14 @@ public class ClickGuiKeybind {
     public static void register() {
         keyBinding = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "Click GUI",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_K,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_K,
                 SharedVariables.CATEGORY
         ));
     }
 
     public static void onKey(int key, int action) {
-        if (action != GLFW.GLFW_PRESS) return;
+        if (action != InputConstants.PRESS) return;
         if (key != ((KeyBindingAccessor) keyBinding).dupersunited$getBoundKey().getValue()) return;
         if (mc.gui.screen() instanceof ClickGui) return;
         if (mc.gui.screen() instanceof KeybindScreen) return;

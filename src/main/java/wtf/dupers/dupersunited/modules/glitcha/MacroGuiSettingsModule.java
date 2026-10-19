@@ -1,6 +1,6 @@
 package wtf.dupers.dupersunited.modules.glitcha;
 
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
@@ -20,9 +20,9 @@ public class MacroGuiSettingsModule extends Module {
     // GUI Controls
     public final StringSetting recordNameSetting = register(new StringSetting("Record Name", "macro"));
     public final StringSetting recordGuiSetting = register(new StringSetting("Target GUI", "Any"));
-    public final BindSetting recordBindSetting = register(new BindSetting("Start Recording", GLFW.GLFW_KEY_UNKNOWN)
+    public final BindSetting recordBindSetting = register(new BindSetting("Start Recording", InputConstants.UNKNOWN.getValue())
         .withCallback(key -> {
-            if (key == null || key == GLFW.GLFW_KEY_UNKNOWN) return;
+            if (key == null || key == InputConstants.UNKNOWN.getValue()) return;
             startAutoRecord();
         }));
 

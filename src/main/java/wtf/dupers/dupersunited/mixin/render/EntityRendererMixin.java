@@ -35,7 +35,7 @@ public class EntityRendererMixin<T extends Entity> {
     }
 
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
-    private void onRender(T entity, Frustum frustum, double x, double y, double z, CallbackInfoReturnable<Boolean> cir) {
+    private void onRender(T entity, Frustum frustum, double x, double y, double z, float partialTick, CallbackInfoReturnable<Boolean> cir) {
         if (!shouldRenderPlayer(entity)) {
             cir.setReturnValue(false);
             return;

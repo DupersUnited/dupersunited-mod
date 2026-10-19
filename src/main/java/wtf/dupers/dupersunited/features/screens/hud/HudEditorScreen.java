@@ -4,6 +4,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.MainClient;
@@ -106,7 +107,7 @@ public class HudEditorScreen extends Screen {
     // IGNORE THE HORRIBLE CODE IT DOES THE JOB FUCK YOU VINZY
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean bl) {
-        if (click.button() == 0) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             int btnX = width / 2 - RESET_W / 2;
             int btnY = height - 28;
             if (click.x() >= btnX && click.x() <= btnX + RESET_W && click.y() >= btnY && click.y() <= btnY + RESET_H) {
