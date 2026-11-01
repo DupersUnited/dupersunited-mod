@@ -1,26 +1,25 @@
 package wtf.dupers.dupersunited.commands.subcommands;
 
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandBuildContext;
-import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import wtf.dupers.dupersunited.MainClient;
+import wtf.dupers.dupersunited.api.DupersUnitedMod;
 import wtf.dupers.dupersunited.api.command.Command;
-import wtf.dupers.dupersunited.api.command.arguments.ModuleArgumentType;
 import wtf.dupers.dupersunited.api.module.Module;
-import wtf.dupers.dupersunited.api.module.settings.*;
+import wtf.dupers.dupersunited.api.module.settings.ButtonSetting;
+import wtf.dupers.dupersunited.api.module.settings.Setting;
 import wtf.dupers.dupersunited.commands.MainCommand;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 public final class ModuleCommand extends Command {
@@ -30,110 +29,37 @@ public final class ModuleCommand extends Command {
 
     @Override
     public void build(LiteralArgumentBuilder<FabricClientCommandSource> builder, CommandBuildContext registryAccess) {
-        var module = argument("module", ModuleArgumentType.module())
-            .executes(ctx -> {
-                showModule(ModuleArgumentType.get(ctx));
-                return 1;
-            });
+        for (Module module : DupersUnitedMod.getModules()) {
+            var moduleBuilder = literal(asLiteralArg(module.getName()))
+                .executes(_ -> showModule(module))
+                .then(literal("toggle")
+                    .executes(_ -> setEnabled(module, !module.isEnabled())))
+                .then(literal("enable")
+                    .executes(_ -> setEnabled(module, true)))
+                .then(literal("on")
+                    .executes(_ -> setEnabled(module, true)))
+                .then(literal("disable")
+                    .executes(_ -> setEnabled(module, false)))
+                .then(literal("off")
+                    .executes(_ -> setEnabled(module, false)));
 
-        module.then(literal("toggle").executes(c -> {
-                Module m = ModuleArgumentType.get(c);
-                setEnabled(m, !m.isEnabled());
-                return 1;
-            }))
-            .then(literal("enable").executes(c -> {
-                setEnabled(ModuleArgumentType.get(c), true);
-                return 1;
-            }))
-            .then(literal("on").executes(c -> {
-                setEnabled(ModuleArgumentType.get(c), true);
-                return 1;
-            }))
-            .then(literal("disable").executes(c -> {
-                setEnabled(ModuleArgumentType.get(c), false);
-                return 1;
-            }))
-            .then(literal("off").executes(c -> {
-                setEnabled(ModuleArgumentType.get(c), false);
-                return 1;
-            }));
+            for (Setting<?> setting : module.getSettings()) {
+                if (setting instanceof ButtonSetting) continue;
+                var settingBuilder = literal(asLiteralArg(setting.getName()));
 
-        module.then(argument("setting", StringArgumentType.word())
-            .suggests((ctx, suggestions) -> {
-                Module m = ModuleArgumentType.get(ctx);
-                if (m == null) return suggestions.buildFuture();
-                return SharedSuggestionProvider.suggest(m.getSettings().stream().map(Setting::getName), suggestions);
-            })
-            .then(argument("value", StringArgumentType.greedyString())
-                .suggests((ctx, suggestions) -> {
-                    Module m = ModuleArgumentType.get(ctx);
-                    if (m == null) return suggestions.buildFuture();
-                    Setting<?> setting;
-                    try {
-                        setting = m.getSettingByName(StringArgumentType.getString(ctx, "setting"));
-                    } catch (Exception e) {
-                        return suggestions.buildFuture();
-                    }
-                    if (setting == null) return suggestions.buildFuture();
-                    return SharedSuggestionProvider.suggest(values(setting).stream(), suggestions);
-                })
-                .executes(ctx -> {
-                    Module m = ModuleArgumentType.get(ctx);
-                    String name = StringArgumentType.getString(ctx, "setting");
-                    String value = StringArgumentType.getString(ctx, "value");
+                settingBuilder.executes(_ -> showSetting(setting));
 
-                    Setting<?> setting = m.getSettingByName(name);
-                    if (setting == null) {
-                        MainCommand.sendMessage(Component.literal("Setting ")
-                            .append(Component.literal(name).withStyle(ChatFormatting.AQUA))
-                            .append(Component.literal(" not found").withStyle(ChatFormatting.RED))
-                            .append(" on ")
-                            .append(Component.literal(m.getName()).withStyle(ChatFormatting.AQUA))
-                            .append("."), true);
-                        return 0;
-                    }
+                setting.buildCommandStub(settingBuilder, registryAccess);
+                moduleBuilder.then(settingBuilder);
+            }
 
-                    boolean ok;
-                    try {
-                        ok = switch (setting) {
-                            case FloatSetting s -> s.setValue(Float.parseFloat(value));
-                            case IntSetting s -> s.setValue(Integer.parseInt(value));
-                            case BooleanSetting s -> (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) && s.setValue(Boolean.parseBoolean(value));
-                            case ModeSetting s -> s.setValue(value);
-                            case EnumSetting<?> s -> s.setValue(value);
-                            case StringSetting s -> s.setValue(value);
-                            default -> false;
-                        };
-                    } catch (NumberFormatException e) {
-                        ok = false;
-                    }
+            builder.then(moduleBuilder);
+        }
 
-                    if (!ok) {
-                        MainCommand.sendMessage(Component.literal("Invalid value ").withStyle(ChatFormatting.RED)
-                            .append(Component.literal(value).withStyle(ChatFormatting.WHITE))
-                            .append(" for setting ")
-                            .append(Component.literal(name).withStyle(ChatFormatting.AQUA))
-                            .append(Component.literal(". Valid: " + String.join(", ", values(setting))).withStyle(ChatFormatting.GRAY)), true);
-                        return 0;
-                    }
-
-                    MainCommand.sendMessage(Component.empty()
-                        .append(Component.literal(m.getName()).withStyle(ChatFormatting.AQUA))
-                        .append(" setting ")
-                        .append(Component.literal(name).withStyle(ChatFormatting.AQUA))
-                        .append(" set to ")
-                        .append(Component.literal(String.valueOf(setting.getValue())).withStyle(ChatFormatting.AQUA))
-                        .append("."), true);
-                    return 1;
-                })));
-
-        builder.executes(_ -> {
-            listModules();
-            return 1;
-        }).then(module);
+        builder.executes(_ -> listModules());
     }
 
-    private void listModules() {
+    private int listModules() {
         List<Module> modules = MainClient.MODULE_MANAGER.modules().stream()
             .sorted(Comparator.comparing(Module::getName, String.CASE_INSENSITIVE_ORDER))
             .toList();
@@ -153,9 +79,11 @@ public final class ModuleCommand extends Command {
 
             MainCommand.sendMessage(text, true);
         }
+
+        return 1;
     }
 
-    private void showModule(Module module) {
+    private int showModule(Module module) {
         MainCommand.sendMessage(Component.empty()
             .append(Component.literal(module.getName()).withStyle(ChatFormatting.AQUA))
             .append(" is ")
@@ -168,9 +96,11 @@ public final class ModuleCommand extends Command {
                 .append(": ")
                 .append(Component.literal(String.valueOf(setting.getValue())).withStyle(ChatFormatting.AQUA)), true);
         }
+
+        return 1;
     }
 
-    private void setEnabled(Module module, boolean state) {
+    private int setEnabled(Module module, boolean state) {
         boolean already = module.isEnabled() == state;
         if (!already) module.setEnabled(state);
 
@@ -179,6 +109,18 @@ public final class ModuleCommand extends Command {
             .append(already ? " is already " : " is now ")
             .append(status(state))
             .append("."), true);
+
+        return 1;
+    }
+
+    private <T> int showSetting(Setting<T> setting) {
+        MainCommand.sendMessage(Component.empty()
+            .append(Component.literal(setting.getName()).withStyle(ChatFormatting.AQUA))
+            .append(" is ")
+            .append(Component.literal(String.valueOf(setting.getValue())).withStyle(ChatFormatting.WHITE))
+            .append("."), true);
+
+        return 1;
     }
 
     private Component status(boolean enabled) {
@@ -187,12 +129,7 @@ public final class ModuleCommand extends Command {
             : Component.literal("disabled").withStyle(ChatFormatting.RED);
     }
 
-    private List<String> values(Setting<?> setting) {
-        return switch (setting) {
-            case BooleanSetting ignored -> List.of("true", "false");
-            case ModeSetting s -> s.getOptions();
-            case EnumSetting<?> s -> s.getOptions().stream().map(Object::toString).toList();
-            default -> List.of(String.valueOf(setting.getValue()));
-        };
+    private String asLiteralArg(String s) {
+        return s.toLowerCase(Locale.ROOT).replace(' ', '_');
     }
 }
