@@ -5,11 +5,13 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
+import net.minecraft.client.gui.screens.multiplayer.ServerSelectionList;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.NonNull;
 import org.spongepowered.asm.mixin.Shadow;
 import wtf.dupers.dupersunited.MainClient;
+import wtf.dupers.dupersunited.SharedVariables;
 import wtf.dupers.dupersunited.commands.subcommands.DupeCommand;
 import wtf.dupers.dupersunited.compat.MeteorCompat;
 import wtf.dupers.dupersunited.features.ServerAlertConfig;
@@ -33,6 +35,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import wtf.dupers.dupersunited.utils.ServerUtils;
 
 import java.util.List;
 
@@ -42,6 +45,9 @@ import static wtf.dupers.dupersunited.MainClient.mc;
 public abstract class MultiplayerScreenMixin extends Screen {
     @Shadow
     public abstract void join(ServerData data);
+
+    @Shadow
+    protected ServerSelectionList serverSelectionList;
 
     protected MultiplayerScreenMixin(Component title) { super(title); }
 
@@ -83,6 +89,52 @@ public abstract class MultiplayerScreenMixin extends Screen {
         }
     }
 
+    @Unique
+    private void dupersunited$renderRealVersionTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (serverSelectionList == null || !serverSelectionList.isMouseOver(mouseX, mouseY)) return;
+
+        int left = serverSelectionList.getRowLeft() + 35;
+        int right = serverSelectionList.getRowLeft() + serverSelectionList.getRowWidth() - 100;
+        if (mouseX < left || mouseX > right) return;
+
+        for (int i = 0; i < serverSelectionList.children().size(); i++) {
+            ServerSelectionList.Entry entry = serverSelectionList.children().get(i);
+            if (!(entry instanceof ServerSelectionList.OnlineServerEntry online)) continue;
+
+            int top = serverSelectionList.getRowTop(i);
+            if (mouseY < top || mouseY > top + 32) continue;
+
+            ServerData data = online.getServerData();
+            String realVersion = ServerUtils.getRealServerVersion(data.ip);
+            boolean foundRealServer = realVersion != null && !realVersion.equals(ServerUtils.UNKNOWNPACKETSYO);
+            boolean joinedServerBefore = realVersion != null;
+            boolean hasAdvertised = data.version != null && !data.version.getString().isBlank();
+
+            Component advertised = hasAdvertised
+                ? data.version.copy().withStyle(ChatFormatting.GOLD)
+                : Component.literal("hidden (protocol " + data.protocol + ")").withStyle(ChatFormatting.GRAY);
+
+            Component tooltip = Component.literal("Advertised: ").withStyle(ChatFormatting.WHITE)
+                .append(advertised);
+
+            if (foundRealServer) {
+                tooltip = tooltip.copy()
+                    .append(Component.literal("  /  Real: ").withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal(realVersion).withStyle(ChatFormatting.AQUA));
+            } else if (joinedServerBefore) {
+                tooltip = tooltip.copy()
+                    .append(Component.literal("  /  Real: ").withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal(ServerUtils.UNKNOWNPACKETSYO).withStyle(ChatFormatting.RED));
+            } else {
+                tooltip = tooltip.copy()
+                    .append(Component.literal(" (not verified)").withStyle(ChatFormatting.RED));
+            }
+
+            graphics.setTooltipForNextFrame(this.font, tooltip, mouseX, mouseY);
+            return;
+        }
+    }
+
     @Inject(at = @At("TAIL"), method = "init")
     private void dupersunited$addProxyButton(CallbackInfo ci) {
         dupersunited$accountsButton = this.addRenderableWidget(Button.builder(
@@ -107,6 +159,8 @@ public abstract class MultiplayerScreenMixin extends Screen {
 
     @Inject(method = "join", at = @At("HEAD"), cancellable = true)
     private void dupersunited$checkProxy(ServerData serverData, CallbackInfo ci) {
+        ServerUtils.pendingServer = serverData;
+
         if (DupeCommand.amILarpingItUp) ClientTickEvents.END_CLIENT_TICK.register(_ -> {
             throw new RuntimeException("Failed to establish a connection with the Hygot backend!");//ouuu shii @vinzy-dev this is a cold error
         });
@@ -161,6 +215,8 @@ public abstract class MultiplayerScreenMixin extends Screen {
         dupersunited$updateButtonPositions();
 
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+
+        dupersunited$renderRealVersionTooltip(graphics, mouseX, mouseY);
 
         if (this.width < 600) return;
 
