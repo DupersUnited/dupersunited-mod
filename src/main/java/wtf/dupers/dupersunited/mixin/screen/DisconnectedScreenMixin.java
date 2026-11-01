@@ -48,7 +48,7 @@ public abstract class DisconnectedScreenMixin extends Screen {
         }
 
         Button randomBtn = Button.builder(
-                Component.literal("Reconnect with random name"),
+                Component.literal("Reconnect as random offline account"),
                 _ -> {
                     OfflineAccount account = OfflineAccountManager.createRandom();
                     SessionManager.setSession(SessionManager.createSession(account.username, account.uuid, ""));
