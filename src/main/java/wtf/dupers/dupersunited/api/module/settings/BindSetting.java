@@ -5,7 +5,7 @@ import com.google.gson.JsonPrimitive;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import wtf.dupers.dupersunited.api.module.Module;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.function.Consumer;
 
 public class BindSetting extends Setting<Integer> {
@@ -19,7 +19,7 @@ public class BindSetting extends Setting<Integer> {
 
     public BindSetting linkedTo(Module module) {
         this.linkedModule = module;
-        if (module.getKeybind() != GLFW.GLFW_KEY_UNKNOWN) {
+        if (module.getKeybind() != InputConstants.UNKNOWN.getValue()) {
             this.value = module.getKeybind();
         }
         return this;
@@ -70,17 +70,7 @@ public class BindSetting extends Setting<Integer> {
     }
 
     public String getKeyName() {
-        int code = getValue();
-        if (code == GLFW.GLFW_KEY_UNKNOWN) return "NONE";
-
-        if (code >= 0 && code <= 7) {
-            return "MB" + (code + 1);
-        }
-
-        String name = GLFW.glfwGetKeyName(code, 0);
-        if (name != null) return name.toUpperCase();
-
-        return "K" + code;
+        return KeybindManager.name(getValue());
     }
 
     @Override

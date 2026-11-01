@@ -4,7 +4,7 @@ import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class PacketLoggerModule extends Module {
 
@@ -16,6 +16,6 @@ public class PacketLoggerModule extends Module {
 
     public PacketLoggerModule() {
         super("PacketLogger", "Log inventory and GUI S2C and C2S packets (Can be very spammy!)", Category.glitcha);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 }

@@ -9,7 +9,7 @@ import wtf.dupers.dupersunited.api.module.settings.Setting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.protocol.Packet;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -114,7 +114,7 @@ public class Module {
     }
 
 
-    private int keybind = GLFW.GLFW_KEY_UNKNOWN;
+    private int keybind = InputConstants.UNKNOWN.getValue();
 
     public int getKeybind() {
         return keybind;

@@ -7,7 +7,7 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import wtf.dupers.dupersunited.api.module.settings.StringSetting;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class PayAllSettingsModule extends Module {
     public final StringSetting commandSetting = register(new StringSetting("Command", "/pay <p> <a>"));
@@ -18,7 +18,7 @@ public class PayAllSettingsModule extends Module {
 
     public PayAllSettingsModule() {
         super("PayAll", "Pays everyone, right click this module to customize the payAll subcommand, <p> for player and <a> for amount.", Category.glitcha);
-        this.register(new BindSetting("Pay Everyone", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Pay Everyone", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 
     @Override

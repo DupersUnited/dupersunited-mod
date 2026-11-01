@@ -1,9 +1,9 @@
 package wtf.dupers.dupersunited.features.account;
 
-import com.mojang.authlib.minecraft.MinecraftSessionService;
+import com.mojang.authlib.minecraft.SessionService;
 import com.mojang.authlib.minecraft.UserApiService;
-import com.mojang.authlib.yggdrasil.FriendsService;
-import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
+import com.mojang.authlib.services.FriendsService;
+import com.mojang.authlib.services.MinecraftServicesDiscoveryService;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.User;
 import net.minecraft.client.gui.screens.social.PlayerSocialManager;
@@ -91,8 +91,8 @@ public class SessionManager {
         MinecraftClientAccessor client = (MinecraftClientAccessor) Minecraft.getInstance();
         client.dupersunited$setSession(session);
 
-        YggdrasilAuthenticationService authService = new YggdrasilAuthenticationService(Minecraft.getInstance().getProxy());
-        MinecraftSessionService sessionService = authService.createMinecraftSessionService();
+        MinecraftServicesDiscoveryService authService = MinecraftServicesDiscoveryService.create(Minecraft.getInstance().getProxy());
+        SessionService sessionService = authService.createMinecraftSessionService();
 
         client.dupersunited$setGameProfileFuture(CompletableFuture.supplyAsync(() ->
                 sessionService.fetchProfile(session.getProfileId(), true),

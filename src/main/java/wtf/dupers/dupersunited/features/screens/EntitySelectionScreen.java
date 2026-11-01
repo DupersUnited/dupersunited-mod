@@ -11,7 +11,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.MobCategory;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -506,7 +506,7 @@ public class EntitySelectionScreen extends Screen {
             int rx1 = px + PAD;
             int rx2 = px + pw - PAD;
             if (mx >= rx1 && mx < rx2 && my >= ry && my < ry + LINE_H) {
-                if (click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
                     return true;
                 }
                 EntityType<?> type = shown.get(i);
@@ -522,7 +522,7 @@ public class EntitySelectionScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
-        if (listDragActive && click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (listDragActive && click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             int px = panelX(), pw = panelW(), py = 5, ph = height - 10;
             int idx = listHitShownIndex((int) click.x(), (int) click.y(), px, pw, py, ph);
             if (idx >= 0) {
@@ -559,11 +559,11 @@ public class EntitySelectionScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent input) {
         int key = input.key();
-        if (key == GLFW.GLFW_KEY_ESCAPE) {
+        if (key == InputConstants.KEY_ESCAPE) {
             onClose();
             return true;
         }
-        if (key == GLFW.GLFW_KEY_BACKSPACE) {
+        if (key == InputConstants.KEY_BACKSPACE) {
             if (cursorPos > 0) {
                 searchQuery = searchQuery.substring(0, cursorPos - 1) + searchQuery.substring(cursorPos);
                 cursorPos--;
@@ -571,26 +571,26 @@ public class EntitySelectionScreen extends Screen {
             }
             return true;
         }
-        if (key == GLFW.GLFW_KEY_DELETE) {
+        if (key == InputConstants.KEY_DELETE) {
             if (cursorPos < searchQuery.length()) {
                 searchQuery = searchQuery.substring(0, cursorPos) + searchQuery.substring(cursorPos + 1);
                 rebuildShown();
             }
             return true;
         }
-        if (key == GLFW.GLFW_KEY_LEFT && cursorPos > 0) {
+        if (key == InputConstants.KEY_LEFT && cursorPos > 0) {
             cursorPos--;
             return true;
         }
-        if (key == GLFW.GLFW_KEY_RIGHT && cursorPos < searchQuery.length()) {
+        if (key == InputConstants.KEY_RIGHT && cursorPos < searchQuery.length()) {
             cursorPos++;
             return true;
         }
-        if (key == GLFW.GLFW_KEY_HOME) {
+        if (key == InputConstants.KEY_HOME) {
             cursorPos = 0;
             return true;
         }
-        if (key == GLFW.GLFW_KEY_END) {
+        if (key == InputConstants.KEY_END) {
             cursorPos = searchQuery.length();
             return true;
         }

@@ -11,7 +11,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -34,7 +34,7 @@ public class PropagandaModule extends Module {
 
     public PropagandaModule() {
         super("Propaganda", "no comment", "Misc");
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 
     public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float deltaTicks) {
@@ -97,7 +97,7 @@ public class PropagandaModule extends Module {
         for (var it = this.activeAds.iterator(); it.hasNext();) {
             AdInstance ad = it.next();
             if (ad.isMouseOver(click.x(), click.y())) {
-                if (click.button() == 0) ad.click();
+                if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) ad.click();
                 else it.remove();
 
                 return true;

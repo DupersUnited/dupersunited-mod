@@ -9,7 +9,8 @@ import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacro;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import org.lwjgl.glfw.GLFW;
+import wtf.dupers.dupersunited.keybinds.KeybindManager;
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.*;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
@@ -70,10 +71,7 @@ public class ChatMacroScreen extends Screen {
     }
 
     private String getBindName(int code) {
-        if (code == GLFW.GLFW_KEY_UNKNOWN || code == 0) return "NONE";
-        if (code < 0) return "MOUSE " + (code + 100);
-        String n = GLFW.glfwGetKeyName(code, 0);
-        return (n != null) ? n.toUpperCase() : "KEY " + code;
+        return KeybindManager.name(code);
     }
 
     @Override
@@ -99,7 +97,7 @@ public class ChatMacroScreen extends Screen {
                 count++;
             }
 
-            ChatMacro newMacro = new ChatMacro(finalName, new ArrayList<>(), GLFW.GLFW_KEY_UNKNOWN);
+            ChatMacro newMacro = new ChatMacro(finalName, new ArrayList<>(), InputConstants.UNKNOWN.getValue());
             ChatMacroManager.addMacro(newMacro.getName(), newMacro.getMessages(), newMacro.getKeyCode(), true);
             mc.gui.setScreen(new ChatMacroConfigScreen(this, newMacro));
             return true;
@@ -120,7 +118,7 @@ public class ChatMacroScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent input) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (input.key() == InputConstants.KEY_ESCAPE) {
             mc.gui.setScreen(parent);
             return true;
         }
