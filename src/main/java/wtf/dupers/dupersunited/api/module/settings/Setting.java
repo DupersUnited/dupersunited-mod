@@ -12,14 +12,19 @@ public abstract class Setting<T> {
     private final String name;
     public BooleanSupplier visible = () -> true;
     protected T value;
+    protected final T defaultValue;
 
     public Setting(String name, T defaultValue) {
         this.name = name;
         this.value = defaultValue;
+        this.defaultValue = defaultValue;
     }
 
     public String getName() { return name; }
     public T getValue() { return value; }
+
+    public T getDefaultValue() { return defaultValue; }
+    public void reset() { setValue(getDefaultValue()); }
 
     /**
      * @return Whether the value was successfully changed.

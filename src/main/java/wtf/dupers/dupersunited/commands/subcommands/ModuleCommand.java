@@ -41,11 +41,32 @@ public final class ModuleCommand extends Command {
                 .then(literal("disable")
                     .executes(_ -> setEnabled(module, false)))
                 .then(literal("off")
-                    .executes(_ -> setEnabled(module, false)));
+                    .executes(_ -> setEnabled(module, false)))
+                .then(literal("reset-settings").executes(_ -> {
+                    for (Setting<?> setting : module.getSettings()) setting.reset();
+
+                    MainCommand.sendMessage(Component.literal("Reset settings for ")
+                        .append(Component.literal(module.getName()).withStyle(ChatFormatting.AQUA))
+                        .append("."), true);
+
+                    return 1;
+                }));
 
             for (Setting<?> setting : module.getSettings()) {
                 if (setting instanceof ButtonSetting) continue;
                 var settingBuilder = literal(asLiteralArg(setting.getName()));
+
+                settingBuilder.then(literal("reset").executes(_ -> {
+                    setting.reset();
+
+                    MainCommand.sendMessage(Component.empty()
+                        .append(Component.literal(setting.getName()).withStyle(ChatFormatting.AQUA))
+                        .append(" reset to ")
+                        .append(Component.literal(String.valueOf(setting.getValue())).withStyle(ChatFormatting.WHITE))
+                        .append("."), true);
+
+                    return 1;
+                }));
 
                 settingBuilder.executes(_ -> showSetting(setting));
 
