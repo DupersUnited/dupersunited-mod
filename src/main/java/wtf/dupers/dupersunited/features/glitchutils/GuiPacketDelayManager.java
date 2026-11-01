@@ -5,7 +5,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerboundContainerButtonClickPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import org.jetbrains.annotations.Nullable;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 
 import java.util.Queue;
 import java.util.Set;
@@ -46,8 +46,8 @@ public final class GuiPacketDelayManager {
         paused = true;
         requiredGuiTitle = guiTitle;
 
-        if (GuiMacro.getInstance().isRecording) {
-            GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.pausePackets(guiTitle));
+        if (Macros.getInstance().isRecording) {
+            Macros.getInstance().recordAction(Macros.MacroAction.pausePackets(guiTitle));
         }
     }
 
@@ -59,8 +59,8 @@ public final class GuiPacketDelayManager {
         paused = false;
         requiredGuiTitle = null;
 
-        if (GuiMacro.getInstance().isRecording) {
-            GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.resumePackets(null));
+        if (Macros.getInstance().isRecording) {
+            Macros.getInstance().recordAction(Macros.MacroAction.resumePackets(null));
         }
 
         ClientPacketListener handler = mc.getConnection();
