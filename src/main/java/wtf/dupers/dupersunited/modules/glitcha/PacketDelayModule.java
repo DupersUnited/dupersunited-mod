@@ -9,6 +9,7 @@ import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ServerboundClientInformationPacket;
+import net.minecraft.network.protocol.common.ServerboundCustomClickActionPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
 import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
@@ -60,6 +61,7 @@ public class PacketDelayModule extends Module {
         addPacket("CraftRequest", ServerboundPlaceRecipePacket.class);
         addPacket("RecipeBookData", ServerboundRecipeBookChangeSettingsPacket.class);
         addPacket("RecipeCategory", ServerboundRecipeBookSeenRecipePacket.class);
+        addPacket("DialogAction", ServerboundCustomClickActionPacket.class);
 
         // chat, command & data stuff
         addPacket("ChatMessage", ServerboundChatPacket.class);
