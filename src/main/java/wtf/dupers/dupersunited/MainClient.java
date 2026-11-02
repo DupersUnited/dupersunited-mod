@@ -133,7 +133,8 @@ public class MainClient implements ModInitializer {
             new PacketPauseKeybind(),
             new RestoreGuiKeybind(),
             new RevertGhostBlockKeybind(),
-            new SaveGuiKeybind()
+            new SaveGuiKeybind(),
+            new RestoreDialogKeybind()
         );
 
         // addon initialization
@@ -157,22 +158,27 @@ public class MainClient implements ModInitializer {
             ProxyConfigManager.load(),
             AccountProxyLinks.load(),
             OfflineAccountManager.load()
-        ).thenAccept(nil -> {
-            // auto apply proxy linked to the launch account if it exists
-            String launchUsername = SessionManager.getSession() != null ? SessionManager.getSession().getName() : null;
-            if (launchUsername != null && AccountProxyLinks.hasLink(launchUsername) && !AccountProxyLinks.hasBypass(launchUsername)) {
-                String linkedProxy = AccountProxyLinks.getLinkedProxy(launchUsername);
-                ProxyConfigManager.activeProfileName = linkedProxy;
-                ProxyConfigManager.globalEnabled = true;
-                ProxyConfigManager.save();
-                //LOGGER.info("Auto Applied Proxy Profile '{}' for launch account '{}'", linkedProxy, launchUsername); worked
-            } else if (launchUsername != null && !AccountProxyLinks.hasLink(launchUsername)) {
-                // no proxy linked to this account, make sure proxy is disabled haha oopsie
-                ProxyConfigManager.globalEnabled = false;
-                ProxyConfigManager.activeProfileName = "";
-                ProxyConfigManager.save();
-                //LOGGER.info("No proxy linked for launch account '{}', disabling proxy!", launchUsername); bamgangnbang
+        ).thenRun(() -> {
+            var session = SessionManager.getSession();
+            if (session == null) {
+                return;
             }
+            String username = session.getName();
+
+            //apply the linked proxy for the launch account, otherwise make sure proxies are off
+            if (AccountProxyLinks.hasLink(username) && !AccountProxyLinks.hasBypass(username)) {
+                ProxyConfigManager.activeProfileName = AccountProxyLinks.getLinkedProxy(username);
+                ProxyConfigManager.globalEnabled = true;
+                //LOGGER.info("Auto Applied Proxy Profile '{}' for launch account '{}'", linkedProxy, launchUsername); worked
+            } else {
+                ProxyConfigManager.activeProfileName = "";
+                //LOGGER.info("No proxy linked for launch account '{}', disabling proxy!", launchUsername); bamgangnbang
+                ProxyConfigManager.globalEnabled = false;
+            }
+            ProxyConfigManager.save();
+        }).exceptionally(e -> {
+            LOGGER.error("Proxy config init failed! Err:", e);
+            return null;
         });
 
         CompletableFuture<Void> configLoadTask = CompletableFuture.allOf(

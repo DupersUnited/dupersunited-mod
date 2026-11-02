@@ -53,6 +53,11 @@ public class AutoReconnect {
         }
     }
 
+    public static void reconnectNow() {
+        cancel();
+        reconnect();
+    }
+
     public static void tick() {
         if (ticksRemaining <= 0) return;
 
