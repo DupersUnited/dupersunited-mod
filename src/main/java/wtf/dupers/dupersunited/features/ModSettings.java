@@ -67,6 +67,8 @@ public final class ModSettings {
             try {
                 logFleetActions.readJson(root.get(logFleetActions.getName()));
             } catch (Exception ignored) {
+                    }
+            }
         if (root.has(showGuiName.getName())) {
             try {
                 showGuiName.readJson(root.get(showGuiName.getName()));
