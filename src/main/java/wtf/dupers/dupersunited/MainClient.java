@@ -96,7 +96,8 @@ public class MainClient implements ModInitializer {
             new RpBypassModule(),
             new BrandSpoofModule(),
             new AutoLoginModule(),
-            new MacroGuiSettingsModule()
+            new MacroGuiSettingsModule(),
+            new FleetModule()
         );
 
         registry.registerCommands(
@@ -118,7 +119,8 @@ public class MainClient implements ModInitializer {
             new SetHandCommand(),
             new ToggleCommand(),
             new WaitCommand(),
-            new MacroGuiCommand()
+            new MacroGuiCommand(),
+            new FleetCommand()
         );
 
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {

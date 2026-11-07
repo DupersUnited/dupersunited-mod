@@ -26,13 +26,15 @@ public final class MainCommand {
     }
 
     public static void sendMessage(Component message, boolean prefix) {
-        if (mc.player != null) {
-            if (prefix) {
-                mc.gui.hud.getChat().addClientSystemMessage(Component.empty().append(FEEDBACK_PREFIX).append(message));
-            } else {
-                mc.gui.hud.getChat().addClientSystemMessage(message);
+        mc.execute(() -> {
+            if (mc.player != null) {
+                if (prefix) {
+                    mc.gui.hud.getChat().addClientSystemMessage(Component.empty().append(FEEDBACK_PREFIX).append(message));
+                } else {
+                    mc.gui.hud.getChat().addClientSystemMessage(message);
+                }
             }
-        }
+        });
     }
 
     public static void register(Map<String, Command> commands) {

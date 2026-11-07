@@ -2,6 +2,7 @@ package wtf.dupers.dupersunited.api.module;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.network.chat.MutableComponent;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.features.ModSettings;
@@ -96,6 +97,27 @@ public class Module {
             .append(" is now ")
             .append(status)
             .append("."), true);
+    }
+
+    public static void moduleLog(String module, String message) {
+        moduleLog(Component.literal(module), Component.literal(message));
+    }
+
+    public static void moduleLog(Component module, String message) {
+        moduleLog(module.copy(), Component.literal(message));
+    }
+
+    public static void moduleLog(String module, Component message) {
+        moduleLog(Component.literal(module), message);
+    }
+
+    public static void moduleLog(MutableComponent moduleName, Component message) {
+        MainCommand.sendMessage(Component.empty()
+            .append(Component.literal("[").withStyle(ChatFormatting.GRAY))
+            .append(moduleName.withStyle(ChatFormatting.DARK_RED))
+            .append(Component.literal("]").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(" "))
+            .append(message), true);
     }
 
     protected void onEnable() {

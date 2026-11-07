@@ -14,6 +14,9 @@ netty = "4.1.118.Final"
 # https://github.com/xpple/clientarguments/releases
 clientarguments = "1.13.0"
 
+# https://github.com/TooTallNate/Java-WebSocket/releases
+java-websocket = "1.6.0"
+
 [libraries]
 minecraft = { module = "com.mojang:minecraft", version.ref = "minecraft" }
 # yarn = { module = "net.fabricmc:yarn", version.ref = "yarn" }
@@ -26,6 +29,8 @@ modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
 
 netty-handler-proxy = { module = "io.netty:netty-handler-proxy", version.ref = "netty" }
 netty-codec-socks = { module = "io.netty:netty-codec-socks", version.ref = "netty" }
+
+java-websocket = { module = "org.java-websocket:Java-WebSocket", version.ref = "java-websocket" }
 
 [plugins]
 fabric-loom = { id = "net.fabricmc.fabric-loom", version.ref = "loom" }
