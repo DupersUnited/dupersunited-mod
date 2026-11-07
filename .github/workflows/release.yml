@@ -47,3 +47,22 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" build/libs/*.jar --title "$GITHUB_REF_NAME" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Bump version for next release
+        run: |
+          git remote set-url origin "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin main
+          git checkout -B main origin/main
+
+          current="$(grep '^version=' gradle.properties | cut -d= -f2)"
+          major="${current%%.*}"
+          rest="${current#*.}"
+          minor="${rest%%.*}"
+          patch="${rest#*.}"
+          next="$major.$minor.$((patch + 1))"
+
+          sed -i "s/^version=.*/version=$next/" gradle.properties
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump version [skip ci]"
+          git push origin main
