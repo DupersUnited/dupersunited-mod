@@ -15,7 +15,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class ClickSlotModule extends Module {
 
@@ -29,7 +29,7 @@ public class ClickSlotModule extends Module {
 
     public ClickSlotModule() {
         super("ClickSlot", "Sends left-click pickup packets to a slot a certain amount of times.", Category.glitcha);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
         this.register(slot);
         this.register(count);
         this.register(delayMs);

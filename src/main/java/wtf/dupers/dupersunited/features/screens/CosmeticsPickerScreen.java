@@ -16,10 +16,10 @@ import wtf.dupers.dupersunited.features.cosmetics.CosmeticCatalog;
 import wtf.dupers.dupersunited.features.cosmetics.CosmeticsFeatureRenderer;
 import wtf.dupers.dupersunited.modules.render.CosmeticsModule;
 import wtf.dupers.dupersunited.utils.ColorUtil;
-import net.minecraft.util.Util;
+import com.mojang.blaze3d.Blaze3D;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -367,10 +367,10 @@ public class CosmeticsPickerScreen extends Screen {
             return super.mouseDragged(click, deltaX, deltaY);
         }
 
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             previewYaw = (previewYaw - (float) deltaX * 1.5f) % 360.0f;
             previewPitch = Mth.clamp(previewPitch + (float) deltaY, -80.0f, 80.0f);
-        } else if (click.button() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+        } else if (click.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             previewPanX += (float) deltaX;
             previewPanY += (float) deltaY;
         }
@@ -406,7 +406,7 @@ public class CosmeticsPickerScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent input) {
-        if (input.input() == GLFW.GLFW_KEY_BACKSPACE && !query.isEmpty()) {
+        if (input.input() == InputConstants.KEY_BACKSPACE && !query.isEmpty()) {
             query = query.substring(0, query.length() - 1);
             scroll = 0;
             return true;
@@ -470,7 +470,7 @@ public class CosmeticsPickerScreen extends Screen {
 
     private static void openSource(CosmeticCatalog.Item item) {
         if (!item.source().isBlank()) {
-            Util.getPlatform().openPath(Path.of(item.source()));
+            Blaze3D.openPath(Path.of(item.source()));
         }
     }
 

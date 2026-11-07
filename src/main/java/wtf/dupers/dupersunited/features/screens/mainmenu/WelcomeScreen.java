@@ -2,8 +2,8 @@ package wtf.dupers.dupersunited.features.screens.mainmenu;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
+import com.mojang.blaze3d.Blaze3D;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.util.Util;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.utils.ColorUtil;
@@ -15,6 +15,8 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+
+import java.net.URI;
 
 import static wtf.dupers.dupersunited.utils.ColorUtil.MAUVE;
 
@@ -44,7 +46,7 @@ public class WelcomeScreen extends Screen {
         this.addRenderableWidget(
             Button.builder(
                     Component.literal("Terms of Service").withStyle(s -> s.withColor(MAUVE)),
-                    button -> Util.getPlatform().openUri("https://dupers.wtf/terms")
+                    button -> Blaze3D.openUri(URI.create("https://dupers.wtf/terms"))
                 )
                 .bounds(centerX - 155, this.height - 50, 100, 20)
                 .tooltip(Tooltip.create(Component.literal("Click this to view our terms of service.")))
@@ -55,7 +57,7 @@ public class WelcomeScreen extends Screen {
         this.addRenderableWidget(
             Button.builder(
                     Component.literal("Privacy Policy").withStyle(s -> s.withColor(MAUVE)),
-                    button -> Util.getPlatform().openUri("https://dupers.wtf/privacy")
+                    button -> Blaze3D.openUri(URI.create("https://dupers.wtf/privacy"))
                 )
                 .bounds(centerX - 50, this.height - 50, 100, 20)
                 .tooltip(Tooltip.create(Component.literal("Click this to view our privacy policy.")))

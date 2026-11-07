@@ -6,7 +6,7 @@ import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.IntSetting;
 import wtf.dupers.dupersunited.api.module.settings.StringSetting;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class SpamModule extends Module {
             messages[i] = register(new StringSetting("MSG " + (i + 1), defaultVal, 256));
         }
 
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
 
         count.visible = () -> limited.getValue();
         suffixLen.visible = () -> bypass.getValue();

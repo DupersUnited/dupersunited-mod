@@ -2,13 +2,13 @@ package wtf.dupers.dupersunited.keybinds;
 
 import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.features.glitchutils.SaveGuiManager;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
 public class SaveGuiKeybind extends Keybind {
     public SaveGuiKeybind() {
-        super("Save GUI", GLFW.GLFW_KEY_F6);
+        super("Save GUI", InputConstants.KEY_F6);
     }
 
     @Override

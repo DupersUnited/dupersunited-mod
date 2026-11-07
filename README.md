@@ -1,6 +1,6 @@
 # DupersUnited Mod
 
-This is a Minecraft 26.2 Fabric mod to help debug plugins and servers. This Mod does **NOT** give you dupes on Minecraft servers, just helps in finding them.
+This is a Minecraft 26.3 Fabric mod to help debug plugins and servers. This Mod does **NOT** give you dupes on Minecraft servers, just helps in finding them.
 
 ## Installation
 

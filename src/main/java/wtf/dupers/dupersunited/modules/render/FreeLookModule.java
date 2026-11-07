@@ -5,7 +5,7 @@ import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.FloatSetting;
 import net.minecraft.client.CameraType;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -17,7 +17,7 @@ public class FreeLookModule extends Module {
 
     public FreeLookModule() {
         super("FreeLook", "Allows you to orbit your camera around your player without moving your head.", Category.render);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 
     @Override

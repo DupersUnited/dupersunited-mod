@@ -4,16 +4,16 @@ If your question isn't answered here, feel free to create a ticket in our [Disco
 # Getting Started
 
 ## What version is this mod for?
-This mod is for **Minecraft 26.2**.
+This mod is for **Minecraft 26.3**.
 
 ## How do I install the mod? / How do I install Fabric?
 Go to the [Fabric](https://fabricmc.net/) website and click Download to download the [Fabric Installer](https://fabricmc.net/use/installer/). Open the installer, then select:
 
-> Minecraft Version: **26.2**
+> Minecraft Version: **26.3**
 >
-> Loader Version: **0.19.3**
+> Loader Version: **0.19.5**
 
-Click Install. Once the installation is complete, you'll need to install [Fabric API](https://modrinth.com/mod/fabric-api/version/0.141.5+1.21.11), return to the Fabric website and click Download Fabric API. Download the version of Fabric API that matches Minecraft 26.2.
+Click Install. Once the installation is complete, you'll need to install [Fabric API](https://modrinth.com/mod/fabric-api/version/0.141.5+1.21.11), return to the Fabric website and click Download Fabric API. Download the version of Fabric API that matches Minecraft 26.3.
 
 After downloading it, place the Fabric API .jar file into your .minecraft/mods folder. If you're unsure how to install mods, check out the [installation guide](https://docs.fabricmc.net/players/installing-mods) on the Fabric website.
 
@@ -106,7 +106,7 @@ This error means your fabric loader version is **outdated**! You'll need to foll
 
 ### Incorrect Minecraft Version
 
-This error means you are **not** running the correct version of Minecraft. This mod requires **Minecraft 26.2**.
+This error means you are **not** running the correct version of Minecraft. This mod requires **Minecraft 26.3**.
 
 <img width="776" height="243" alt="incorrectmcvererror" src="assets/badmc.png" />
 

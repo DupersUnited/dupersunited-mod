@@ -17,7 +17,7 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class NBTEditor extends Screen {
     private static final int TOPTEXT = 0xFF82D1E3; // light aqua
@@ -149,7 +149,7 @@ public class NBTEditor extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent input) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (input.key() == InputConstants.KEY_ESCAPE) {
             this.onClose();
             return true;
         }

@@ -11,7 +11,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.ContainerInput;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import wtf.dupers.dupersunited.SharedVariables;
@@ -293,7 +293,7 @@ public class GuiMacro {
 
         int existingKey = registeredMacros.containsKey(currentMacroName)
             ? registeredMacros.get(currentMacroName).key()
-            : GLFW.GLFW_KEY_UNKNOWN;
+            : InputConstants.UNKNOWN.getValue();
 
         Macro macro = new Macro(currentMacroName, existingKey, new ArrayList<>(currentClicks));
         registeredMacros.put(macro.name(), macro);

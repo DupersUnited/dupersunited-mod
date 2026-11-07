@@ -53,12 +53,12 @@ public final class CosmeticsFeatureRenderer extends RenderLayer<AvatarRenderStat
 
         if (item.id().equals("minecraft-duck")) {
             matrices.translate(0, -0.5f, 0);
-            matrices.mulPose(Axis.ZP.rotationDegrees(90));
+            matrices.rotate(Axis.ZP.rotationDegrees(90));
             matrices.scale(1, -1, 1);
         }
 
         if (module.animate.getValue()) {
-            matrices.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(age * 0.08f) * 1.6f));
+            matrices.rotate(Axis.ZP.rotationDegrees((float) Math.sin(age * 0.08f) * 1.6f));
         }
 
         CosmeticRenderer.render(item, matrices, queue, light);
@@ -79,7 +79,7 @@ public final class CosmeticsFeatureRenderer extends RenderLayer<AvatarRenderStat
         scale(matrices, module.tailSize.getValue(), module.tailWidth.getValue(), module.tailStretch.getValue());
 
         if (module.animate.getValue()) {
-            matrices.mulPose(Axis.YP.rotationDegrees((float) Math.sin(age * 0.16f) * 12.0f));
+            matrices.rotate(Axis.YP.rotationDegrees((float) Math.sin(age * 0.16f) * 12.0f));
         }
 
         CosmeticRenderer.render(item, matrices, queue, light);
@@ -91,9 +91,9 @@ public final class CosmeticsFeatureRenderer extends RenderLayer<AvatarRenderStat
     }
 
     private static void rotate(PoseStack matrices, int pitch, int yaw, int roll) {
-        matrices.mulPose(Axis.XP.rotationDegrees(pitch));
-        matrices.mulPose(Axis.YP.rotationDegrees(yaw));
-        matrices.mulPose(Axis.ZP.rotationDegrees(roll));
+        matrices.rotate(Axis.XP.rotationDegrees(pitch));
+        matrices.rotate(Axis.YP.rotationDegrees(yaw));
+        matrices.rotate(Axis.ZP.rotationDegrees(roll));
     }
 
     private static void scale(PoseStack matrices, int sizeValue, int widthValue, int heightValue) {

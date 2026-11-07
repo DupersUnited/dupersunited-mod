@@ -17,7 +17,7 @@ public class MouseMixin {
     @Shadow private double accumulatedDY;
 
     @Inject(method = "turnPlayer", at = @At("HEAD"), cancellable = true)
-    private void onUpdateMouse(CallbackInfo ci) {
+    private void onUpdateMouse(double delta, CallbackInfo ci) {
         FreecamModule freecam = MainClient.MODULE_MANAGER.getModule(FreecamModule.class);
         if (freecam != null && freecam.isEnabled()) {
             freecam.changeLookDirection(accumulatedDX * 0.15, accumulatedDY * 0.15);

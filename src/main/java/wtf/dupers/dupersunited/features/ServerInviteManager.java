@@ -90,7 +90,7 @@ public final class ServerInviteManager {
         int keyCode = JoinServerInviteKeybind.INSTANCE.getKeyCode();
         if (keyCode == -1) return null;
         if (keyCode == InputConstants.UNKNOWN.getValue()) return null;
-        return InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString().toUpperCase(Locale.ROOT);
+        return InputConstants.Type.KEYBOARD.getOrCreate(keyCode).getDisplayName().getString().toUpperCase(Locale.ROOT);
     }
 
     private static boolean isCurrentServer(String ip) {

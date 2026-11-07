@@ -28,7 +28,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2i;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.*;
 
@@ -77,8 +77,8 @@ public class ClickGui extends DuScreen {
     }
 
     private boolean isCtrlDown() {
-        long handle = mc.getWindow().handle();
-        return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+        return InputConstants.isKeyDown(InputConstants.KEY_LCONTROL)
+            || InputConstants.isKeyDown(InputConstants.KEY_RCONTROL);
     }
 
     private int selStart() {
@@ -98,16 +98,16 @@ public class ClickGui extends DuScreen {
 
     private boolean editKey(TextBuffer buf, int keyCode) {
         boolean ctrl = isCtrlDown();
-        if (ctrl && keyCode == GLFW.GLFW_KEY_A) {
+        if (ctrl && keyCode == InputConstants.KEY_A) {
             selectionAnchor = 0;
             cursorPos = buf.get().length();
             return true;
         }
-        if (ctrl && keyCode == GLFW.GLFW_KEY_C) {
+        if (ctrl && keyCode == InputConstants.KEY_C) {
             if (hasSelection()) mc.keyboardHandler.setClipboard(buf.get().substring(selStart(), selEnd()));
             return true;
         }
-        if (ctrl && keyCode == GLFW.GLFW_KEY_V) {
+        if (ctrl && keyCode == InputConstants.KEY_V) {
             String cb = mc.keyboardHandler.getClipboard();
             if (!cb.isEmpty()) {
                 String cur = buf.get();
@@ -127,7 +127,7 @@ public class ClickGui extends DuScreen {
             }
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+        if (keyCode == InputConstants.KEY_BACKSPACE) {
             String cur = buf.get();
             cursorPos = Math.min(cursorPos, cur.length());
             if (hasSelection()) {
@@ -140,7 +140,7 @@ public class ClickGui extends DuScreen {
             }
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_DELETE) {
+        if (keyCode == InputConstants.KEY_DELETE) {
             String cur = buf.get();
             cursorPos = Math.min(cursorPos, cur.length());
             if (hasSelection()) {
@@ -152,22 +152,22 @@ public class ClickGui extends DuScreen {
             }
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+        if (keyCode == InputConstants.KEY_LEFT) {
             if (hasSelection()) { cursorPos = selStart(); clearSelection(); }
             else if (cursorPos > 0) cursorPos--;
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+        if (keyCode == InputConstants.KEY_RIGHT) {
             if (hasSelection()) { cursorPos = selEnd(); clearSelection(); }
             else if (cursorPos < buf.get().length()) cursorPos++;
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_HOME) {
+        if (keyCode == InputConstants.KEY_HOME) {
             cursorPos = 0;
             clearSelection();
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_END) {
+        if (keyCode == InputConstants.KEY_END) {
             cursorPos = buf.get().length();
             clearSelection();
             return true;
@@ -218,10 +218,7 @@ public class ClickGui extends DuScreen {
     }
 
     private String getKeyName(int key) {
-        if (key == GLFW.GLFW_KEY_UNKNOWN) return "NONE";
-        if (key >= 0 && key <= 7) return "MB" + (key + 1);
-        String name = GLFW.glfwGetKeyName(key, 0);
-        return name != null ? name.toUpperCase() : "K" + key;
+        return KeybindManager.name(key);
     }
 
     private class HudPanel {
@@ -268,30 +265,30 @@ public class ClickGui extends DuScreen {
 
         boolean mouseClicked(int mx, int my, int btn) {
             if (mx < x || mx >= x + PW) return false;
-            if (my >= y && my < y + HEADER_H && btn == 0) {
+            if (my >= y && my < y + HEADER_H && btn == InputConstants.MOUSE_BUTTON_LEFT) {
                 dragging = true;
                 dox = mx - x;
                 doy = my - y;
                 return true;
             }
             int ry = y + HEADER_H;
-            if (my >= ry && my < ry + MOD_H && btn == 0) {
+            if (my >= ry && my < ry + MOD_H && btn == InputConstants.MOUSE_BUTTON_LEFT) {
                 mc.gui.setScreen(new HudEditorScreen());
                 return true;
             }
             ry += MOD_H;
             if (my >= ry && my < ry + MOD_H) {
-                if (btn == 0) {
+                if (btn == InputConstants.MOUSE_BUTTON_LEFT) {
                     mc.gui.setScreen(new KeybindScreen(ClickGui.this));
                     return true;
                 }
-                if (btn == 2 || btn == 1) {
+                if (btn == InputConstants.MOUSE_BUTTON_MIDDLE || btn == InputConstants.MOUSE_BUTTON_RIGHT) {
                     rebindingKeybind = KeybindManager.getRegisteredKeybinds().get("keybinds");
                     return true;
                 }
             }
             ry += MOD_H;
-            if (my >= ry && my < ry + MOD_H && btn == 0) {
+            if (my >= ry && my < ry + MOD_H && btn == InputConstants.MOUSE_BUTTON_LEFT) {
                 mc.gui.setScreen(new ChatMacroScreen(ClickGui.this));
                 return true;
             }
@@ -393,7 +390,7 @@ public class ClickGui extends DuScreen {
         }
 
         boolean sliderHit(int mx, int my, int sx, int sy, int sw, int btn) {
-            return btn == 0 && my >= sy && my <= sy + SET_H - 2 + SLD_H + 2;
+            return btn == InputConstants.MOUSE_BUTTON_LEFT && my >= sy && my <= sy + SET_H - 2 + SLD_H + 2;
         }
 
         float sliderPct(int mx, int sx, int sw) {
@@ -547,7 +544,7 @@ public class ClickGui extends DuScreen {
         boolean mouseClicked(int mx, int my, int btn) {
             if (mx < x || mx >= x + PW) return false;
 
-            if (my >= y && my < y + HEADER_H && btn == 0) {
+            if (my >= y && my < y + HEADER_H && btn == InputConstants.MOUSE_BUTTON_LEFT) {
                 if (mx >= x + PW - 12) {
                     collapsed = !collapsed;
                     categoryCollapsed.put(category, collapsed);
@@ -566,11 +563,11 @@ public class ClickGui extends DuScreen {
             for (Module mod : filtered) {
                 populateSettings(mod);
                 if (my >= ry && my < ry + MOD_H) {
-                    if (btn == 0) {
+                    if (btn == InputConstants.MOUSE_BUTTON_LEFT) {
                         mod.toggle();
                         return true;
                     }
-                    if (btn == 1) {
+                    if (btn == InputConstants.MOUSE_BUTTON_RIGHT) {
                         if (!settings.isEmpty()) {
                             toggleExpand(mod.getIdentifier());
                             return true;
@@ -608,17 +605,17 @@ public class ClickGui extends DuScreen {
                                     }
                                     sy += rowHeight(s);
                                 } else if (s instanceof BooleanSetting bs) {
-                                    if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
+                                    if (my >= sy && my < sy + SET_H && (btn == InputConstants.MOUSE_BUTTON_LEFT || btn == InputConstants.MOUSE_BUTTON_RIGHT)) {
                                         bs.toggle();
                                         clearFocus();
                                         return true;
                                     }
                                     sy += rowHeight(s);
                                 } else if (s instanceof ModeSetting ms) {
-                                    if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
+                                    if (my >= sy && my < sy + SET_H && (btn == InputConstants.MOUSE_BUTTON_LEFT || btn == InputConstants.MOUSE_BUTTON_RIGHT)) {
                                         List<String> opts = ms.getOptions();
                                         int idx = opts.indexOf(ms.getValue());
-                                        if (btn == 0) idx = (idx + 1) % opts.size();
+                                        if (btn == InputConstants.MOUSE_BUTTON_LEFT) idx = (idx + 1) % opts.size();
                                         else idx = (idx - 1 + opts.size()) % opts.size();
                                         ms.setValue(opts.get(idx));
                                         clearFocus();
@@ -626,21 +623,21 @@ public class ClickGui extends DuScreen {
                                     }
                                     sy += rowHeight(s);
                                 } else if (s instanceof EnumSetting<?> es) {
-                                    if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
-                                        es.cycle(btn == 0);
+                                    if (my >= sy && my < sy + SET_H && (btn == InputConstants.MOUSE_BUTTON_LEFT || btn == InputConstants.MOUSE_BUTTON_RIGHT)) {
+                                        es.cycle(btn == InputConstants.MOUSE_BUTTON_LEFT);
                                         clearFocus();
                                         return true;
                                     }
                                     sy += rowHeight(s);
                                 } else if (s instanceof ButtonSetting bs) {
-                                    if (my >= sy && my < sy + SET_H && (btn == 0 || btn == 1)) {
+                                    if (my >= sy && my < sy + SET_H && (btn == InputConstants.MOUSE_BUTTON_LEFT || btn == InputConstants.MOUSE_BUTTON_RIGHT)) {
                                         bs.press();
                                         clearFocus();
                                         return true;
                                     }
                                     sy += rowHeight(s);
                                 } else if (s instanceof BindSetting) {
-                                    if (my >= sy && my < sy + SET_H && btn == 0) {
+                                    if (my >= sy && my < sy + SET_H && btn == InputConstants.MOUSE_BUTTON_LEFT) {
                                         setFocus(this, mod.getIdentifier(), s.getName());
                                         rebindingModule = mod.getIdentifier();
                                         return true;
@@ -648,7 +645,7 @@ public class ClickGui extends DuScreen {
                                     sy += rowHeight(s);
                                 } else if (s instanceof StringSetting ss2) {
                                     int rowH = rowHeight(s);
-                                    if (my >= sy && my < sy + rowH && btn == 0) {
+                                    if (my >= sy && my < sy + rowH && btn == InputConstants.MOUSE_BUTTON_LEFT) {
                                         setFocus(this, mod.getIdentifier(), s.getName());
                                         clearSelection();
                                         String val = ss2.getValue();
@@ -829,7 +826,7 @@ public class ClickGui extends DuScreen {
         int btn = click.button();
 
         if (rebindingKeybind != null) {
-            rebindingKeybind.setKeyCode(btn);
+            rebindingKeybind.setKeyCode(KeybindManager.mouse(btn));
             rebindingKeybind = null;
             return true;
         }
@@ -851,9 +848,9 @@ public class ClickGui extends DuScreen {
                     }
 
                     if (!hitAnyPanel) {
-                        bs.setKeyCode(GLFW.GLFW_KEY_UNKNOWN);
+                        bs.setKeyCode(InputConstants.UNKNOWN.getValue());
                     } else {
-                        bs.setKeyCode(btn);
+                        bs.setKeyCode(KeybindManager.mouse(btn));
                     }
 
                     ConfigManager.save();
@@ -918,8 +915,8 @@ public class ClickGui extends DuScreen {
         int keyCode = input.input();
 
         if (rebindingKeybind != null) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-                rebindingKeybind.setKeyCode(GLFW.GLFW_KEY_UNKNOWN);
+            if (keyCode == InputConstants.KEY_ESCAPE || keyCode == InputConstants.KEY_BACKSPACE) {
+                rebindingKeybind.setKeyCode(InputConstants.UNKNOWN.getValue());
             } else {
                 rebindingKeybind.setKeyCode(keyCode);
             }
@@ -933,8 +930,8 @@ public class ClickGui extends DuScreen {
                 if (mod != null) {
                     Setting<?> s = mod.getSettingByName(focusedSet);
                     if (s instanceof BindSetting bs) {
-                        if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
-                            bs.setKeyCode(GLFW.GLFW_KEY_UNKNOWN);
+                        if (keyCode == InputConstants.KEY_ESCAPE || keyCode == InputConstants.KEY_BACKSPACE) {
+                            bs.setKeyCode(InputConstants.UNKNOWN.getValue());
                         } else {
                             bs.setKeyCode(keyCode);
                         }
@@ -949,7 +946,7 @@ public class ClickGui extends DuScreen {
         }
 
         if (searchFocused) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (keyCode == InputConstants.KEY_ESCAPE || keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
                 searchFocused = false;
                 return true;
             }
@@ -957,7 +954,7 @@ public class ClickGui extends DuScreen {
         }
 
         if (focusedMod != null && focusedSet != null) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (keyCode == InputConstants.KEY_ESCAPE) {
                 clearFocus();
                 this.onClose();
                 return true;
@@ -966,7 +963,7 @@ public class ClickGui extends DuScreen {
             if (mod != null) {
                 Setting<?> s = mod.getSettingByName(focusedSet);
                 if (s instanceof StringSetting ss) {
-                    if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_TAB) {
+                    if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER || keyCode == InputConstants.KEY_TAB) {
                         clearFocus();
                         return true;
                     }
@@ -975,7 +972,7 @@ public class ClickGui extends DuScreen {
             }
             clearFocus();
         }
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == InputConstants.KEY_ESCAPE) {
             this.onClose();
             return true;
         }

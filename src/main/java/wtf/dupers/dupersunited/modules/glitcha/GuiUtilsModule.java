@@ -7,7 +7,7 @@ import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -42,7 +42,7 @@ public class GuiUtilsModule extends Module {
 
     public GuiUtilsModule() {
         super("GUIUtils", "Allows you to toggle buttons in GUIs.", Category.glitcha);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
 
         //enable by default
         this.setEnabled(true);

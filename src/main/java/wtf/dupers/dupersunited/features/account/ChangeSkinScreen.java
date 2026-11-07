@@ -13,12 +13,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
-import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.cosmetics.CapeManager;
 import wtf.dupers.dupersunited.features.screens.ui.DuScreen;
+import org.lwjgl.sdl.SDLDialog;
+import org.lwjgl.sdl.SDL_DialogFileCallback;
+import org.lwjgl.sdl.SDL_DialogFileFilter;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -40,6 +41,9 @@ public class ChangeSkinScreen extends DuScreen {
     private Component statusMessage = Component.empty();
     private int mode = 0;// 0 = auto, 1 = classic, 2 = slim
     private boolean busy = false;
+
+    private SDL_DialogFileCallback fileDialogCallback;
+    private volatile boolean fileDialogOpen;
 
     //current skin preview
     private volatile @Nullable String currentSkinUrl;
@@ -107,23 +111,42 @@ public class ChangeSkinScreen extends DuScreen {
         statusMessage = Component.literal("File selected, press Apply").withStyle(ChatFormatting.GRAY);
     }
 
+    // no clue how this works, looks like it could be better simplified, all of this was skidded from some random project - khao
     private void browse() {
-        if (busy) return;
-        Thread.ofPlatform().daemon().start(() -> {
-            String chosen = null;
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                PointerBuffer filters = stack.mallocPointer(1);
-                filters.put(stack.UTF8("*.png")).flip();
-                chosen = TinyFileDialogs.tinyfd_openFileDialog("Select a skin", "", filters, "PNG images", false);
-            } catch (Throwable ignored) {}
-            String result = chosen;
-            if (result != null && !result.isEmpty()) {
-                mc.execute(() -> {
-                    sourceField.setValue(result);
-                    statusMessage = Component.literal("File selected, press Apply").withStyle(ChatFormatting.GRAY);
-                });
-            }
-        });
+        if (busy || fileDialogOpen) return;
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            SDL_DialogFileFilter.Buffer filters = SDL_DialogFileFilter.malloc(1, stack);
+            filters.name(stack.UTF8("PNG images")).pattern(stack.UTF8("*.png"));
+            filters.flip();
+
+            if (fileDialogCallback != null) fileDialogCallback.free();
+            fileDialogCallback = SDL_DialogFileCallback.create((userdata, filelist, filter) -> {
+                fileDialogOpen = false;
+                if (filelist == MemoryUtil.NULL) return;
+                // allowMany == false, so filelist holds a single null-terminated path
+                String chosen = MemoryUtil.memUTF8(MemoryUtil.memGetAddress(filelist));
+                if (chosen != null && !chosen.isEmpty()) {
+                    mc.execute(() -> {
+                        sourceField.setValue(chosen);
+                        statusMessage = Component.literal("File selected, press Apply").withStyle(ChatFormatting.GRAY);
+                    });
+                }
+            });
+
+            fileDialogOpen = true;
+            SDLDialog.SDL_ShowOpenFileDialog(fileDialogCallback, MemoryUtil.NULL, mc.getWindow().handle(), filters, (CharSequence) null, false);
+        } catch (Throwable ignored) {
+            fileDialogOpen = false;
+        }
+    }
+
+    @Override
+    public void removed() {
+        super.removed();
+        if (fileDialogCallback != null && !fileDialogOpen) {
+            fileDialogCallback.free();
+            fileDialogCallback = null;
+        }
     }
 
     //actions

@@ -60,7 +60,7 @@ public class PacketLogger {
         if (module.logSigns.getValue() && packet instanceof ServerboundSignUpdatePacket p) {
             packetName = "Update Sign Packet";
             extraData = String.format(" [Lines: %s, %s, %s, %s]",
-                    p.getLines()[0], p.getLines()[1], p.getLines()[2], p.getLines()[3]);
+                    p.lines().get(0), p.lines().get(1), p.lines().get(2), p.lines().get(3));
         }
 
         if (packetName == null) return;

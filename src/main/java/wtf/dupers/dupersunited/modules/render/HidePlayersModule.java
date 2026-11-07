@@ -5,7 +5,7 @@ import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.api.module.settings.BindSetting;
 import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.FloatSetting;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class HidePlayersModule extends Module {
     public final BooleanSetting hideAll = register(new BooleanSetting("HideAll", true));
@@ -13,6 +13,6 @@ public class HidePlayersModule extends Module {
 
     public HidePlayersModule() {
         super("HidePlayers", "Hides other players.", Category.render);
-        this.register(new BindSetting("Keybind", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("Keybind", InputConstants.UNKNOWN.getValue()).linkedTo(this));
     }
 }

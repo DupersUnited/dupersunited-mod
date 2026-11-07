@@ -14,7 +14,7 @@ import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
 import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
 import net.minecraft.network.protocol.game.*;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,11 +26,11 @@ public class PacketDelayModule extends Module {
     private boolean lastMasterState = false;
     private boolean selectiveMode = false;
 
-    public static final BindSetting blinkBind = new BindSetting("DelayPackets", GLFW.GLFW_KEY_F7);
+    public static final BindSetting blinkBind = new BindSetting("DelayPackets", InputConstants.KEY_F7);
 
     public PacketDelayModule() {
         super("DelayPackets", "Let's you customize which packets get disabled.", Category.glitcha);
-        this.register(new BindSetting("GUI Key", GLFW.GLFW_KEY_UNKNOWN).linkedTo(this));
+        this.register(new BindSetting("GUI Key", InputConstants.UNKNOWN.getValue()).linkedTo(this));
         this.register(blinkBind);
 
         // movement packets
@@ -49,7 +49,7 @@ public class PacketDelayModule extends Module {
         addPacket("InteractBlock", ServerboundUseItemOnPacket.class);
         addPacket("InteractEntity", ServerboundInteractPacket.class);
         addPacket("InteractItem", ServerboundUseItemPacket.class);
-        addPacket("HandSwing", ServerboundSwingPacket.class);
+        addPacket("HandSwing", ServerboundPunchPacket.class);
         addPacket("ClientCommand", ServerboundClientCommandPacket.class);
         addPacket("UpdateSlot", ServerboundSetCarriedItemPacket.class);
 

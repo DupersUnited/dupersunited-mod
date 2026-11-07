@@ -6,7 +6,7 @@ import wtf.dupers.dupersunited.features.glitchutils.PacketPauseManager;
 import wtf.dupers.dupersunited.modules.glitcha.PacketDelayModule;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -14,7 +14,7 @@ public class PacketPauseKeybind extends Keybind {
     public static long blinkStartTime = 0;
 
     public PacketPauseKeybind() {
-        super("Delay Packets", GLFW.GLFW_KEY_F7);
+        super("Delay Packets", InputConstants.KEY_F7);
     }
 
     @Override
@@ -68,9 +68,8 @@ public class PacketPauseKeybind extends Keybind {
     }
 
     private static boolean isShiftDown() {
-        long window = mc.getWindow().handle();
-        return GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS
-                || GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
+        return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
     }
 
     public static void handleCancel() {

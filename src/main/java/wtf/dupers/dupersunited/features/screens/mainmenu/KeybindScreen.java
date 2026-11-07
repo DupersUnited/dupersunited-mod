@@ -18,7 +18,6 @@ import wtf.dupers.dupersunited.api.keybind.Keybind;
 import wtf.dupers.dupersunited.keybinds.KeybindManager;
 import wtf.dupers.dupersunited.features.screens.ui.DuScreen;
 import wtf.dupers.dupersunited.api.module.Module;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.*;
 
@@ -207,9 +206,9 @@ public class KeybindScreen extends DuScreen {
                     }
                 ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
-                if (module.getKeybind() != GLFW.GLFW_KEY_UNKNOWN && !listening) {
+                if (module.getKeybind() != InputConstants.UNKNOWN.getValue() && !listening) {
                     this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
-                        module.setKeybind(GLFW.GLFW_KEY_UNKNOWN);
+                        module.setKeybind(InputConstants.UNKNOWN.getValue());
                         ConfigManager.save();
                         rebuildButtons();
                     }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
@@ -228,9 +227,9 @@ public class KeybindScreen extends DuScreen {
                     }
                 ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
-                if (keybind.getKeyCode() != GLFW.GLFW_KEY_UNKNOWN && !listening) {
+                if (keybind.getKeyCode() != InputConstants.UNKNOWN.getValue() && !listening) {
                     this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
-                        keybind.setKeyCode(GLFW.GLFW_KEY_UNKNOWN);
+                        keybind.setKeyCode(InputConstants.UNKNOWN.getValue());
                         ConfigManager.save();
                         rebuildButtons();
                     }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
@@ -249,9 +248,9 @@ public class KeybindScreen extends DuScreen {
                     }
                 ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
-                if (key != GLFW.GLFW_KEY_UNKNOWN && !listening) {
+                if (key != InputConstants.UNKNOWN.getValue() && !listening) {
                     this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
-                        //saveMacroKey(name, GLFW.GLFW_KEY_UNKNOWN);
+                        //saveMacroKey(name, InputConstants.UNKNOWN.getValue());
                         init();
                     }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
@@ -269,9 +268,9 @@ public class KeybindScreen extends DuScreen {
                     }
                 ).bounds(btnX, btnY, BTN_WIDTH, BTN_HEIGHT).build());
 
-                if (key != GLFW.GLFW_KEY_UNKNOWN && !listening) {
+                if (key != InputConstants.UNKNOWN.getValue() && !listening) {
                     this.addRenderableWidget(Button.builder(Component.literal("x").withStyle(ChatFormatting.RED), _ -> {
-                        ChatMacroManager.rebind(name, GLFW.GLFW_KEY_UNKNOWN);
+                        ChatMacroManager.rebind(name, InputConstants.UNKNOWN.getValue());
                         init();
                     }).bounds(clearX, btnY, 18, BTN_HEIGHT).build());
                 }
@@ -292,7 +291,7 @@ public class KeybindScreen extends DuScreen {
         if (isListening()) {
             int mx = (int) click.x();
             int my = (int) click.y();
-            int button = click.button();
+            int button = KeybindManager.mouse(click.button());
             boolean insidePanel = mx >= panelLeft() && mx <= panelRight()
                 && my >= START_Y && my <= panelBottom();
 
@@ -328,7 +327,7 @@ public class KeybindScreen extends DuScreen {
     public boolean keyPressed(@NonNull KeyEvent input) {
         if (listeningModule != null) {
             int keyCode = input.key();
-            listeningModule.setKeybind(keyCode == GLFW.GLFW_KEY_ESCAPE ? GLFW.GLFW_KEY_UNKNOWN : keyCode);
+            listeningModule.setKeybind(keyCode == InputConstants.KEY_ESCAPE ? InputConstants.UNKNOWN.getValue() : keyCode);
             ConfigManager.save();
             listeningModule = null;
             rebuildButtons();
@@ -336,7 +335,7 @@ public class KeybindScreen extends DuScreen {
         }
         if (listeningKeybind != null) {
             int keyCode = input.key();
-            listeningKeybind.setKeyCode(keyCode == GLFW.GLFW_KEY_ESCAPE ? GLFW.GLFW_KEY_UNKNOWN : keyCode);
+            listeningKeybind.setKeyCode(keyCode == InputConstants.KEY_ESCAPE ? InputConstants.UNKNOWN.getValue() : keyCode);
             ConfigManager.save();
             listeningKeybind = null;
             rebuildButtons();
@@ -345,7 +344,7 @@ public class KeybindScreen extends DuScreen {
         if (listeningChatMacro != null) {
             int keyCode = input.key();
             ChatMacroManager.rebind(listeningChatMacro,
-                keyCode == GLFW.GLFW_KEY_ESCAPE ? GLFW.GLFW_KEY_UNKNOWN : keyCode);
+                keyCode == InputConstants.KEY_ESCAPE ? InputConstants.UNKNOWN.getValue() : keyCode);
             listeningChatMacro = null;
             init();
             return true;
@@ -392,7 +391,7 @@ public class KeybindScreen extends DuScreen {
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
                     listening ? value : text);
 
-                boolean hasBind = module.getKeybind() != GLFW.GLFW_KEY_UNKNOWN;
+                boolean hasBind = module.getKeybind() != InputConstants.UNKNOWN.getValue();
                 graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
                     listening ? value : hasBind ? accent : edge);
@@ -411,7 +410,7 @@ public class KeybindScreen extends DuScreen {
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
                     listening ? value : text);
 
-                boolean hasBind = keybind.getKeyCode() != GLFW.GLFW_KEY_UNKNOWN;
+                boolean hasBind = keybind.getKeyCode() != InputConstants.UNKNOWN.getValue();
                 graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
                     listening ? value : hasBind ? accent : edge);
@@ -430,7 +429,7 @@ public class KeybindScreen extends DuScreen {
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
                     listening ? value : text);
 
-                boolean hasBind = key != GLFW.GLFW_KEY_UNKNOWN;
+                boolean hasBind = key != InputConstants.UNKNOWN.getValue();
                 graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
                     listening ? value : hasBind ? accent : edge);
@@ -449,7 +448,7 @@ public class KeybindScreen extends DuScreen {
                     panelLeft() + 10, y + (ROW_HEIGHT - 9) / 2,
                     listening ? value : text);
 
-                boolean hasBind = key != GLFW.GLFW_KEY_UNKNOWN;
+                boolean hasBind = key != InputConstants.UNKNOWN.getValue();
                 graphics.fill(panelLeft() + 3, y + ROW_HEIGHT / 2 - 2,
                     panelLeft() + 5, y + ROW_HEIGHT / 2 + 2,
                     listening ? value : hasBind ? accent : edge);
@@ -476,30 +475,7 @@ public class KeybindScreen extends DuScreen {
 
 
     private Component getKeyText(int key) {
-        if (key == GLFW.GLFW_KEY_UNKNOWN) return Component.literal("unbound").withStyle(ChatFormatting.WHITE);
-        if (key >= GLFW.GLFW_MOUSE_BUTTON_1 && key <= GLFW.GLFW_MOUSE_BUTTON_LAST) {
-            String name = switch (key) {
-                case GLFW.GLFW_MOUSE_BUTTON_LEFT -> "MOUSE LEFT";
-                case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> "MOUSE RIGHT";
-                case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> "MOUSE MIDDLE";
-                default -> "MOUSE " + (key + 1);
-            };
-            return Component.literal(name);
-        }
-
-        if (key < 0) {
-            int btn = (-key) - 100;
-            if (btn >= GLFW.GLFW_MOUSE_BUTTON_1 && btn <= GLFW.GLFW_MOUSE_BUTTON_LAST) {
-                String name = switch (btn) {
-                    case GLFW.GLFW_MOUSE_BUTTON_LEFT -> "MOUSE LEFT";
-                    case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> "MOUSE RIGHT";
-                    case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> "MOUSE MIDDLE";
-                    default -> "MOUSE " + (btn + 1);
-                };
-                return Component.literal(name);
-            }
-            return Component.literal("UNKNOWN");
-        }
-        return Component.literal(InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString().toUpperCase());
+        if (key == InputConstants.UNKNOWN.getValue()) return Component.literal("unbound").withStyle(ChatFormatting.WHITE);
+        return Component.literal(KeybindManager.name(key));
     }
 }

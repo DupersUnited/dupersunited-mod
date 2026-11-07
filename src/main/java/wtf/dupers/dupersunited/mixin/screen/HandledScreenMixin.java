@@ -1,7 +1,7 @@
 package wtf.dupers.dupersunited.mixin.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.ContainerInput;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
@@ -46,7 +46,7 @@ public abstract class HandledScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void dupersunited$keyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (event.input() == 256) {
+        if (event.input() == InputConstants.KEY_ESCAPE) {
             return;
         }
 

@@ -8,7 +8,8 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.features.chatmacros.*;
-import org.lwjgl.glfw.GLFW;
+import wtf.dupers.dupersunited.keybinds.KeybindManager;
+import com.mojang.blaze3d.platform.InputConstants;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacro;
 import wtf.dupers.dupersunited.features.chatmacros.ChatMacroManager;
 import wtf.dupers.dupersunited.features.chatmacros.MacroMessage;
@@ -21,7 +22,6 @@ import static wtf.dupers.dupersunited.utils.ColorUtil.*;
 public class ChatMacroConfigScreen extends Screen {
     private static final int FOCUS_NONE = -2;
     private static final int FOCUS_NAME = -1;
-    private static final int MOUSE_OFFSET = 100;
 
     private final Screen parent;
     private final ChatMacro macro;
@@ -50,9 +50,8 @@ public class ChatMacroConfigScreen extends Screen {
     }
 
     private boolean isCtrlDown() {
-        long handle = mc.getWindow().handle();
-        return GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
-            GLFW.glfwGetKey(handle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+        return InputConstants.isKeyDown(InputConstants.KEY_LCONTROL)
+            || InputConstants.isKeyDown(InputConstants.KEY_RCONTROL);
     }
 
     private boolean hasSelection() {
@@ -166,13 +165,13 @@ public class ChatMacroConfigScreen extends Screen {
     public boolean keyPressed(KeyEvent input) {
         int key = input.input();
         if (rebinding) {
-            this.keyCode = (key == GLFW.GLFW_KEY_ESCAPE) ? GLFW.GLFW_KEY_UNKNOWN : key;
+            this.keyCode = (key == InputConstants.KEY_ESCAPE) ? InputConstants.UNKNOWN.getValue() : key;
             rebinding = false;
             return true;
         }
 
         if (focusIdx >= 0 && focusDelay) {
-            if (key == GLFW.GLFW_KEY_BACKSPACE) {
+            if (key == InputConstants.KEY_BACKSPACE) {
                 MacroMessage m = messages.get(focusIdx);
                 String s = String.valueOf(m.getDelayMs());
                 int newDelay = (s.length() > 1) ? Integer.parseInt(s.substring(0, s.length() - 1)) : 0;
@@ -185,16 +184,16 @@ public class ChatMacroConfigScreen extends Screen {
             String cur = getCurrentText();
             boolean ctrl = isCtrlDown();
 
-            if (ctrl && key == GLFW.GLFW_KEY_A) {
+            if (ctrl && key == InputConstants.KEY_A) {
                 selectionAnchor = 0;
                 cursorPos = cur.length();
                 return true;
             }
-            if (ctrl && key == GLFW.GLFW_KEY_C) {
+            if (ctrl && key == InputConstants.KEY_C) {
                 if (hasSelection()) mc.keyboardHandler.setClipboard(cur.substring(selStart(), selEnd()));
                 return true;
             }
-            if (ctrl && key == GLFW.GLFW_KEY_V) {
+            if (ctrl && key == InputConstants.KEY_V) {
                 String cb = mc.keyboardHandler.getClipboard();
                 if (cb != null && !cb.isEmpty()) {
                     if (hasSelection()) deleteSelection();
@@ -205,7 +204,7 @@ public class ChatMacroConfigScreen extends Screen {
                 }
                 return true;
             }
-            if (key == GLFW.GLFW_KEY_BACKSPACE) {
+            if (key == InputConstants.KEY_BACKSPACE) {
                 if (hasSelection()) deleteSelection();
                 else if (cursorPos > 0) {
                     updateCurrentText(cur.substring(0, cursorPos - 1) + cur.substring(cursorPos));
@@ -213,19 +212,19 @@ public class ChatMacroConfigScreen extends Screen {
                 }
                 return true;
             }
-            if (key == GLFW.GLFW_KEY_LEFT) {
+            if (key == InputConstants.KEY_LEFT) {
                 if (hasSelection()) { cursorPos = selStart(); clearSelection(); }
                 else if (cursorPos > 0) cursorPos--;
                 return true;
             }
-            if (key == GLFW.GLFW_KEY_RIGHT) {
+            if (key == InputConstants.KEY_RIGHT) {
                 if (hasSelection()) { cursorPos = selEnd(); clearSelection(); }
                 else if (cursorPos < cur.length()) cursorPos++;
                 return true;
             }
         }
 
-        if (key == GLFW.GLFW_KEY_ESCAPE) { save(); mc.gui.setScreen(parent); return true; }
+        if (key == InputConstants.KEY_ESCAPE) { save(); mc.gui.setScreen(parent); return true; }
         return super.keyPressed(input);
     }
 
@@ -258,10 +257,7 @@ public class ChatMacroConfigScreen extends Screen {
     }
 
     private String getBindName(int code) {
-        if (code == GLFW.GLFW_KEY_UNKNOWN || code == 0) return "NONE";
-        if (code <= -MOUSE_OFFSET) return "MB" + (code + MOUSE_OFFSET);
-        String n = GLFW.glfwGetKeyName(code, 0);
-        return (n != null) ? n.toUpperCase() : "K" + code;
+        return KeybindManager.name(code);
     }
 
     @Override
@@ -272,7 +268,7 @@ public class ChatMacroConfigScreen extends Screen {
 
         if (rebinding) {
             if (System.currentTimeMillis() - rebindStartTime > 100) {
-                this.keyCode = -(click.button() + MOUSE_OFFSET);
+                this.keyCode = KeybindManager.mouse(click.button());
                 rebinding = false;
                 return true;
             }
