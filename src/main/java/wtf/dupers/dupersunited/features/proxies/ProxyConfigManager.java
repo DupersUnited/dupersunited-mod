@@ -27,16 +27,20 @@ public class ProxyConfigManager {
 
     public static CompletableFuture<Void> load() {
         return AsyncConfigs.load(ConfigData.class, FILE, "proxy configs").thenAccept(data -> {
+            if (data == null) {
+                return;
+            }
             globalEnabled = data.globalEnabled;
             proxyWarningEnabled = data.proxyWarningEnabled;
-            activeProfileName = data.activeProfileName;
+            activeProfileName = data.activeProfileName != null ? data.activeProfileName : "";
             profiles = data.profiles != null ? data.profiles : new ArrayList<>();
             customAccountPaths = data.customAccountPaths != null ? data.customAccountPaths : new ArrayList<>();
 
             Map<String, ProxyProfiles> seen = new LinkedHashMap<>();
             for (ProxyProfiles p : profiles) {
-                seen.putIfAbsent(p.name.toLowerCase(Locale.ROOT), p);
-                MainClient.LOGGER.info("Removed {} as it's a duplicate proxy.", p.name);
+                if (seen.putIfAbsent(p.name.toLowerCase(Locale.ROOT), p) != null) {
+                    MainClient.LOGGER.info("Removed {} as it's a duplicate proxy.", p.name);
+                }
             }
             profiles = new ArrayList<>(seen.values());
         });

@@ -10,6 +10,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.DeathScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.dialog.DialogScreen;
 import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -366,6 +367,7 @@ public class GuiEvent {
                 || screen instanceof SignEditScreen
                 || screen instanceof BookViewScreen
                 || screen instanceof BookEditScreen
-                || screen instanceof DeathScreen;
+                || screen instanceof DeathScreen
+                || screen instanceof DialogScreen<?>;
     }
 }

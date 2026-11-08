@@ -16,6 +16,7 @@ public class AddAccountScreen extends DuScreen {
     private final AccountsScreen accounts;
     private final boolean offline;
     private EditBox field;
+    private EditBox quantityField;
     private Component status = Component.empty();
 
     public AddAccountScreen(AccountsScreen parent, boolean offline) {
@@ -45,6 +46,28 @@ public class AddAccountScreen extends DuScreen {
             Component.literal("Back"),
             _ -> goBack()
         ).bounds(x + 125, y + 62, 95, 20).build());
+
+        if (offline) {
+            String qty = quantityField != null ? quantityField.getValue() : "1";
+            quantityField = new EditBox(this.font, x + 20, y + 100, 95, 20, Component.literal("Amount"));
+            quantityField.setMaxLength(3);
+            quantityField.setHint(Component.literal("Amount (1-100)").withStyle(ChatFormatting.DARK_GRAY));
+            quantityField.setValue(qty);
+            this.addRenderableWidget(quantityField);
+
+            this.addRenderableWidget(Button.builder(
+                Component.literal("Generate"),
+                _ -> submitRandom()
+            ).bounds(x + 125, y + 100, 95, 20).build());
+
+            this.addRenderableWidget(Button.builder(
+                Component.literal("Name style: " + (OfflineAccountManager.nameMode == OfflineAccountManager.NameMode.CHARS ? "Random chars" : "Fake names")),
+                b -> {
+                    OfflineAccountManager.cycleNameMode();
+                    b.setMessage(Component.literal("Name style: " + (OfflineAccountManager.nameMode == OfflineAccountManager.NameMode.CHARS ? "Random chars" : "Fake names")));
+                }
+            ).bounds(x + 20, y + 124, 200, 20).build());
+        }
 
         this.setFocused(field);
     }
@@ -95,13 +118,23 @@ public class AddAccountScreen extends DuScreen {
         accounts.addOfflineAccount(name, this::goBack);
     }
 
+    private void submitRandom() {
+        int qty = 1;
+        try {
+            qty = Math.clamp(Integer.parseInt(quantityField.getValue().trim()), 1, 100);
+        } catch (NumberFormatException ignored) {}
+        for (int i = 0; i < qty; i++) OfflineAccountManager.createRandom();
+        status = Component.literal("Added " + qty + " random account" + (qty == 1 ? "" : "s")).withStyle(ChatFormatting.YELLOW);
+        accounts.refreshAccounts(this::goBack);
+    }
+
     @Override
     public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         drawStructure(graphics, mouseX, mouseY);
 
         int x0 = this.width / 2 - 120;
         int y0 = this.height / 2 - 60;
-        Ui.box(graphics, x0, y0, 240, 120, header, edge);
+        Ui.box(graphics, x0, y0, 240, offline ? 190 : 120, header, edge);
         graphics.centeredText(
             this.font,
             Component.literal(offline ? "Add offline account" : "Add access token"),
@@ -109,8 +142,17 @@ public class AddAccountScreen extends DuScreen {
             y0 + 14,
             secondary
         );
+        if (offline) {
+            graphics.centeredText(
+                this.font,
+                Component.literal("or generate random accounts"),
+                this.width / 2,
+                y0 + 88,
+                dim
+            );
+        }
         if (!status.getString().isEmpty()) {
-            graphics.centeredText(this.font, status, this.width / 2, y0 + 90, text);
+            graphics.centeredText(this.font, status, this.width / 2, offline ? y0 + 152 : y0 + 90, text);
         }
 
         super.extractRenderState(graphics, mouseX, mouseY, delta);

@@ -374,6 +374,10 @@ public class AccountsScreen extends DuScreen {
 
     void addOfflineAccount(String name, Runnable done) {
         OfflineAccountManager.create(name);
+        refreshAccounts(done);
+    }
+
+    void refreshAccounts(Runnable done) {
         loadAccounts(() -> {
             applyFilter();
             rebuildList();

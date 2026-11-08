@@ -9,6 +9,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -96,7 +97,10 @@ public final class MeteorCompat {
             }
 
             Method modules_getActive_Method = modulesClass.getDeclaredMethod("getActive");
-            List<?> activeModules = (List<?>) modules_getActive_Method.invoke(modules);
+            Collection<?> activeModules = (Collection<?>) modules_getActive_Method.invoke(modules);
+            if (activeModules == null || activeModules.isEmpty()) {
+                return false;
+            }
 
             Class<?> moduleClass = Class.forName("meteordevelopment.meteorclient.systems.modules.Module");
             Field module_category_Field = moduleClass.getDeclaredField("category");
