@@ -7,8 +7,8 @@ import wtf.dupers.dupersunited.api.module.Category;
 import wtf.dupers.dupersunited.api.module.Module;
 import wtf.dupers.dupersunited.features.glitchutils.SaveGuiManager;
 import wtf.dupers.dupersunited.features.ServerInviteManager;
-import wtf.dupers.dupersunited.features.macrogui.MacroManager;
-import wtf.dupers.dupersunited.modules.glitcha.MacroGuiSettingsModule;
+import wtf.dupers.dupersunited.features.macros.MacroManager;
+import wtf.dupers.dupersunited.modules.glitcha.MacroSettingsModule;
 import wtf.dupers.dupersunited.modules.glitcha.TpsCounterModule;
 import wtf.dupers.dupersunited.modules.render.HudModule;
 import wtf.dupers.dupersunited.modules.render.WatermarkModule;
@@ -49,11 +49,11 @@ public final class HudOverlay {
                 });
             }
 
-            MacroGuiSettingsModule macroSettings = MainClient.MODULE_MANAGER.getModule(MacroGuiSettingsModule.class);
+            MacroSettingsModule macroSettings = MainClient.MODULE_MANAGER.getModule(MacroSettingsModule.class);
             boolean macroRunning = MacroManager.isRunning();
             if (macroRunning || (macroSettings != null && macroSettings.alwaysShowHudSetting.getValue())) {
                 drawScaled(graphics, HudEditorScreen.MACRO, () -> {
-                    Component l1 = Component.literal("Active GUI Macro").withStyle(ChatFormatting.LIGHT_PURPLE);
+                    Component l1 = Component.literal("Active Macro").withStyle(ChatFormatting.LIGHT_PURPLE);
                     Component l2 = macroRunning
                         ? Component.literal("> ").withStyle(ChatFormatting.DARK_GRAY)
                         .append(Component.literal(MacroManager.getRunningName()).withStyle(ChatFormatting.DARK_PURPLE))

@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.features.ConfigManager;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.features.glitchutils.SaveGuiManager;
-import wtf.dupers.dupersunited.features.macrogui.MacroManager;
+import wtf.dupers.dupersunited.features.macros.MacroManager;
 import wtf.dupers.dupersunited.features.screens.TPSDisplay;
 import wtf.dupers.dupersunited.modules.glitcha.TpsCounterModule;
 import wtf.dupers.dupersunited.modules.render.HudModule;
@@ -176,7 +176,7 @@ public class HudEditorScreen extends Screen {
                 return (wm != null && wm.isEnabled()) ? wm.watermarkText.getValue().replace('&', '§') : ChatFormatting.GRAY + "Watermark " + ChatFormatting.DARK_GRAY + "(disabled)";
             }
             case "Macro": {
-                return MacroManager.isRunning() ? ChatFormatting.LIGHT_PURPLE + "Active Macro: " + ChatFormatting.DARK_PURPLE + MacroManager.getRunningName() : ChatFormatting.LIGHT_PURPLE + "Active GUI Macro";
+                return MacroManager.isRunning() ? ChatFormatting.LIGHT_PURPLE + "Active Macro: " + ChatFormatting.DARK_PURPLE + MacroManager.getRunningName() : ChatFormatting.LIGHT_PURPLE + "Active Macro";
             }
             case "Saved GUI": {
                 return (SaveGuiManager.savedScreen != null) ? ChatFormatting.LIGHT_PURPLE + "Saved: " + (SaveGuiManager.deadGui ? ChatFormatting.RED : ChatFormatting.DARK_AQUA) + SaveGuiManager.guiName : ChatFormatting.LIGHT_PURPLE + "Saved GUI";

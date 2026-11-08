@@ -5,7 +5,7 @@ import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import wtf.dupers.dupersunited.MainClient;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import wtf.dupers.dupersunited.modules.misc.PropagandaModule;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,7 +18,7 @@ public abstract class ScreenMixin extends AbstractContainerEventHandler {
 
     @Inject(method = "init", at = @At("HEAD"))
     private void onInit(CallbackInfo ci) {
-        GuiMacro.getInstance().checkScreen((Screen)(Object)this);
+        Macros.getInstance().checkScreen((Screen)(Object)this);
     }
 
     /* Propaganda Module */

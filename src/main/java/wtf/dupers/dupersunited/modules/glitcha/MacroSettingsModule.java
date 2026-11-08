@@ -8,14 +8,13 @@ import wtf.dupers.dupersunited.api.module.settings.BooleanSetting;
 import wtf.dupers.dupersunited.api.module.settings.FloatSetting;
 import wtf.dupers.dupersunited.api.module.settings.StringSetting;
 import wtf.dupers.dupersunited.commands.MainCommand;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
-public class MacroGuiSettingsModule extends Module {
+public class MacroSettingsModule extends Module {
     public final FloatSetting firstClickDelaySetting = register(new FloatSetting("FirstClickDelay", 500f, 1f, 1000f));
     public final FloatSetting clickIntervalSetting = register(new FloatSetting("ClickInterval", 250f, 1f, 1000f));
-    public final BooleanSetting isLoopingSetting = register(new BooleanSetting("Looping", false));
 
     // GUI Controls
     public final StringSetting recordNameSetting = register(new StringSetting("Record Name", "macro"));
@@ -32,8 +31,8 @@ public class MacroGuiSettingsModule extends Module {
     private long lastRecordTime = 0;
     private static final long RECORD_COOLDOWN_MS = 1000;
 
-    public MacroGuiSettingsModule() {
-        super("MacroGuiSettings", "Allows you to change the settings of the Macro GUI command.", Category.glitcha);
+    public MacroSettingsModule() {
+        super("MacroSettings", "Allows you to change the settings of macros.", Category.glitcha);
     }
 
     private void startAutoRecord() {
@@ -45,9 +44,9 @@ public class MacroGuiSettingsModule extends Module {
 
         String baseName = recordNameSetting.getValue();
         String targetGui = recordGuiSetting.getValue();
-        String uniqueName = GuiMacro.getInstance().getUniqueMacroName(baseName);
+        String uniqueName = Macros.getInstance().getUniqueMacroName(baseName);
 
-        GuiMacro.getInstance().prepareRecording(uniqueName, targetGui);
+        Macros.getInstance().prepareRecording(uniqueName, targetGui);
 
         MainCommand.sendMessage(Component.literal("Recording macro ")
             .append(Component.literal(uniqueName).withStyle(ChatFormatting.AQUA))

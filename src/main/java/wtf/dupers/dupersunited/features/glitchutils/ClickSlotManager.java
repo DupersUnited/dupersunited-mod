@@ -5,7 +5,7 @@ import net.minecraft.network.HashedStack;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 
 import static wtf.dupers.dupersunited.MainClient.mc;
 
@@ -25,18 +25,15 @@ public class ClickSlotManager {
         long now = System.currentTimeMillis();
         if (now < nextClickTime) return;
 
-        AbstractContainerMenu handler = (mc.player.containerMenu != null)
-            ? mc.player.containerMenu
-            : mc.player.inventoryMenu;
 
-        if (slot < 0 || slot >= handler.slots.size()) {
+        if (slot < 0 || slot >= mc.player.containerMenu.slots.size()) {
             running = false;
             return;
         }
 
         ServerboundContainerClickPacket packet = new ServerboundContainerClickPacket(
-            handler.containerId,
-            handler.getStateId(),
+            mc.player.containerMenu.containerId,
+            mc.player.containerMenu.getStateId(),
             (short) slot,
             (byte) 0,
             ContainerInput.PICKUP,
@@ -59,7 +56,10 @@ public class ClickSlotManager {
         nextClickTime = System.currentTimeMillis();
         running = true;
 
-        GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.clickSlotSpam(s, count, d));
+        Macros macros = Macros.getInstance();
+        for (int i = 0; i < Math.max(0, count); i++) {
+            macros.recordAction(Macros.MacroAction.click(s, ContainerInput.PICKUP, 0));
+        }
     }
 
     public static void stop() {

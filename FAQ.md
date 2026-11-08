@@ -28,16 +28,16 @@ You have to open the ClickGUI, click on "Delay Packets", you can customize which
 
 If you're confused, refer to the GIF above.
 
-## How do I use MacroGUI?
-MacroGUI lets you record actions you perform inside a GUI and play them back later.
+## How do I use Macros?
+Macros lets you record actions you perform and play them back later.
 
-### Recording a GUI Macro
+### Recording a Macro
 
 There are two ways to start recording a macro:
 
 > Use a keybind you've assigned to Record Macro.
 >
-> Run /du macrogui record (name) (gui title).
+> Run /du macro record (name) (gui title).
 
 Once recording starts, you'll be notified in-game. From there, you can perform any actions you want to include in the macro, such as:
 
@@ -53,17 +53,17 @@ Once recording starts, you'll be notified in-game. From there, you can perform a
 
 Everything you do while recording will be saved to the macro. (*saved in DupersUnited/macros/*)
 
-<img width="600" height="350" alt="recordmacrogui" src="assets/recordmacrogui.gif" />
+<img width="600" height="350" alt="recordmacro" src="assets/recordmacrogui.gif" />
 
 
-When you're finished, click the End Recording button or run /du macrogui finish
+When you're finished, click the End Recording button or run /du macro finish
 
 
-### Using the GUI Macro
+### Using Macros
 
-Once you've recorded a macro, you can run it in two ways, by running /du macrogui run (name) or by assigning the macro to a keybind and press the assigned key.
+Once you've recorded a macro, you can run it in two ways, by running /du macro run (name) or by assigning the macro to a keybind and press the assigned key.
 
-<img width="600" height="350" alt="runmacrogui" src="assets/runmacrogui.gif" />
+<img width="600" height="350" alt="runmacro" src="assets/runmacrogui.gif" />
 
 ## What is a proxy?
 A proxy is a server that acts as an intermediary between your device and the internet. It routes your traffic while hiding your IP address.

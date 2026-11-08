@@ -1,12 +1,7 @@
 package wtf.dupers.dupersunited.keybinds;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import wtf.dupers.dupersunited.MainClient;
 import wtf.dupers.dupersunited.api.keybind.Keybind;
-import wtf.dupers.dupersunited.commands.MainCommand;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
-import wtf.dupers.dupersunited.features.macrogui.MacroManager;
 import wtf.dupers.dupersunited.features.screens.ClickGui;
 import wtf.dupers.dupersunited.features.screens.mainmenu.KeybindScreen;
 import wtf.dupers.dupersunited.api.module.Module;

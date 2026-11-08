@@ -3,7 +3,7 @@ package wtf.dupers.dupersunited.mixin.network;
 import com.mojang.brigadier.tree.RootCommandNode;
 import wtf.dupers.dupersunited.commands.subcommands.NewCommandsCommand;
 import wtf.dupers.dupersunited.features.glitchutils.PluginScanner;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import wtf.dupers.dupersunited.features.screens.TPSDisplay;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ClientSuggestionProvider;
@@ -50,11 +50,11 @@ public class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "sendChat(Ljava/lang/String;)V", at = @At("HEAD"))
     private void dupersunited$onSendChat(String message, CallbackInfo ci) {
-        GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.sendChat(message));
+        Macros.getInstance().recordAction(Macros.MacroAction.sendChat(message));
     }
 
     @Inject(method = "sendCommand(Ljava/lang/String;)V", at = @At("HEAD"))
     private void dupersunited$onSendCommand(String command, CallbackInfo ci) {
-        GuiMacro.getInstance().recordAction(GuiMacro.MacroAction.sendCommand(command));
+        Macros.getInstance().recordAction(Macros.MacroAction.sendCommand(command));
     }
 }

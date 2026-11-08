@@ -3,7 +3,7 @@ package wtf.dupers.dupersunited.mixin.network;
 import wtf.dupers.dupersunited.features.glitchutils.PacketLogger;
 import wtf.dupers.dupersunited.commands.MainCommand;
 import wtf.dupers.dupersunited.MainClient;
-import wtf.dupers.dupersunited.features.macrogui.GuiMacro;
+import wtf.dupers.dupersunited.features.macros.Macros;
 import wtf.dupers.dupersunited.modules.render.FreecamModule;
 import wtf.dupers.dupersunited.api.module.Module;
 import io.netty.channel.ChannelHandlerContext;
@@ -68,8 +68,8 @@ public class ClientConnectionMixin {
 
         if (packet instanceof ClientboundContainerClosePacket || packet instanceof ClientboundOpenScreenPacket) {
             mc.execute(() -> {
-                if (GuiMacro.getInstance().isRecording) {
-                    GuiMacro.getInstance().registerCloseGui();
+                if (Macros.getInstance().isRecording) {
+                    Macros.getInstance().registerCloseGui();
                 }
                 if (!deadGui && savedScreen != null) {
                     deadGui = true;
