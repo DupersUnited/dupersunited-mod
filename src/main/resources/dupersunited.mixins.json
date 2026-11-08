@@ -32,6 +32,7 @@
     "network.ClientPlayNetworkHandlerMixin",
     "network.ProxyChannelMixin",
     "network.ResourcePackBypassMixin",
+    "network.ConfigurationNetworkHandlerMixin",
     "render.AbstractBlockStateMixin",
     "render.CameraMixin",
     "render.EntityRendererMixin",
