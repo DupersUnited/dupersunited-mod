@@ -134,14 +134,14 @@ public class ProxyScreen extends DuScreen {
     }
 
     private EditBox field(int x, int y, String hint, String value) {
-        int maxLen = 16;//set to 16 for now instead of 64
+        int maxLen = 64;//set to 16 for now instead of 64 <- reverted; temp fix gone wrong
         EditBox f = new EditBox(this.font, x, y, 95, 20, Component.literal(hint));
         f.setMaxLength(maxLen);
         f.setHint(Component.literal(hint));
         f.setValue(value);
         f.setResponder(text -> {
             if (f == nameField) {
-                String warningText = "You hit character limit for Proxy Names (" + maxLen + " characters)! Maybe name it something else?";
+                String warningText = "You hit character limit for naming this proxy (" + maxLen + " characters)! Maybe name it something else?";
                 if (text.length() >= maxLen) {
                     errorMessage = Component.literal(warningText).withStyle(ChatFormatting.RED);
                 } else if (errorMessage.getString().equals(warningText)) {
